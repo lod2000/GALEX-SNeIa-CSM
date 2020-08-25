@@ -5,10 +5,15 @@ from functools import partial
 from functools import reduce
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
-# from corner import corner
+import sys
+import pandas as pd
+import numpy as np
+from pathlib import Path
 
-from utils import *
-from CSMmodel import CSMmodel
+from utils.utils import *
+from CSMmodel.CSMmodel import CSMmodel
+from utils.light_curve import LightCurve
+from utils.supernova import Supernova
 
 # Default values
 # BINS = [0, 100, 500, 2500]
@@ -20,8 +25,15 @@ WIDTH = 250 # days, from PTF11kx
 def main(iterations, overwrite=False, tstart_max=1000, scale_min=0.5, 
             scale_max=2., t_max=1500, bin_width=50, bin_height=0.1):
 
+    sys.path.insert(0, 'CSMmodel')
+    print(sys.path)
+
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     output_file = Path('out/recovery_%s.csv' % iterations)
+    
+    sn = Supernova('SN2007on')
+    times = sample_params(10, sn, 'NUV', 500, 700, 1, 1.1)
+    print(times)
 
     # supernovae = ['SN2007on', 'SN2010ai', 'SDSS-II SN 779', 'Hawk', 'HST04Sas']
     supernovae = sn_info.index.to_list()
@@ -163,11 +175,11 @@ def run_ir(iterations, supernovae, tstart_min, tstart_max, scale_min, scale_max,
     supernovae = sorted(list(supernovae) * 2)
 
     # Load progress file, if any
-    progress_file = Path('out/progress_%s.npy' % iterations)
-    if progress_file.is_file():
-        print('\nLoading previous progress file...')
-        recovered_times = list(np.load(progress_file, allow_pickle=True))
-        to_remove = [(rec['sn'], rec['band']) for rec in recovered_times]
+    # progress_file = Path('out/progress_%s.npy' % iterations)
+    # if progress_file.is_file():
+        # print('\nLoading previous progress file...')
+        # recovered_times = list(np.load(progress_file, allow_pickle=True))
+        # to_remove = [(rec['sn'], rec['band']) for rec in recovered_times]
 
     bands = ['FUV', 'NUV'] * len(supernovae)
 
@@ -181,7 +193,7 @@ def run_ir(iterations, supernovae, tstart_min, tstart_max, scale_min, scale_max,
         # Save to binary numpy file every 10 iterations (takes a long time)
         if i % 10 == 0 and i != 0:
             print('Saving progress...')
-            np.save(progress_file, np.array(recovered_times))
+            # np.save(progress_file, np.array(recovered_times))
             print('Progress saved.')
 
         # Plot histogram every 50 iterations
@@ -244,7 +256,7 @@ def sample_params(iterations, sn, band, tstart_min, tstart_max, scale_min, scale
     sample_times = []
 
     # Run injection-recovery in parallel for each sampled CSM parameter
-    with Pool(processes=5) as pool:
+    with Pool() as pool:
         func = partial(inject_recover, sn=sn, lc=lc)
         imap = pool.imap(func, params, chunksize=10)
         for times in tqdm(imap, total=params.shape[0]):
@@ -316,94 +328,12 @@ def recover_model(data):
     return recovered
 
 
-class LightCurve:
-    def __init__(self, sn, band):
-        self.band = band
-        self.data, self.bg, self.bg_err, self.sys_err = full_import_2(sn, band)
-
-    def __call__(self):
-        return self.data
-
-    @classmethod
-    def from_fname(self, fname):
-        sn_name, self.band = fname2sn(fname)
-        sn = Supernova(sn_name)
-        return LightCurve(sn, self.band)
-
-
-class Supernova:
-    def __init__(self, name, sn_info=[], fname='ref/sn_info.csv'):
-        """Initialize Supernova by importing reference file."""
-
-        if len(sn_info) == 0:
-            sn_info = pd.read_csv(Path(fname), index_col='name')
-
-        self.name = name
-        self.data = sn_info.loc[name].to_dict()
-
-        self.z = self.data['z']
-        self.z_err = self.data['z_err']
-        self.dist = self.data['pref_dist']
-        self.dist_err = self.data['pref_dist_err']
-        self.disc_date = Time(self.data['disc_date'], format='iso')
-        self.a_v = self.data['a_v']
-
-    def __call__(self, key=None):
-        """Return value associated with key."""
-
-        if key == None:
-            return self.data
-        return self.data[key]
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('iter', type=int, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true',
             help='Overwrite recovery rate output file')
-    # # tstart parameters
-    # parser.add_argument('--tmin', '-t0', default=0, type=int,
-    #         help='Minimum CSM model interaction start time, in days post-discovery')
-    # parser.add_argument('--tmax', '-t1', default=1000, type=int,
-    #         help='Maximum CSM model interaction start time, in days post-discovery')
-    # # parser.add_argument('--tstep', '-dt', default=100, type=int,
-    # #         help='Start time interation step in days')
-    # # twidth parameters
-    # parser.add_argument('--wmin', '-w0', default=100, type=int,
-    #         help='Minimum CSM plateau width in days')
-    # parser.add_argument('--wmax', '-w1', default=600, type=int,
-    #         help='Maximum CSM plateau width in days')
-    # parser.add_argument('--wstep', '-dw', default=100, type=int,
-    #         help='Plateau width interation step in days')
-    # # scale parameters
-    # parser.add_argument('--smin', '-w0', default=100, type=float,
-    #         help='Minimum CSM plateau width in days')
-    # parser.add_argument('--smax', '-w1', default=600, type=float,
-    #         help='Maximum CSM plateau width in days')
-    # # other parameters
-    # parser.add_argument('--decay', '-D', default=DECAY_RATE, 
-    #         type=float, help='Fractional decay rate per 100 days')
-    # # parser.add_argument('--scale', '-s', type=float, default=SCALE,
-    # #         help='Multiplicative scale factor for CSM model')
-    # parser.add_argument('--bins', '-b', type=int, nargs='+', default=BINS,
-    #         help='Epoch bin times for statistics, including upper bound')
-    # parser.add_argument('--detections', '-d', nargs='+', default=DETECTIONS, 
-    #         type=int, help='Number of detections in each bin; must pass one '\
-    #         + 'fewer argument than number of bins')
-    # parser.add_argument('--sigma', '-S', type=float, default=SIGMA, 
-    #         help='Detection significance level')
-    # parser.add_argument('--overwrite', '-o', action='store_true',
-    #         help='Overwrite sums')
     args = parser.parse_args()
 
-    # # Define parameter space
-    # tstart = np.arange(args.tmin, args.tmax, args.tstep)
-    # twidth = np.arange(args.wmin, args.wmax, args.wstep)
-
-    # # Keyword arguments
-    # kwargs = {'decay_rate': args.decay, 'scale': args.scale, 'bins': args.bins, 
-    #         'det': args.detections, 'sigma': args.sigma, 'overwrite': args.overwrite}
-
-    # main(args.iter, tstart, twidth, **kwargs)
     main(args.iter, overwrite=args.overwrite)

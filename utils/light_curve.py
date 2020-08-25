@@ -13,14 +13,11 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from statsmodels.stats.weightstats import DescrStatsW
 
+from utils.supernova import Supernova
+
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
-FITS_DIR = DATA_DIR / Path('fits/')         # FITS data dir
-OSC_FILE = Path('ref/osc.csv')              # Open Supernova Catalog file
-EXTERNAL_LC_DIR = Path('external/')         # light curves from Swift / others
-BG_FILE = Path('out/high_bg.csv')           # discarded data with high background
-EMPTY_LC_FILE = Path('out/empty_lc.csv')    # SNe with no useful lc data
 
 # Variable cut parameters
 DETRAD_CUT = 0.55   # Detector radius above which to cut (deg)
@@ -33,35 +30,45 @@ LAMBDA_EFF = {'FUV': 1549, 'NUV': 2304.7} # angstroms
 # Physical constants
 C = 3e8 # meter/second
 
-# Plot color palette
-COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
-          'UVW1': '#cb4', 'UVM2': '#283', 'UVW2': '#6ce', # Swift
-          'F275W': '#e67', # Hubble
-          'g': 'c', 'r': 'r', 'i': 'y', 'z': 'brown', 'y': 'k' # Pan-STARRS
-          }
+
+class LightCurve:
+    def __init__(self, sn, band):
+        self.band = band
+        self.data, self.bg, self.bg_err, self.sys_err = full_import_2(sn, band)
+
+    def __call__(self):
+        return self.data
+
+    @classmethod
+    def from_fname(self, fname):
+        sn_name, self.band = fname2sn(fname)
+        sn = Supernova(sn_name)
+        return LightCurve(sn, self.band)
 
 
-################################################################################
-## General utilities
-################################################################################
+def fname2sn(fname):
+    """Extract SN name and band from a file name."""
 
-def output_csv(df, file, **kwargs):
-    """
-    Outputs pandas DataFrame to CSV. Since Excel doesn't allow file modification
-    while it's open, this function will write to a temporary file instead, to 
-    ensure that the output of a long script isn't lost.
-    Inputs:
-        df (DataFrame): DataFrame to write
-        file (str or Path): file name to write to
-        **kwargs: passed on to DataFrame.to_csv()
-    """
+    fname = Path(fname)
+    split = fname.stem.split('-')
+    sn = '-'.join(split[:-1])
+    band = split[-1]
+    # Windows replaces : with _ in some file names
+    if 'CSS' in sn or 'MLS' in sn:
+        sn.replace('_', ':', 1)
+    sn.replace('_', ' ')
+    return sn, band
 
-    file = Path(file) 
-    try:
-        df.to_csv(file, **kwargs)
-    except PermissionError:
-        tmp_file = file.parent / Path(file.stem + '-tmp' + file.suffix)
-        df.to_csv(tmp_file, **kwargs)
+
+def sn2fname(sn, band, suffix='.csv'):
+    # Converts SN name and GALEX band to a file name, e.g. for a light curve CSV
+
+    fname = '-'.join((sn, band)) + suffix
+    fname = fname.replace(' ', '_')
+    # Make Windows-friendly
+    if (platform.system() == 'Windows') or ('Microsoft' in platform.release()):
+        fname = fname.replace(':', '_')
+    return Path(fname)
 
 
 # Reduced chi squared statistic
@@ -270,78 +277,19 @@ def absolute_mag_err(mag, mag_err, dist, dist_err):
 ## Light curve data
 ################################################################################
 
-def check_if_empty(lc, sn, band):
-    """
-    Checks if a light curve DataFrame is empty after all the cuts during
-    import_lc. If it is, append it to a file and raise an error.
-    """
+# def check_if_empty(lc, sn, band):
+#     """
+#     Checks if a light curve DataFrame is empty after all the cuts during
+#     import_lc. If it is, append it to a file and raise an error.
+#     """
 
-    if len(lc.index) == 0:
-        empty_lc = pd.DataFrame([[sn, band]], columns=['name', 'band'])
-        if EMPTY_LC_FILE.is_file():
-            empty_lc = pd.read_csv(EMPTY_LC_FILE).append(empty_lc)
-            empty_lc.drop_duplicates(inplace=True)
-        output_csv(empty_lc, EMPTY_LC_FILE, index=False)
-        raise KeyError
-
-
-def full_import(sn, band, sn_info):
-    """
-    Imports the light curve for a specified supernova and band, adds luminosity
-    and days since discovery from SN info file, and incorporates background
-    and systematic errors
-    """
-
-    lc = import_lc(sn, band)
-
-    # Convert dates to MJD
-    lc['t_mean_mjd'] = Time(lc['t_mean'], format='gps').mjd
-
-    # Add days relative to discovery date
-    disc_date = Time(sn_info.loc[sn, 'disc_date'], format='iso')
-    lc['t_delta'] = lc['t_mean_mjd'] - disc_date.mjd
-
-    # Correct epoch for stretch factor
-    lc['t_delta_rest'] = 1 / (1 + sn_info.loc[sn, 'z']) * lc['t_delta']
-
-    # Get background & systematic error
-    bg, bg_err, sys_err = get_background(lc, band)
-    # Add systematic error
-    lc['flux_bgsub_err_total'] = np.sqrt(lc['flux_bgsub_err']**2 + sys_err**2)
-    # Subtract host background
-    lc['flux_hostsub'] = lc['flux_bgsub'] - bg
-    lc['flux_hostsub_err'] = np.sqrt(lc['flux_bgsub_err']**2 + bg_err**2)
-    # Detection confidence level
-    lc['sigma'] = lc['flux_hostsub'] / lc['flux_hostsub_err']
-
-    # Convert measured fluxes to absolute luminosities
-    dist = sn_info.loc[sn, 'pref_dist']
-    dist_err = sn_info.loc[sn, 'pref_dist_err']
-    z = sn_info.loc[sn, 'z']
-    z_err = sn_info.loc[sn, 'z_err']
-    a_v = sn_info.loc[sn, 'a_v']
-    lc['luminosity'], lc['luminosity_err'] = absolute_luminosity_err(
-            lc['flux_bgsub'], lc['flux_bgsub_err_total'], dist, dist_err, z, 
-            z_err, a_v, band)
-    lc['luminosity_hostsub'], lc['luminosity_hostsub_err'] = absolute_luminosity_err(
-            lc['flux_hostsub'], lc['flux_hostsub_err'], dist, dist_err, z,
-            z_err, a_v, band)
-    
-    # Flux & luminosity density in terms of Hz
-    convert_cols = ['flux_bgsub', 'flux_bgsub_err', 'flux_bgsub_err_total',
-            'flux_hostsub', 'flux_hostsub_err', 'luminosity', 'luminosity_err',
-            'luminosity_hostsub', 'luminosity_hostsub_err']
-    for col in convert_cols:
-        hz_col = col+'_hz'
-        lc[hz_col] = wavelength2freq(lc[col], LAMBDA_EFF[band])
-
-    # Convert apparent to absolute magnitudes
-    lc['absolute_mag'], lc['absolute_mag_err_1'] = absolute_mag_err(
-            lc['mag_bgsub'], lc['mag_bgsub_err_1'], dist, dist_err)
-    lc['absolute_mag_err_2'] = absolute_mag_err(
-            lc['mag_bgsub'], lc['mag_bgsub_err_2'], dist, dist_err)[1]
-
-    return lc, bg, bg_err, sys_err
+#     if len(lc.index) == 0:
+#         empty_lc = pd.DataFrame([[sn, band]], columns=['name', 'band'])
+#         if EMPTY_LC_FILE.is_file():
+#             empty_lc = pd.read_csv(EMPTY_LC_FILE).append(empty_lc)
+#             empty_lc.drop_duplicates(inplace=True)
+#         output_csv(empty_lc, EMPTY_LC_FILE, index=False)
+#         raise KeyError
 
 
 def full_import_2(sn, band):
@@ -511,7 +459,7 @@ def get_flags(sn, band):
     return flag_count
 
 
-def import_lc(sn, band, write_high_bg=False):
+def import_light_curve(sn, band, write_high_bg=False):
     """
     Imports light curve file for specified SN and band. Cuts points with bad
     flags or sources outside detector radius, and also fixes duplicated headers.
@@ -552,7 +500,9 @@ def import_lc(sn, band, write_high_bg=False):
     # Cut data with background counts less than 0
     lc = lc[lc['bg_counts'] >= 0]
 
-    check_if_empty(lc, sn, band)
+    # check_if_empty(lc, sn, band)
+    if len(lc.index) == 0:
+        raise KeyError
 
     # Cut data with background much higher than average (washed-out fields)
     # and output high backgrounds to file
@@ -560,79 +510,28 @@ def import_lc(sn, band, write_high_bg=False):
     bg_median = np.median(lc['bg_cps'])
     high_bg = lc[lc['bg_cps'] > 3 * bg_median]
     lc = lc[lc['bg_cps'] < 3 * bg_median]
-    if len(high_bg.index) > 0 and write_high_bg:
-        high_bg.insert(30, 'bg_cps_median', [bg_median] * len(high_bg.index))
-        high_bg.insert(0, 'name', [sn] * len(high_bg.index))
-        high_bg.insert(1, 'band', [band] * len(high_bg.index))
-        if BG_FILE.is_file():
-            high_bg = pd.read_csv(BG_FILE, index_col=0).append(high_bg)
-            high_bg.drop_duplicates(inplace=True)
-        output_csv(high_bg, BG_FILE, index=True)
+    # if len(high_bg.index) > 0 and write_high_bg:
+    #     high_bg.insert(30, 'bg_cps_median', [bg_median] * len(high_bg.index))
+    #     high_bg.insert(0, 'name', [sn] * len(high_bg.index))
+    #     high_bg.insert(1, 'band', [band] * len(high_bg.index))
+        # if BG_FILE.is_file():
+        #     high_bg = pd.read_csv(BG_FILE, index_col=0).append(high_bg)
+        #     high_bg.drop_duplicates(inplace=True)
+        # output_csv(high_bg, BG_FILE, index=True)
 
     # Add manual cuts (e.g. previously identified as a ghost image)
     manual_cuts = pd.read_csv(Path('ref/manual_cuts.csv'))
     to_remove = manual_cuts[(manual_cuts['name'] == sn) & (manual_cuts['band'] == band)]['index']
     lc = lc[~lc.index.isin(to_remove)]
 
-    check_if_empty(lc, sn, band)
+    # check_if_empty(lc, sn, band)
+    if len(lc.index) == 0:
+        raise KeyError
     # Add dummy row if lc is otherwise empty
     # if len(lc.index) == 0:
     #     raise
     #     lc.loc[0,:] = np.full(len(lc.columns), np.nan)
         # print('%s has no valid data points in %s!' % (sn, band))
-
-    return lc
-
-
-def import_panstarrs(sn, sn_info):
-    """
-    Imports CSV of detections from Pan-STARRS catalog search
-    """
-    # Assuming order is g, r, i, z, y; from Tonry et al. 2012
-    filters = {1: 4866, 2: 6215, 3: 7545, 4: 8679, 5: 9633} # angstrom
-
-    lc = pd.read_csv(EXTERNAL_LC_DIR / Path('%s_panstarrs.csv' % sn))
-
-    # Add days relative to discovery date
-    disc_date = Time(sn_info.loc[sn, 'disc_date'], format='iso')
-    lc['t_delta'] = lc['obsTime'] - disc_date.mjd
-
-    # Sky subtraction
-    aperture_area = np.pi * lc['apRadius'] ** 2
-    lc['apFluxSkySub'] = lc['apFlux'] - lc['sky'] * aperture_area
-    lc['apFluxSkySubErr'] = np.sqrt(lc['apFluxErr'] ** 2 + (lc['skyErr'] * aperture_area) ** 2)
-
-    # Convert from Janskys to erg/sec/cm^2/A
-    wavelength = np.vectorize(filters.get)(lc['filterID'])
-    lc['apFlux_cgs'] = lc['apFlux'] * 1e-23 * 3e8 / (wavelength**2 * 1e-10)
-    lc['apFluxErr_cgs'] = lc['apFluxErr'] * 1e-23 * 3e8 / (wavelength**2 * 1e-10)
-    lc['apFluxSkySub_cgs'] = lc['apFluxSkySub'] * 1e-23 * 3e8 / (wavelength**2 * 1e-10)
-    lc['apFluxSkySubErr_cgs'] = lc['apFluxSkySubErr'] * 1e-23 * 3e8 / (wavelength**2 * 1e-10)
-
-    return lc
-
-
-def import_swift_lc(sn, sn_info):
-    """
-    Imports light curve file from an external source (e.g. Swift)
-    """
-
-    # Read CSV
-    lc = pd.read_csv(EXTERNAL_LC_DIR / Path('%s_uvotB15.1.dat' % sn), sep='\s+',
-            names=['Filter', 'MJD', 'Mag', 'MagErr', '3SigMagLim', '0.98SatLim', 
-            'Rate', 'RateErr', 'Ap', 'Frametime', 'Exp', 'Telapse'], comment='#')
-    # Remove limits
-    lc = lc[pd.notna(lc['Mag'])]
-
-    # Add days relative to discovery date
-    disc_date = Time(sn_info.loc[sn, 'disc_date'], format='iso')
-    lc['t_delta'] = lc['MJD'] - disc_date.mjd
-
-    # Correct epoch for stretch factor
-    lc['t_delta_rest'] = 1 / (1 + sn_info.loc[sn, 'z']) * lc['t_delta']
-
-    # Convert CPS to flux
-    lc['flux'], lc['flux_err'] = swift_cps2flux(lc['Rate'], lc['RateErr'], lc['Filter'])
 
     return lc
 
