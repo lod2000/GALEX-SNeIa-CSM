@@ -1,0 +1,512 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"RECO",
+				"RECOV_HIST_FILE"
+			],
+			[
+				"lumi",
+				"luminosity_hostsub_err_hz"
+			],
+			[
+				"aggre",
+				"aggregate_nondetections"
+			],
+			[
+				"SWIFT_FLUX",
+				"SWIFT_FLUX_ERROR"
+			],
+			[
+				"SWIFT",
+				"SWIFT_ZERO_ERROR"
+			],
+			[
+				"SN",
+				"SN_INFO_FILE"
+			],
+			[
+				"FITS",
+				"FITS_INFO_FILE"
+			],
+			[
+				"OSC",
+				"OSC_FILE"
+			],
+			[
+				"lumin",
+				"luminosity_err"
+			],
+			[
+				"lumiso",
+				"luminosity_err"
+			],
+			[
+				"abs",
+				"absolute_luminosity"
+			],
+			[
+				"epo",
+				"epochs_total"
+			],
+			[
+				"LATE",
+				"LATEX_TABLE_TEMPLATE"
+			],
+			[
+				"TABLE",
+				"LATEX_TABLE_FILE"
+			],
+			[
+				"ads",
+				"ads_bibtex_url"
+			],
+			[
+				"mag_",
+				"mag_plot_err_lower"
+			],
+			[
+				"t_me",
+				"t_mean_mjd"
+			],
+			[
+				"mag",
+				"mag_plot_err_upper"
+			],
+			[
+				"mag_plot",
+				"mag_plot_err_lower"
+			],
+			[
+				"mag_b",
+				"mag_bgsub_err_2"
+			],
+			[
+				"mcat_err",
+				"mcat_err_lower"
+			],
+			[
+				"mag_mcag",
+				"mag_mcatbgsub_err_2"
+			],
+			[
+				"objnam",
+				"objname_mxpath"
+			],
+			[
+				"redshif",
+				"redshifts_tab_source"
+			],
+			[
+				"dist_",
+				"dist_tab_href"
+			],
+			[
+				"basic",
+				"basic_col3"
+			],
+			[
+				"OME",
+				"OMEGA_V"
+			],
+			[
+				"OMEG",
+				"OMEGA_M"
+			],
+			[
+				"NED",
+				"NED_RESULTS_FILE"
+			],
+			[
+				"hyper",
+				"hyperleda_entry"
+			],
+			[
+				"disc",
+				"disc_date"
+			],
+			[
+				"aper",
+				"aper_sum_bkgsub_err"
+			],
+			[
+				"baseline",
+				"baseline_phot"
+			],
+			[
+				"re",
+				"residual_aperture_sums"
+			],
+			[
+				"annulu",
+				"annulus_aperture"
+			],
+			[
+				"apertu",
+				"aperture_photometry"
+			],
+			[
+				"sn_",
+				"sn_aperture_phot"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "injection_recovery.py",
+			"settings":
+			{
+				"buffer_size": 12191,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"package control: remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"conda: ",
+				"Conda: Activate Environment"
+			],
+			[
+				"package control: instal",
+				"Package Control: Install Package"
+			],
+			[
+				"build",
+				"LaTeXTools: Build cache of LaTeX packages"
+			],
+			[
+				"set syntax: latex",
+				"Set Syntax: LaTeX"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"Git",
+				"Git: Init"
+			],
+			[
+				"Install",
+				"Package Control: Install Package"
+			],
+			[
+				"Install ",
+				"Install Package Control"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/utils.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/injection_recovery.py",
+		"/C/Users/liamd/Documents/Docs/College/Research/Scripts/galex-supernovae/get_fits_info.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/fancy_plot.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/plot_limits.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/detections.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/make_table.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/CSMmodel.py",
+		"/C/Users/liamd/Documents/Docs/College/Research/Scripts/injection-recovery/__init__.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/injection-recovery.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/.gitignore",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/count_asassn.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/ASASSN_II.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/ASASSN_III.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/ASASSN_IV.txt",
+		"/C/Program Files/PuTTY/README.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/injection-recovery/CSMmodel.py",
+		"/C/Users/liamd/Documents/Docs/REU/injection-recovery/CSMmodel.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/README.md",
+		"/C/Users/liamd/Documents/Docs/College/Senior Exam Review/senior_exam_review.tex",
+		"/C/Users/liamd/Documents/Docs/College/Senior Exam Review/Classes/astr-310.tex",
+		"/C/Users/liamd/AppData/Local/Sublime Text 3/Cache/LaTeXTools/internal/preview_math/b95455419fa81fcf1ab906a912c3b37c.png.err",
+		"/C/Users/liamd/Documents/Docs/REU/injection-recovery/chev_model.dat",
+		"/D/Archive/2020/Whitman_S6/General_Relativity/hw07/hw07.tex",
+		"/C/Users/liamd/AppData/Local/SumatraPDF/SumatraPDF-settings.txt",
+		"/C/Users/liamd/Documents/Docs/REU/injection-recovery/FUV.resp",
+		"/C/Users/liamd/Documents/Docs/REU/injection-recovery/F275W.resp",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/get_sn_info.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/get_fits_info.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/scrape_ned.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/paper_plots.sh",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2007on_uvotB15.1.dat",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/plot_spectra.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/PTF11kx_spec_55.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2005gj_spec_49.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2011fe_spec_45.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2005gj_spec_42.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2011fe_Brown2012.tsv",
+		"/C/Users/liamd/Downloads/SN2007on_uvotB15.1.dat",
+		"/C/Users/liamd/Documents/Docs/REU/Reference/V63/sample63.tex",
+		"/C/Users/liamd/Downloads/asu.tsv",
+		"/C/Users/liamd/Downloads/vizier_votable.tsv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/tex/catalog_codes.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/color_analysis.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/clean_osc.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/matplotlibrc",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/plot_filters.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/tex/deluxetable_template.tex",
+		"/C/Users/liamd/Downloads/1812/ms.tex",
+		"/C/Users/liamd/Downloads/1812/tab_targets.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/quick_stats.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/OSC-pre2014-v3.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/lc_utils.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/tex/short_table.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/gen_table.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/qualityDistances.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/hyperleda.info.cgi",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/add_edd.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/high_bg.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/old/plot_lc.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/plot_lc.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2008hv_phot.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2008hv_phot",
+		"/C/Users/liamd/Downloads/photstability.tgz",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2010ai_phot.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2007on_phot.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/SN2007on/SN2007on_phot.dat",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/external/SN2009gf_phot.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/SN2007on/plot_SN2007on.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/systematic.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/short_table.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/to_latex.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/tex/table.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/fitsinfo.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/catalog_codes.txt",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/table.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/deluxetable_template.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/table.tex",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/clean_osc.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/blank_lc.csv",
+		"/D/GALEXdata_v6/LCs/Aki-FUV.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/table_references.bib",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/catalog_references.bib",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/table_references.bib",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ads_token",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/scraped_table.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/filters.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/gentab.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ned_test.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/query_ned.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/ned_latest.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/out/ned_table.csv",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/phot.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ned_query_example.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/great_big_table.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/clean_csv.py",
+		"/C/Users/liamd/Downloads/ned_query_example.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/fits_stats.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/hist.py",
+		"/C/Users/liamd/Documents/Docs/REU/NED_SN2007on.xml",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/classify.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/.git/MERGE_MSG",
+		"/C/Users/liamd/Documents/Docs/REU/Exported Items.bib",
+		"/C/Users/liamd/Documents/Docs/GALEX-SNe-Ia-CSM/systematic.py",
+		"/C/Users/liamd/Documents/Docs/REU/GALEX-SNe-Ia-CSM/ref/OSC-pre2014-expt-clean.csv",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/classify.py",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/utils.py",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/pre_post_discovery.csv",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/phot.py",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/noteworthy.csv",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/OSC-pre2014-expt.csv",
+		"/C/Users/liamd/Documents/Docs/REU/Scripts/single_observation.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/unknown_discovery.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/single_observation.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/post_discovery.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/pre_discovery.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/pre_post_discovery.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/phot.py",
+		"/C/Users/liamd/Documents/REU/Scripts/classify.py",
+		"/C/Users/liamd/Documents/REU/Scripts/utils.py",
+		"/C/Users/liamd/Documents/REU/Scripts/OSC-pre2014-expt.csv",
+		"/C/Users/liamd/Documents/REU/Scripts/fitstest.py",
+		"/C/Users/liamd/Documents/REU/Scripts/clean_csv.py",
+		"/D/GALEX_SNeIa_REU/add_timestamps.py",
+		"/D/GALEX_SNeIa_REU/queryImages.pye"
+	],
+	"find":
+	{
+		"height": 28.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "injection_recovery.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12191,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 28.0
+	},
+	"input":
+	{
+		"height": 39.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "injection_recovery.sublime-project",
+	"replace":
+	{
+		"height": 52.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

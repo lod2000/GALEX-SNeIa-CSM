@@ -3,6 +3,7 @@ import platform
 import pandas as pd
 import numpy as np
 from astropy.time import Time
+from utils import *
 
 
 class Supernova:
@@ -45,28 +46,3 @@ class Supernova:
         """Return filename based on SN name and band."""
 
         return sn2fname(self.name, band, **kwargs)
-
-
-def fname2sn(fname):
-    """Extract SN name and band from a file name."""
-
-    fname = Path(fname)
-    split = fname.stem.split('-')
-    sn = '-'.join(split[:-1])
-    band = split[-1]
-    # Windows replaces : with _ in some file names
-    if 'CSS' in sn or 'MLS' in sn:
-        sn.replace('_', ':', 1)
-    sn.replace('_', ' ')
-    return sn, band
-
-
-def sn2fname(sn, band, suffix='.csv'):
-    """Convert SN name and GALEX band to a file name, e.g. for a light curve CSV."""
-
-    fname = '-'.join((sn, band)) + suffix
-    fname = fname.replace(' ', '_')
-    # Make Windows-friendly
-    if (platform.system() == 'Windows') or ('Microsoft' in platform.release()):
-        fname = fname.replace(':', '_')
-    return Path(fname)
