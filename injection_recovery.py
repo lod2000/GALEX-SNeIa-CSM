@@ -10,13 +10,12 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from utils.utils import *
-from CSMmodel.CSMmodel import CSMmodel
-from utils.light_curve import LightCurve
-from utils.supernova import Supernova
+from utils import *
+from CSMmodel import CSMmodel
+from light_curve import LightCurve
+from supernova import Supernova
 
 # Default values
-# BINS = [0, 100, 500, 2500]
 DECAY_RATE = 0.3
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 SIGMA = 3
@@ -326,6 +325,31 @@ def recover_model(data):
     # Limit to points some time after discovery (default 50 days)
     recovered = recovered[recovered['t_delta_rest'] >= RECOV_MIN]
     return recovered
+
+
+class Injection:
+    def __init__(self, sn, lc, tstart, scale, width=250, decay=0.3):
+        pass
+        self.time = lc.data['t_delta_rest']
+        self.data = lc.data['luminosity_hostsub']
+        self.err = lc.data['luminosity_hostsub_err']
+        self.model = CSMmodel(tstart, width, decay, scale=scale)
+        self.injection = self.data + self.model(self.time, sn.z)[lc.band]
+
+
+    def __call__(self):
+        return self.injection
+
+
+    @classmethod
+    def from_name(self, sn_name, band, sn_info=[]):
+        sn = Supernova(sn_name, sn_info=sn_info)
+        lc = LightCurve(sn, band)
+        return Injection(sn, lc)
+
+
+    def recover(self):
+        pass
 
 
 if __name__ == '__main__':

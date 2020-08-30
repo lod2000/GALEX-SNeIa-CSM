@@ -69,14 +69,14 @@ class LightCurve:
     
 
     @classmethod
-    def from_name(self, sn_name, band, **kwargs):
+    def from_name(self, sn_name, band, sn_info=[], **kwargs):
         """Initialize LightCurve from SN name rather than Supernova instance."""
-        sn = Supernova(sn_name)
+        sn = Supernova(sn_name, sn_info=sn_info)
         return LightCurve(sn, band, **kwargs)
 
 
     def to_hz(self):
-        """Convert fluxes & luminosities from per unit wavelength to per frequency."""
+        """Convert fluxes from per unit wavelength to per unit frequency."""
 
         data = self.data.copy()
         # List of columns to convert
