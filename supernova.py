@@ -3,6 +3,7 @@ import platform
 import pandas as pd
 import numpy as np
 from astropy.time import Time
+import astropy.units as u
 from utils import *
 
 
@@ -19,10 +20,10 @@ class Supernova:
 
         self.z = self.data['z']
         self.z_err = self.data['z_err']
-        self.dist = self.data['pref_dist']
-        self.dist_err = self.data['pref_dist_err']
+        self.dist = self.data['pref_dist'] * u.Mpc
+        self.dist_err = self.data['pref_dist_err'] * u.Mpc
         self.disc_date = Time(self.data['disc_date'], format='iso')
-        self.a_v = self.data['a_v']
+        self.a_v = self.data['a_v'] * u.mag
 
 
     def __call__(self, key=None):

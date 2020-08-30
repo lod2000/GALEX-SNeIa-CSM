@@ -1,4 +1,5 @@
 from pathlib import Path
+import platform
 
 
 def fname2sn(fname):

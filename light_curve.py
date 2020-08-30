@@ -1,16 +1,8 @@
 import pandas as pd
 import numpy as np
-
 from pathlib import Path
-import platform
-
-from operator import or_
-from functools import reduce
 
 from astropy.time import Time
-from astropy.coordinates import Angle
-from astropy.io import fits
-from astropy.wcs import WCS
 from statsmodels.stats.weightstats import DescrStatsW
 import astropy.units as u
 from astropy.constants import c
@@ -21,12 +13,13 @@ from utils import *
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
+# LC_DIR = Path('test/')
 
-# GALEX spacecraft info
+# GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
 
 def main():
-    pass
+    lc = LightCurve.from_name('SN2007on', 'NUV')
 
 
 class LightCurve:
@@ -40,44 +33,84 @@ class LightCurve:
 
         # Convert time to MJD, MJD-disc, and rest frame
         data['t_mean_mjd'] = Time(data['t_mean'], format='gps').mjd
-        data['t_delta'] = data['t_mean_mjd'] - disc_date.mjd
-        data['t_delta_rest'] = 1 / (1 + z) * data['t_delta']
+        data['t_delta'] = (data['t_mean_mjd'] - sn.disc_date.mjd)
+        data['t_delta_rest'] = 1 / (1 + sn.z) * data['t_delta']
         
         # Background & systematic error
-        self.bg, self.bg_err, self.sys_err = get_background(self.data, self.band)
+        self.bg, self.bg_err, self.sys_err = get_background(data, self.band)
+        self.background = self.bg
+        self.background_err = self.bg_err
 
         # Add systematic error
-        data['flux_bgsub_err_total'] = np.sqrt(data['flux_bgsub_err']**2 + sys_err**2)
+        data['flux_bgsub_err_total'] = np.sqrt(data['flux_bgsub_err']**2 + 
+                self.sys_err**2)
         # Subtract host background
-        data['flux_hostsub'] = data['flux_bgsub'] - bg
-        data['flux_hostsub_err'] = np.sqrt(data['flux_bgsub_err_total']**2 + bg_err**2)
+        data['flux_hostsub'] = data['flux_bgsub'] - self.bg
+        data['flux_hostsub_err'] = np.sqrt(data['flux_bgsub_err_total']**2 +
+                self.bg_err**2)
         # Detection confidence level
         data['sigma'] = data['flux_hostsub'] / data['flux_hostsub_err']
 
         # Calculate luminosity
         data = add_luminosity(data, sn, band)
+        self.data = data
 
 
     def __call__(self, col):
         return self.data[col]
 
+
     @classmethod
-    def from_fname(self, fname, **kwargs):
+    def from_file(self, fname, **kwargs):
         """Initialize LightCurve from file name."""
         sn_name, self.band = fname2sn(fname)
         sn = Supernova(sn_name)
         return LightCurve(sn, self.band, **kwargs)
+    
+
+    @classmethod
+    def from_name(self, sn_name, band, **kwargs):
+        """Initialize LightCurve from SN name rather than Supernova instance."""
+        sn = Supernova(sn_name)
+        return LightCurve(sn, band, **kwargs)
+
 
     def to_hz(self):
         """Convert fluxes & luminosities from per unit wavelength to per frequency."""
 
         data = self.data.copy()
         # List of columns to convert
-        convert_cols = [col for col in data.columns if 'flux' in col or 'luminosity' in col]
+        convert_cols = [col for col in data.columns if 'flux' in col 
+                or 'luminosity' in col]
         for col in convert_cols:
             hz_col = col+'_hz'
             data[hz_col] = wavelength2freq(data[col], effective_wavelength(self.band))
         return data
+
+
+    def detect(self, sigma, count=[1], dt_min=-30):
+        """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
+        Inputs:
+            sigma: detection confidence level, int or list
+            count: number of data points above sigma to count as detection, list
+            dt_min: cutoff between background and SN data, days post-disc.
+        """
+
+        # separate SN data from host background data
+        sn_data = self.data[self.data['t_delta_rest'] > dt_min]
+
+        if type(sigma) == int:
+            sigma = [sigma]
+
+        # Tiered detection: requires N points above X sigma or M points above Y sigma
+        detections = []
+        for s, c in zip(sigma, count):
+            detected = sn_data[sn_data['sigma'] >= s]
+            if len(detected.index) >= c:
+                detections.append(detected)
+        
+        detections = pd.concat(detections).sort_index().drop_duplicates()
+        return detections
 
 
 def add_luminosity(data, sn, band):
@@ -121,7 +154,8 @@ def get_background(data, band, dt_min=-30):
             weighted_stats = DescrStatsW(flux, weights=1/flux_err**2, ddof=0)
             bg = weighted_stats.mean
             bg_err = weighted_stats.std
-            ann_flux = np.average(bg_data['flux'] - bg_data['flux_bgsub'], weights=1/flux_err**2)
+            ann_flux = np.average(bg_data['flux'] - bg_data['flux_bgsub'], 
+                    weights=1/flux_err**2)
         else:
             # Otherwise, just use the first point
             bg = lc['flux_bgsub'].iloc[0]
@@ -153,10 +187,10 @@ def fit_rcs(data, err, init=2, step=0.1):
         new_err = np.sqrt(err ** 2 + sys_err ** 2)
         # Determine background from weighted average of data before discovery
         weighted_stats = DescrStatsW(data, weights=1/new_err**2, ddof=0)
+        mean = weighted_stats.mean
         # Reduced chi squared test of data vs background
-        rcs = redchisquare(data, np.full(data.size, bg), new_err, n=0)
+        rcs = redchisquare(data, np.full(data.size, mean), new_err, n=0)
 
-    mean = weighted_stats.mean
     stat_err = weighted_stats.std
     return mean, stat_err, sys_err
 
@@ -295,7 +329,7 @@ def flux2mag(flux, band):
 
 
 def flux2luminosity(flux, flux_err, dist, dist_err, z, z_err, a_v, band):
-    """Convert measured flux to luminosity based on distance with corresponding error
+    """Convert measured flux to luminosity based on distance with error.
     Inputs:
         flux (Array-like): measured fluxes
         flux_err (Array-like): measured flux error
@@ -316,30 +350,22 @@ def flux2luminosity(flux, flux_err, dist, dist_err, z, z_err, a_v, band):
     # Redshift correction error
     z_corr_err = np.nan_to_num(3 * z_err / (1+z))
     # Sum of flux, distance, and redshift errors
-    err = np.abs(luminosity) * np.sqrt((2*dist_err/dist)**2 + (flux_err/flux)**2 + z_corr_err**2)
+    err = np.abs(luminosity) * np.sqrt((2*dist_err/dist)**2 + 
+            (flux_err/flux)**2 + z_corr_err**2)
     return luminosity, err
 
 
-# def flux2luminosity(flux, dist, z, a_v, band):
-#     """Convert measured flux to luminosity based on distance, accounting for 
-#     redshift and extinction.
-#     Inputs:
-#         flux (float or Array): measured flux density per unit wavelength
-#         dist (float): distance in Mpc
-#         z (float): redshift
-#         a_v (float): V band Milky Way extinction in magnitudes
-#     Outputs:
-#         luminosity (float or Array)
-#     """
+def freq2wavelength(flux, wavelength):
+    """Convert flux density from per unit frequency to per unit wavelength."""
+    
+    return flux * c.to('AA/s') / wavelength**2
 
-#     # Calculate total luminosity
-#     luminosity = 4 * np.pi * dist.to('cm')**2 * flux
-#     # Correct for redshift
-#     luminosity *= (1 + z) ** 3
-#     # Correct for extinction
-#     a_band = convert_extinction(a_v, band, band_in='V')
-#     luminosity *= 10 ** (0.4 * a_band.value)
-#     return luminosity
+
+def wavelength2freq(flux, wavelength):
+    """Convert flux density from per unit wavelength to per unit frequency."""
+
+    return flux * wavelength**2 / c.to('AA/s')
+
 
 if __name__=='__main__':
     main()
