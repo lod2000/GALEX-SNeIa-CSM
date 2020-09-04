@@ -330,9 +330,9 @@ def recover_model(data):
 class Injection:
     def __init__(self, sn, lc, tstart, scale, width=250, decay=0.3):
         pass
-        self.time = lc.data['t_delta_rest']
-        self.data = lc.data['luminosity_hostsub']
-        self.err = lc.data['luminosity_hostsub_err']
+        self.time = lc.data['t_delta_rest'].copy()
+        self.data = lc.data['luminosity_hostsub'].copy()
+        self.err = lc.data['luminosity_hostsub_err'].copy()
         self.model = CSMmodel(tstart, width, decay, scale=scale)
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
@@ -342,13 +342,15 @@ class Injection:
 
 
     @classmethod
-    def from_name(self, sn_name, band, sn_info=[]):
+    def from_name(self, sn_name, band, tstart, scale, sn_info=[], **kwargs):
         sn = Supernova(sn_name, sn_info=sn_info)
         lc = LightCurve(sn, band)
-        return Injection(sn, lc)
+        return Injection(sn, lc, tstart, scale, **kwargs)
 
 
-    def recover(self):
+    def recover(self, sigma, count=[1], dt_min=50):
+        conf_data = self.injection / self.err
+        recovered = detect(conf_data)
         pass
 
 

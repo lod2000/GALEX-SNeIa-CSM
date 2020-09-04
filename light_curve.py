@@ -20,6 +20,7 @@ PLATE_SCALE = 6 * u.arcsec / u.pix
 
 def main():
     lc = LightCurve.from_name('SN2007on', 'NUV')
+    print(lc.detect(3))
 
 
 class LightCurve:
@@ -49,7 +50,7 @@ class LightCurve:
         data['flux_hostsub_err'] = np.sqrt(data['flux_bgsub_err_total']**2 +
                 self.bg_err**2)
         # Detection confidence level
-        data['sigma'] = data['flux_hostsub'] / data['flux_hostsub_err']
+        # data['sigma'] = data['flux_hostsub'] / data['flux_hostsub_err']
 
         # Calculate luminosity
         data = add_luminosity(data, sn, band)
@@ -88,29 +89,37 @@ class LightCurve:
         return data
 
 
-    def detect(self, sigma, count=[1], dt_min=-30):
-        """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
-        Inputs:
-            sigma: detection confidence level, int or list
-            count: number of data points above sigma to count as detection, list
-            dt_min: cutoff between background and SN data, days post-disc.
-        """
+    def detect(self, sigma, **kwargs):
+        self.detections = detect_csm(self.data['t_delta_rest'], 
+                self.data['flux_hostsub'], self.data['flux_hostsub_err'], sigma,
+                **kwargs)
+        det_idx = self.detections.index
+        return self.data.loc[det_idx]
 
-        # separate SN data from host background data
-        sn_data = self.data[self.data['t_delta_rest'] > dt_min]
 
-        if type(sigma) == int:
-            sigma = [sigma]
+    # def detect(self, sigma, count=[1], dt_min=-30):
+    #     """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
+    #     Inputs:
+    #         sigma: detection confidence level, int or list
+    #         count: number of data points above sigma to count as detection, list
+    #         dt_min: cutoff between background and SN data, days post-disc.
+    #     """
 
-        # Tiered detection: requires N points above X sigma or M points above Y sigma
-        detections = []
-        for s, c in zip(sigma, count):
-            detected = sn_data[sn_data['sigma'] >= s]
-            if len(detected.index) >= c:
-                detections.append(detected)
+    #     # separate SN data from host background data
+    #     sn_data = self.data[self.data['t_delta_rest'] > dt_min]
+
+    #     if type(sigma) == int:
+    #         sigma = [sigma]
+
+    #     # Tiered detection: requires N points above X sigma or M points above Y sigma
+    #     detections = []
+    #     for s, c in zip(sigma, count):
+    #         detected = sn_data[sn_data['sigma'] >= s]
+    #         if len(detected.index) >= c:
+    #             detections.append(detected)
         
-        detections = pd.concat(detections).sort_index().drop_duplicates()
-        return detections
+    #     detections = pd.concat(detections).sort_index().drop_duplicates()
+    #     return detections
 
 
 def add_luminosity(data, sn, band):
