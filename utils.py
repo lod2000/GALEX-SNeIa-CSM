@@ -36,7 +36,7 @@ def detect_csm(time, data, err, sigma, count=[1], dt_min=-30):
         count: number of data points above sigma to count as detection, list
         dt_min: minimum number of days post-discovery
     Output:
-        detections: pd.Series of time of detected observations.
+        detections: list of indices of detected observations
     """
 
     # separate SN data from host background data
@@ -52,9 +52,10 @@ def detect_csm(time, data, err, sigma, count=[1], dt_min=-30):
     # Tiered detection: requires N points above X sigma or M points above Y sigma
     detections = []
     for s, c in zip(sigma, count):
-        detected = time[conf >= s]
-        if len(detected.index) >= c:
-            detections.append(detected)
+        detected = time[conf >= s].index.to_list()
+        if len(detected) >= c:
+            detections += detected
     
-    detections = pd.concat(detections).sort_index().drop_duplicates()
+    # Remove duplicates, sort, and return indices of detections
+    detections = sorted(list(dict.fromkeys(detections)))
     return detections

@@ -9,6 +9,7 @@ import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import random
 
 from utils import *
 from CSMmodel import CSMmodel
@@ -21,32 +22,39 @@ RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 SIGMA = 3
 WIDTH = 250 # days, from PTF11kx
 
-def main(iterations, overwrite=False, tstart_max=1000, scale_min=0.5, 
-            scale_max=2., t_max=1500, bin_width=50, bin_height=0.1):
-
-    sys.path.insert(0, 'CSMmodel')
-    print(sys.path)
+# def main(iterations, overwrite=False, tstart_max=1000, scale_min=0.5, 
+#             scale_max=2., t_max=1500, bin_width=50, bin_height=0.1):
+def main():
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
-    output_file = Path('out/recovery_%s.csv' % iterations)
+
+    sn = Supernova('SN2007kx', sn_info)
+    lc = LightCurve(sn, 'NUV')
+    inj = Injection(sn, lc, (0, 1000), (0.5, 2))
+    print(inj.recover([5, 3], count=[1, 3]))
+
+    # sys.path.insert(0, 'CSMmodel')
+    # print(sys.path)
+
+    # output_file = Path('out/recovery_%s.csv' % iterations)
     
-    sn = Supernova('SN2007on')
-    times = sample_params(10, sn, 'NUV', 500, 700, 1, 1.1)
-    print(times)
+    # sn = Supernova('SN2007on')
+    # times = sample_params(10, sn, 'NUV', 500, 700, 1, 1.1)
+    # print(times)
 
-    # supernovae = ['SN2007on', 'SN2010ai', 'SDSS-II SN 779', 'Hawk', 'HST04Sas']
-    supernovae = sn_info.index.to_list()
+    # # supernovae = ['SN2007on', 'SN2010ai', 'SDSS-II SN 779', 'Hawk', 'HST04Sas']
+    # supernovae = sn_info.index.to_list()
 
-    if overwrite or not output_file.is_file():
-        recovered_times = run_ir(iterations, supernovae, 0, tstart_max, 
-                scale_min, scale_max, bin_width, bin_height, t_max, output_file)
-        count_hist = count_nondetections(recovered_times, bin_width, t_max, 
-                bin_height, scale_min, scale_max)
-        output_csv(count_hist, output_file)
-    else:
-        count_hist = pd.read_csv(output_file, index_col=0)
+    # if overwrite or not output_file.is_file():
+    #     recovered_times = run_ir(iterations, supernovae, 0, tstart_max, 
+    #             scale_min, scale_max, bin_width, bin_height, t_max, output_file)
+    #     count_hist = count_nondetections(recovered_times, bin_width, t_max, 
+    #             bin_height, scale_min, scale_max)
+    #     output_csv(count_hist, output_file)
+    # else:
+    #     count_hist = pd.read_csv(output_file, index_col=0)
 
-    plot_nondetections(count_hist, show=True)
+    # plot_nondetections(count_hist, show=True)
 
 
 def plot_nondetections(rate_hist, show=False):
@@ -328,12 +336,34 @@ def recover_model(data):
 
 
 class Injection:
-    def __init__(self, sn, lc, tstart, scale, width=250, decay=0.3):
-        pass
+    def __init__(self, sn, lc, tstarts, scales, width=250, decay=0.3):
+        """Generate random model parameters, initialize model and inject into
+        data.
+        Inputs:
+            sn: Supernova object associated with data
+            lc: LightCurve object with data to be injected
+            tstarts: (min, max) tuple of tstart parameter bounds
+            scales: (min, max) tuple of scale parameter bounds
+            width: model width, int
+            decay: model decay rate, float
+        """
+        
+        # Generate random parameters
+        self.tstart = random.randint(tstarts[0], tstarts[1])
+        self.scale = random.uniform(scales[0], scales[1])
+
+        # Other parameters
+        self.width = width
+        self.decay = decay
+
+        # Get data
         self.time = lc.data['t_delta_rest'].copy()
         self.data = lc.data['luminosity_hostsub'].copy()
         self.err = lc.data['luminosity_hostsub_err'].copy()
-        self.model = CSMmodel(tstart, width, decay, scale=scale)
+
+        # Inject model
+        self.model = CSMmodel(self.tstart, self.width, self.decay, 
+                scale=self.scale)
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 
@@ -342,24 +372,50 @@ class Injection:
 
 
     @classmethod
-    def from_name(self, sn_name, band, tstart, scale, sn_info=[], **kwargs):
+    def from_name(self, sn_name, band, tstarts, scales, sn_info=[], **kwargs):
+        """Generate Injection instance from a supernova name and GALEX band,
+        also creating a Supernova and LightCurve object in the process."""
+
         sn = Supernova(sn_name, sn_info=sn_info)
         lc = LightCurve(sn, band)
-        return Injection(sn, lc, tstart, scale, **kwargs)
+        return Injection(sn, lc, tstarts, scales, **kwargs)
 
 
-    def recover(self, sigma, count=[1], dt_min=50):
-        conf_data = self.injection / self.err
-        recovered = detect(conf_data)
-        pass
+    def recover(self, sigma, count=[1], dt_min=50, detections=None):
+        """Run detection algorithm on injected data and return points which 
+        otherwise would not have been recovered.
+        Inputs:
+            sigma: float or list, confidence level required for detection (if 
+                    multiple, use multi-tier detection)
+            count: list, number of points at or above associated sigma to count
+                    as a detection (same length as sigma)
+            dt_min: minimum time since discovery to include detections
+            detections: indices which were detected without injection; pass for
+                    faster calcs
+        """
+
+        # Run detections on original data
+        if detections == None:
+            detections = detect_csm(self.time, self.data, self.err, sigma, 
+                    count=count, dt_min=dt_min)
+
+        # Run detections on injected data
+        recovered = detect_csm(self.time, self.injection, self.err, sigma,
+                count=count, dt_min=dt_min)
+
+        # Remove points that would have been detected either way
+        recovered = [r for r in recovered if r not in detections]
+
+        return recovered
 
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('iter', type=int, help='Iterations')
-    parser.add_argument('--overwrite', '-o', action='store_true',
-            help='Overwrite recovery rate output file')
-    args = parser.parse_args()
-
-    main(args.iter, overwrite=args.overwrite)
+    # import argparse
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('iter', type=int, help='Iterations')
+    # parser.add_argument('--overwrite', '-o', action='store_true',
+    #         help='Overwrite recovery rate output file')
+    # args = parser.parse_args()
+# 
+    # main(args.iter, overwrite=args.overwrite)
+    main()

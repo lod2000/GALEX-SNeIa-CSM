@@ -93,8 +93,7 @@ class LightCurve:
         self.detections = detect_csm(self.data['t_delta_rest'], 
                 self.data['flux_hostsub'], self.data['flux_hostsub_err'], sigma,
                 **kwargs)
-        det_idx = self.detections.index
-        return self.data.loc[det_idx]
+        return self.data.loc[self.detections]
 
 
     # def detect(self, sigma, count=[1], dt_min=-30):
@@ -225,7 +224,7 @@ def fit_sys_err(bg_flux, band):
 
 def gAper_sys_err(mag, band):
     """Calculate the systematic error from gAperture at a given magnitude
-    based on Michael's polynomial fits
+    based on Michael's polynomial fits.
     """
 
     coeffs = {
@@ -234,7 +233,7 @@ def gAper_sys_err(mag, band):
                 1.45956431e+01, -5.02610071e+01]
     }
     fit = np.poly1d(coeffs[band])
-    return fit(mag)
+    return fit(mag.value)
 
 
 def import_light_curve(lc_file, detrad_cut=0.55, manual_cuts=[]):

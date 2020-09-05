@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import ipdb
@@ -145,7 +146,7 @@ class CSMmodel:
 
 def compute_nuv(wl, flux):
 	# read resp table
-	det_wl, det_fl = np.genfromtxt('NUV.resp', unpack=True, dtype=float)
+	det_wl, det_fl = np.genfromtxt(Path('ref/NUV.resp'), unpack=True, dtype=float)
 	det_fl /= GALEX_EFF_AREA
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
 	obs_fl = filt(wl) * flux # ergs/s/A
@@ -153,7 +154,7 @@ def compute_nuv(wl, flux):
 
 def compute_fuv(wl, flux):
 	#read resp table
-	det_wl, det_fl = np.genfromtxt('FUV.resp', unpack=True, dtype=float)
+	det_wl, det_fl = np.genfromtxt(Path('ref/FUV.resp'), unpack=True, dtype=float)
 	det_fl /= GALEX_EFF_AREA
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
 	obs_fl = filt(wl) * flux
@@ -162,7 +163,7 @@ def compute_fuv(wl, flux):
 def compute_f275w(wl, flux):
 
 	#read resp table, already in throughput so no need to scale
-	det_wl, det_fl = np.genfromtxt('F275W.resp', unpack=True, dtype=float)
+	det_wl, det_fl = np.genfromtxt(Path('ref/F275W.resp'), unpack=True, dtype=float)
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
 	obs_fl = filt(wl) * flux
 	return obs_fl.sum()
@@ -178,7 +179,7 @@ class Chev94Model:
 			scale (float): multiplicative scale factor to shift the CSM model bright/fainter, default=1.
 		"""
 
-		self.fname = 'chev_model.dat'
+		self.fname = Path('ref/chev_model.dat')
 		self.times = np.array([1., 2., 5., 10., 17.5, 30.])*365.25
 		self.model_data = {}
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
