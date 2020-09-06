@@ -166,9 +166,9 @@ def get_background(data, band, dt_min=-30):
                     weights=1/flux_err**2)
         else:
             # Otherwise, just use the first point
-            bg = lc['flux_bgsub'].iloc[0]
-            bg_err = lc['flux_bgsub_err'].iloc[0]
-            ann_flux = lc['flux'].iloc[0] - lc['flux_bgsub'].iloc[0]
+            bg = data['flux_bgsub'].iloc[0]
+            bg_err = data['flux_bgsub_err'].iloc[0]
+            ann_flux = data['flux'].iloc[0] - data['flux_bgsub'].iloc[0]
 
         # Use background if it's positive, or annulus flux if it's not
         if bg > 0:

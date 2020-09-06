@@ -28,10 +28,13 @@ def main():
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 
-    sn = Supernova('SN2007kx', sn_info)
+    sn = Supernova('SDSS-II SN 16121', sn_info)
     lc = LightCurve(sn, 'NUV')
-    inj = Injection(sn, lc, (0, 1000), (0.5, 2))
+    inj = Injection(sn, lc, (600, 610), (0.5, 2))
     print(inj.recover([5, 3], count=[1, 3]))
+    print(inj.tstart)
+    print(inj.scale)
+    inj.plot()
 
     # sys.path.insert(0, 'CSMmodel')
     # print(sys.path)
@@ -364,6 +367,7 @@ class Injection:
         # Inject model
         self.model = CSMmodel(self.tstart, self.width, self.decay, 
                 scale=self.scale)
+        print(self.model(self.time, sn.z)[lc.band])
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 
@@ -407,6 +411,18 @@ class Injection:
         recovered = [r for r in recovered if r not in detections]
 
         return recovered
+
+
+    def plot(self):
+        plt.errorbar(self.time, self.data, yerr=self.err, label='Original', 
+                linestyle='none', marker='o')
+        plt.errorbar(self.time, self.injection, yerr=self.err, label='Injected',
+                linestyle='none', marker='o')
+        plt.xlim((0, None))
+        plt.xlabel('Time since discovery [rest frame days]')
+        plt.ylabel('Luminosity [erg s$^{-1}$ Å$^{-1}$]')
+        plt.legend()
+        plt.show()
 
 
 if __name__ == '__main__':
