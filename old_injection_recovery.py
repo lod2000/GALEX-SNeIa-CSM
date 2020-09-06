@@ -287,34 +287,57 @@ def sample_params(iterations, sn, band, tstart_min, tstart_max, scale_min, scale
     return sample_times
 
 
-def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count, sn_info=[]):
-    """Run injection recovery a given number of times on one supernova."""
-
-    # Initialize Supernova and LightCurve objects
-    sn = Supernova(sn_name, sn_info=sn_info)
-    lc = LightCurve(sn, band)
-
-    # Run injection-recovery trials in parallel
-    with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
-                scales=scales, sigma=sigma, count=count)
-        imap = pool.imap(func, chunksize=100)
-        for _ in tqdm(imap, total=iterations):
-            pass
-
-
-def inject_recover(sn, lc, tstarts, scales, sigma, count):
+def inject_recover(params, sn, lc):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
+        params: [tstart, scale]
         sn: Supernova object
         lc: LightCurve object
     Output:
         list of times of recovered data
     """
 
-    inj = Injection(sn, lc, tstarts, scales)
-    inj.recover(sigma, count=count)
-    return [self.tstart, self.scale, self.recovered_times]
+    tstart, scale = params
+    injected = inject_model(sn, lc, tstart, scale)
+    recovered = recover_model(injected)
+    # Return days post-discoverey with recovered detections
+    return recovered['t_delta_rest'].to_list()
+
+
+def inject_model(sn, lc, tstart, scale):
+    """
+    Inject CSM model into GALEX data and return the resulting light curve.
+    Inputs:
+        sn: Supernova object
+        lc: LightCurve object
+        tstart: days after discovery that ejecta impacts CSM
+        scale: luminosity scale factor
+    Output:
+        lc: LightCurve object with injected light curve
+    """
+
+    data = lc.data.copy()
+    model = CSMmodel(tstart, WIDTH, DECAY_RATE, scale=scale)
+    # Calculate luminosity at observation epochs
+    injection = model(data['t_delta_rest'], sn.z)[lc.band]
+    # Inject CSM curve
+    data['luminosity_injected'] = data['luminosity_hostsub'] + injection
+    return data
+
+
+def recover_model(data):
+    """
+    Recover detections from CSM-injected data which otherwise wouldn't have
+    been detected.
+    """
+
+    # Calculate significance of each point
+    data['sigma_injected'] = data['luminosity_injected'] / data['luminosity_hostsub_err']
+    # Recover new detections
+    recovered = data[(data['sigma_injected'] >= SIGMA) & (data['sigma'] < SIGMA)]
+    # Limit to points some time after discovery (default 50 days)
+    recovered = recovered[recovered['t_delta_rest'] >= RECOV_MIN]
+    return recovered
 
 
 class Injection:
@@ -387,14 +410,13 @@ class Injection:
                 count=count, dt_min=dt_min)
 
         # Remove points that would have been detected either way
-        self.recovered = [r for r in recovered if r not in detections]
-        self.recovered_times = self.time[self.recovered]
+        recovered = [r for r in recovered if r not in detections]
 
         # Plot
         if plot:
-            self.plot(recovered=self.recovered, detections=detections)
+            self.plot(recovered=recovered, detections=detections)
 
-        return self.recovered
+        return recovered
 
 
     def plot(self, recovered=[], detections=[]):
@@ -416,4 +438,12 @@ class Injection:
 
 
 if __name__ == '__main__':
+    # import argparse
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('iter', type=int, help='Iterations')
+    # parser.add_argument('--overwrite', '-o', action='store_true',
+    #         help='Overwrite recovery rate output file')
+    # args = parser.parse_args()
+# 
+    # main(args.iter, overwrite=args.overwrite)
     main()

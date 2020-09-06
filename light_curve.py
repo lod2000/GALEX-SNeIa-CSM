@@ -49,8 +49,6 @@ class LightCurve:
         data['flux_hostsub'] = data['flux_bgsub'] - self.bg
         data['flux_hostsub_err'] = np.sqrt(data['flux_bgsub_err_total']**2 +
                 self.bg_err**2)
-        # Detection confidence level
-        # data['sigma'] = data['flux_hostsub'] / data['flux_hostsub_err']
 
         # Calculate luminosity
         data = add_luminosity(data, sn, band)
