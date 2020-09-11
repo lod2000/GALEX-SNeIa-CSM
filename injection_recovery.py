@@ -55,14 +55,14 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
     for i, (sn_name, band) in enumerate(combos):
         # if not overwrite and sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
         print('\n%s - %s [%s/%s]' % (sn_name, band, i+1, len(combos)))
-        # try:
-        # Initialize Supernova and LightCurve objects
-        sn = Supernova(sn_name, sn_info=sn_info)
-        lc = LightCurve(sn, band)
-        # except (KeyError, FileNotFoundError):
-        #     # LC file doesn't exist
-        #     print('\tno data found!')
-        #     continue
+        try:
+            # Initialize Supernova and LightCurve objects
+            sn = Supernova(sn_name, sn_info=sn_info)
+            lc = LightCurve(sn, band)
+        except:
+            # If there's some problem with the light curve data, skip
+            print('\tproblem with the data!')
+            continue
 
         run_trials(sn, lc, iterations, **kwargs)
 
@@ -70,7 +70,7 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
 def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
         overwrite=False):
     """Returns list of light curve files corresponding to given supernovae, and
-    removes SNe from list with previous save files, unless overwrite.
+    removes SNe from list with previous save files, unless overwrite is True.
     Output:
         combos: list of (sn_name, band) tuples
     """
