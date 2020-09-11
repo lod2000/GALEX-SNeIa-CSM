@@ -19,10 +19,15 @@ from light_curve import LightCurve
 from supernova import Supernova
 
 # Default values
-DECAY_RATE = 0.3
-RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
-SIGMA = 3
+TSTART_MIN = 0
+TSTART_MAX = 1000
+SCALE_MIN = 0.5
+SCALE_MAX = 2.
+DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx
+RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
+SIGMA = [5, 3] # detection certainty
+SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 SAVE_DIR = Path('save')
 
@@ -30,26 +35,35 @@ def main(iterations, overwrite=False):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 
-    recovery_df = run_trials('SN2007on', 'NUV', 10000, (0, 1000), (0.5, 2), 
-            [5, 3], [1, 3], sn_info=sn_info)
-    print(recovery_df)
+    tstarts = (0, 1000)
+    scales = (0.5, 2)
+    sigma = [5, 3]
+    sigma_count = [1, 3]
+    recovery_df = run_trials('SN2007on', 'NUV', iterations, sn_info=sn_info)
 
 
-def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count, 
-        sn_info=[], save=True):
+def run_all(supernovae, iterations, **kwargs):
+    """Run injection recovery trials on all supernovae in given list.
+    Inputs:
+        supernovae: list of supernova names
+        iterations: iterations of injection & recovery for each SN
+        kwargs: keyword arguments for run_trials
+    Outputs:
+
+    """
+
+    pass
+
+
+def run_trials(sn_name, band, iterations, sn_info=[], save=True, **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
         band: GALEX band 'FUV' or 'NUV'
         iterations: iterations of injection & recovery
-        tstarts: (min, max) tuple of tstart parameter bounds
-        scales: (min, max) tuple of scale parameter bounds
-        sigma: float or list, confidence level required for detection (if 
-                multiple, use multi-tier detection)
-        count: list, number of points at or above associated sigma to count
-                as a detection (same length as sigma)
         sn_info: supernova info data frame
         save: bool, output recovery_df to CSV
+        kwargs: keyword arguments for inject_recover
     Outputs:
         recovery_df: DataFrame of injection parameters and recovered times
     """
@@ -61,8 +75,7 @@ def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count,
     # Run injection-recovery trials in parallel
     recovery_df = []
     with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
-                scales=scales, sigma=sigma, count=count)
+        func = partial(inject_recover, sn=sn, lc=lc, **kwargs)
         imap = pool.imap(func, list(range(iterations)), chunksize=100)
         for recovery in tqdm(imap, total=iterations):
             recovery_df.append(recovery)
@@ -70,6 +83,7 @@ def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count,
     recovery_df = pd.DataFrame(recovery_df, 
             columns=['tstart', 'scale', 'recovered_times', 'all_times'])
 
+    # Save CSV
     if save:
         fname = sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
         recovery_df.to_csv(SAVE_DIR / fname, index=False)
@@ -77,44 +91,45 @@ def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count,
     return recovery_df
 
 
-def inject_recover(i, sn, lc, tstarts, scales, sigma, count):
+def inject_recover(i, sn, lc, tstart_min=TSTART_MIN, tstart_max=TSTART_MAX, 
+        scale_min=SCALE_MIN, scale_max=SCALE_MAX, sigma=SIGMA, count=SIGMA_COUNT):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         i: dummy argument for pool.imap
         sn: Supernova object
         lc: LightCurve object
-        tstarts: (min, max) tuple of tstart parameter bounds
-        scales: (min, max) tuple of scale parameter bounds
+        tstart_min, tstart_max: tstart parameter bounds
+        scale_min, scale_max: scale parameter bounds
         sigma: float or list, confidence level required for detection (if 
                 multiple, use multi-tier detection)
         count: list, number of points at or above associated sigma to count
                 as a detection (same length as sigma)
     Output:
-        list with injection parameters and recovered times
+        list with injection parameters, recovered times, and all times
     """
 
-    inj = Injection(sn, lc, tstarts, scales)
+    inj = Injection(sn, lc, tstart_min, tstart_max, scale_min, scale_max)
     inj.recover(sigma, count=count)
-    # recover(inj, sigma, count=count)
     return [inj.tstart, inj.scale, inj.recovered_times, inj.all_times]
 
 
 class Injection:
-    def __init__(self, sn, lc, tstarts, scales, width=WIDTH, decay=DECAY_RATE):
+    def __init__(self, sn, lc, tstart_min, tstart_max, scale_min, scale_max, 
+            width=WIDTH, decay=DECAY_RATE):
         """Generate random model parameters, initialize model and inject into
         data.
         Inputs:
             sn: Supernova object associated with data
             lc: LightCurve object with data to be injected
-            tstarts: (min, max) tuple of tstart parameter bounds
-            scales: (min, max) tuple of scale parameter bounds
+            tstart_min, tstart_max: tstart parameter bounds
+            scale_min, scale_max: scale parameter bounds
             width: model width, int
             decay: model decay rate, float
         """
         
         # Generate random parameters
-        self.tstart = random.randint(tstarts[0], tstarts[1])
-        self.scale = random.uniform(scales[0], scales[1])
+        self.tstart = random.randint(tstart_min, tstart_max)
+        self.scale = random.uniform(scale_min, scale_max)
 
         # Other parameters
         self.width = width
@@ -145,7 +160,8 @@ class Injection:
         return Injection(sn, lc, tstarts, scales, **kwargs)
 
 
-    def recover(self, sigma, count=[1], dt_min=50, detections=None, plot=False):
+    def recover(self, sigma, count=[1], dt_min=RECOV_MIN, detections=None, 
+            plot=False):
         """Run detection algorithm on injected data and return points which 
         otherwise would not have been recovered.
         Inputs:
@@ -206,7 +222,7 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--iterations', '-i', type=int, help='Iterations')
+    parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
     args = parser.parse_args()
 
