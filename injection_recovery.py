@@ -55,7 +55,7 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
         try:
             # Initialize Supernova and LightCurve objects
             sn = Supernova(sn_name, sn_info=sn_info)
-            lc = LightCurve(sn, band)
+            lc = LightCurve(sn, band, data_dir=DATA_DIR)
         except:
             # If there's some problem with the light curve data, skip
             print('\tproblem with the data!')

@@ -13,7 +13,6 @@ from utils import *
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
-# LC_DIR = Path('test/')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
@@ -24,13 +23,13 @@ def main():
 
 
 class LightCurve:
-    def __init__(self, sn, band, **kwargs):
+    def __init__(self, sn, band, data_dir=LC_DIR, **kwargs):
         """Import light curve data and calculate background & luminosity."""
 
         self.sn_name = sn.name
         self.band = band
         self.fname = sn2fname(sn.name, band, suffix='.csv')
-        data = import_light_curve(LC_DIR / self.fname, **kwargs)
+        data = import_light_curve(data_dir / self.fname, **kwargs)
 
         # Convert time to MJD, MJD-disc, and rest frame
         data['t_mean_mjd'] = Time(data['t_mean'], format='gps').mjd
