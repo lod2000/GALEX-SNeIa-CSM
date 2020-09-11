@@ -40,6 +40,9 @@ def main(iterations, overwrite=False):
     run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite)
 
 
+def import_saves(save_dir=SAVE_DIR):
+
+
 def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
