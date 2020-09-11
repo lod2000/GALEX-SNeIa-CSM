@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import itertools
-from multiprocessing import Pool
+# from multiprocessing import Pool
 from functools import partial
 from functools import reduce
 import matplotlib.pyplot as plt
@@ -10,6 +10,8 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import random
+from pathos.multiprocessing import ProcessingPool as Pool
+import dill
 
 from utils import *
 from CSMmodel import CSMmodel
@@ -22,318 +24,83 @@ RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 SIGMA = 3
 WIDTH = 250 # days, from PTF11kx
 
-# def main(iterations, overwrite=False, tstart_max=1000, scale_min=0.5, 
-#             scale_max=2., t_max=1500, bin_width=50, bin_height=0.1):
-def main():
+SAVE_DIR = Path('save')
+
+def main(iterations, overwrite=False):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 
-    recovery_df = run_trials('SN2007on', 'NUV', 100, (600, 610), (0.5, 2), 
+    recovery_df = run_trials('SN2007on', 'NUV', 10000, (0, 1000), (0.5, 2), 
             [5, 3], [1, 3], sn_info=sn_info)
     print(recovery_df)
 
-    # sn = Supernova('SDSS-II SN 16121', sn_info)
-    # sn = Supernova('SN2007on')
-    # lc = LightCurve(sn, 'NUV')
-    # inj = Injection(sn, lc, (600, 610), (0.5, 2))
-    # print(inj.time)
-    # print(inj.tstart)
-    # print(inj.scale)
-    # recovered = inj.recover([5, 3], count=[1, 3], plot=True)
-    # print(recovered)
 
-    # sys.path.insert(0, 'CSMmodel')
-    # print(sys.path)
-
-    # output_file = Path('out/recovery_%s.csv' % iterations)
-    
-    # sn = Supernova('SN2007on')
-    # times = sample_params(10, sn, 'NUV', 500, 700, 1, 1.1)
-    # print(times)
-
-    # # supernovae = ['SN2007on', 'SN2010ai', 'SDSS-II SN 779', 'Hawk', 'HST04Sas']
-    # supernovae = sn_info.index.to_list()
-
-    # if overwrite or not output_file.is_file():
-    #     recovered_times = run_ir(iterations, supernovae, 0, tstart_max, 
-    #             scale_min, scale_max, bin_width, bin_height, t_max, output_file)
-    #     count_hist = count_nondetections(recovered_times, bin_width, t_max, 
-    #             bin_height, scale_min, scale_max)
-    #     output_csv(count_hist, output_file)
-    # else:
-    #     count_hist = pd.read_csv(output_file, index_col=0)
-
-    # plot_nondetections(count_hist, show=True)
-
-
-def plot_nondetections(rate_hist, show=False):
-    """Plot 2D histogram of recovery rate by time since discovery and scale factor."""
-
-    # Flip y-axis
-    rate_hist.sort_index(ascending=True, inplace=True)
-
-    # Calculate data range
-    x_bins = rate_hist.columns.to_numpy(dtype=float)
-    y_bins = rate_hist.index.to_numpy(dtype=float)
-    bin_width = x_bins[1] - x_bins[0]
-    bin_height = y_bins[1] - y_bins[0]
-    extent = (x_bins[0], x_bins[-1]+bin_width, y_bins[0], y_bins[-1]+bin_height)
-
-    # Plot
-    fig, ax = plt.subplots()
-    im = ax.imshow(rate_hist, aspect='auto', origin='lower', extent=extent)
-    ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
-    ax.yaxis.set_minor_locator(MultipleLocator(bin_height))
-    ax.set_xlabel('Rest frame time since discovery [days]')
-    ax.set_ylabel('Scale factor')
-    plt.colorbar(im, label='No. of excluded SNe Ia')
-    fig.tight_layout()
-    plt.savefig(Path('out/recovery.png'), dpi=300)
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def count_nondetections(recovered_times, bin_width, x_max, bin_height, y_min, y_max):
-    """Generate 2D histogram of nondetection counts by time and scale factor
+def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count, 
+        sn_info=[], save=True):
+    """Run injection recovery a given number of times on one supernova.
     Inputs:
-        recovered_times: list of dicts
-        bin_width: bin width in heatmap plot, in days
-        x_max: max value on x-axis
-        bin_height: bin height in heatmap plot, in scale factor fraction
-        y_min: minimum value on y-axis
-        y_max: max value on y-axis
-    Output:
-        count_sum: 2D histogram of nondetection counts
-    """
-    
-    print('\nBinning recovery rates...')
-    # Make lists of recovered points and all points
-    recovered = []
-    total = []
-    for rec_dict in tqdm(recovered_times):
-        recovered += [[rec_dict['sn'], time, rec_dict['scale']] for time in rec_dict['recovered']]
-        total += [[rec_dict['sn'], time, rec_dict['scale']] for time in rec_dict['all']]
-
-    recovered = np.array(recovered)
-    total = np.array(total)
-
-    # Bin edges
-    x_edges = np.arange(RECOV_MIN, x_max, bin_width)
-    y_edges = np.arange(y_min, y_max, bin_height)
-
-    # Dummy array if recovered is empty
-    if recovered.shape == (0,):
-        return pd.DataFrame(np.full((len(x_edges), len(y_edges)), 0), 
-                index=y_edges[:-1], columns=x_edges[:-1])
-
-    # Count nondetections per supernova
-    counts = []
-    for sn_name in list(dict.fromkeys(recovered[:,0])):
-        # Select by sn name
-        sn_rec = recovered[recovered[:,0] == sn_name][:,1:].astype(float)
-        sn_tot = total[total[:,0] == sn_name][:,1:].astype(float)
-        # Recovery rate histogram
-        rate_hist = recovery_histogram(sn_rec[:,0], sn_rec[:,1], sn_tot[:,0], 
-                sn_tot[:,1], x_edges, y_edges)
-        counts.append(rate_hist)
-
-    # Sum all histograms
-    count_sum = reduce(lambda x, y: x.add(y, fill_value=0), counts)
-    return count_sum
-
-
-def recovery_histogram(x_recovered, y_recovered, x_total, y_total, x_edges, y_edges):
-    """Generate histogram of recovery rate given x and y recovered/total values.
-    Inputs:
-        x_recovered: x-values for recovered data
-        y_recovered: y-values for recovered data
-        x_total: x-values for all data
-        y_total: y-values for all data
-        x_edges: bin edges for x data
-        y_edges: bin edges for y data
-    Output:
-        rate_hist: 2D histogram of recovery rate
-    """
-
-    # 2D histograms for recovered data and total data
-    recovered = np.histogram2d(x_recovered, y_recovered, [x_edges, y_edges])[0]
-    total = np.histogram2d(x_total, y_total, [x_edges, y_edges])[0]
-
-    # Calculate recovery rate
-    rate_hist = recovered / total
-
-    # Transpose and convert to DataFrame with time increasing along the rows
-    # and scale height increasing down the columns. Column and index labels
-    # are the lower bound of each bin
-    rate_hist = pd.DataFrame(rate_hist.T, index=y_edges[:-1], columns=x_edges[:-1])
-    return rate_hist
-
-
-def run_ir(iterations, supernovae, tstart_min, tstart_max, scale_min, scale_max,
-        bin_width, bin_height, t_max, output_file):
-    """Run injection recovery with random parameters for a list of supernovae.
-    Inputs:
-        iterations: number of times to sample parameter space
-        supernovae: list of SN names
-        tstart_min: minimum CSM model start time
-        tstart_max: maximum CSM model start time
-        scale_min: minimum CSM model scale factor
-        scale_max: maximum CSM model scale factor
+        sn_name: supernova name
+        band: GALEX band 'FUV' or 'NUV'
+        iterations: iterations of injection & recovery
+        tstarts: (min, max) tuple of tstart parameter bounds
+        scales: (min, max) tuple of scale parameter bounds
+        sigma: float or list, confidence level required for detection (if 
+                multiple, use multi-tier detection)
+        count: list, number of points at or above associated sigma to count
+                as a detection (same length as sigma)
+        sn_info: supernova info data frame
+        save: bool, output recovery_df to CSV
     Outputs:
-        recovered_times: list of dicts
+        recovery_df: DataFrame of injection parameters and recovered times
     """
-
-    # List of supernovae and bands to perform injection-recovery
-    recovered_times = []
-    to_remove = []
-    supernovae = sorted(list(supernovae) * 2)
-
-    # Load progress file, if any
-    # progress_file = Path('out/progress_%s.npy' % iterations)
-    # if progress_file.is_file():
-        # print('\nLoading previous progress file...')
-        # recovered_times = list(np.load(progress_file, allow_pickle=True))
-        # to_remove = [(rec['sn'], rec['band']) for rec in recovered_times]
-
-    bands = ['FUV', 'NUV'] * len(supernovae)
-
-    # Iterate over supernovae, bands
-    for i, (sn_name, band) in enumerate(zip(supernovae, bands)):
-
-        # Skip previously run SNe
-        if (sn_name, band) in to_remove:
-            continue
-
-        # Save to binary numpy file every 10 iterations (takes a long time)
-        if i % 10 == 0 and i != 0:
-            print('Saving progress...')
-            # np.save(progress_file, np.array(recovered_times))
-            print('Progress saved.')
-
-        # Plot histogram every 50 iterations
-        if i % 50 == 0 and i != 0:
-            rate_hist = count_nondetections(recovered_times, bin_width, t_max, 
-                    bin_height, scale_min, scale_max)
-            output_csv(rate_hist, output_file)
-            plot_nondetections(rate_hist, show=False)
-
-        # Ignore if light curve file doesn't exist
-        lc_file = LC_DIR / sn2fname(sn_name, band)
-        if not lc_file.is_file():
-            print('\nNo light curve file found for %s - %s [%s/%s]' % (sn_name, band, i+1, len(supernovae)))
-            recovered_times.append({
-                'sn': sn_name,
-                'band': band,
-                'tstart': -1,
-                'scale': -1,
-                'recovered': [],
-                'all': []
-            })
-            continue
-
-        try:
-            print('\n%s - %s [%s/%s]' % (sn_name, band, i+1, len(supernovae)))
-            sn = Supernova(sn_name)
-            # Run injection-recovery on many randomly sampled parameters
-            sample_times = sample_params(iterations, sn, band, tstart_min, 
-                    tstart_max, scale_min, scale_max)
-            # Append resulting recovered times
-            recovered_times += sample_times
-        except KeyError:
-            continue
-
-    return recovered_times
-
-
-def sample_params(iterations, sn, band, tstart_min, tstart_max, scale_min, scale_max):
-    """Run injection recovery on a single SN for a given number of iterations.
-    Inputs:
-        iterations: int
-        sn: Supernova object
-        band: 'FUV' or 'NUV'
-        tstart_min: minimum CSM model start time
-        tstart_max: maximum CSM model start time
-        scale_min: minimum CSM model scale factor
-        scale_max: maximum CSM model scale factor
-    Outputs:
-        sample_times: list of dicts
-    """
-
-    # Randomly sample start times (ints) and scale factors (floats)
-    tstarts = np.random.randint(tstart_min, tstart_max, size=iterations)
-    scales = (scale_max - scale_min) * np.random.rand(iterations) + scale_min
-    params = np.array(list(zip(tstarts, scales)))
-
-    # Import light curve for SN
-    lc = LightCurve(sn, band)
-    all_times = lc.data[lc.data['t_delta_rest'] >= RECOV_MIN]['t_delta_rest'].to_list()
-    sample_times = []
-
-    # Run injection-recovery in parallel for each sampled CSM parameter
-    with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lc=lc)
-        imap = pool.imap(func, params, chunksize=10)
-        for times in tqdm(imap, total=params.shape[0]):
-            sample_times.append(times)
-
-    # List of recovered times and associated parameters
-    sample_times = [
-            {   'sn': sn.name,
-                'band': band,
-                'tstart': params[i,0], 
-                'scale': params[i,1], 
-                'recovered': sample_times[i],
-                'all': all_times} 
-            for i in range(iterations)]
-
-    return sample_times
-
-
-def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count, sn_info=[]):
-    """Run injection recovery a given number of times on one supernova."""
 
     # Initialize Supernova and LightCurve objects
     sn = Supernova(sn_name, sn_info=sn_info)
     lc = LightCurve(sn, band)
 
+    # Run injection-recovery trials in parallel
     recovery_df = []
-    for i in tqdm(range(iterations)):
-        inj = Injection(sn, lc, tstarts, scales)
-        inj.recover(sigma, count=count)
-        recovery = [inj.tstart, inj.scale, inj.recovered_times]
-        recovery_df.append(recovery)
+    with Pool() as pool:
+        func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
+                scales=scales, sigma=sigma, count=count)
+        imap = pool.imap(func, list(range(iterations)), chunksize=100)
+        for recovery in tqdm(imap, total=iterations):
+            recovery_df.append(recovery)
 
-    recovery_df = pd.DataFrame(recovery_df, columns=['tstart', 'scale', 'recovered_times'])
+    recovery_df = pd.DataFrame(recovery_df, 
+            columns=['tstart', 'scale', 'recovered_times', 'all_times'])
+
+    if save:
+        fname = sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
+        recovery_df.to_csv(SAVE_DIR / fname, index=False)
 
     return recovery_df
 
-    # Run injection-recovery trials in parallel
-    # with Pool() as pool:
-    #     func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
-    #             scales=scales, sigma=sigma, count=count)
-    #     imap = pool.imap(func, chunksize=100)
-    #     for _ in tqdm(imap, total=iterations):
-    #         pass
 
+def inject_recover(i, sn, lc, tstarts, scales, sigma, count):
+    """Perform injection and recovery for given SN and model parameters.
+    Inputs:
+        i: dummy argument for pool.imap
+        sn: Supernova object
+        lc: LightCurve object
+        tstarts: (min, max) tuple of tstart parameter bounds
+        scales: (min, max) tuple of scale parameter bounds
+        sigma: float or list, confidence level required for detection (if 
+                multiple, use multi-tier detection)
+        count: list, number of points at or above associated sigma to count
+                as a detection (same length as sigma)
+    Output:
+        list with injection parameters and recovered times
+    """
 
-# def inject_recover(sn, lc, tstarts, scales, sigma, count):
-#     """Perform injection and recovery for given SN and model parameters.
-#     Inputs:
-#         sn: Supernova object
-#         lc: LightCurve object
-#     Output:
-#         list of times of recovered data
-#     """
-
-#     inj = Injection(sn, lc, tstarts, scales)
-#     inj.recover(sigma, count=count)
-#     return [inj.tstart, inj.scale, inj.recovered_times]
+    inj = Injection(sn, lc, tstarts, scales)
+    inj.recover(sigma, count=count)
+    # recover(inj, sigma, count=count)
+    return [inj.tstart, inj.scale, inj.recovered_times, inj.all_times]
 
 
 class Injection:
-    def __init__(self, sn, lc, tstarts, scales, width=250, decay=0.3):
+    def __init__(self, sn, lc, tstarts, scales, width=WIDTH, decay=DECAY_RATE):
         """Generate random model parameters, initialize model and inject into
         data.
         Inputs:
@@ -406,6 +173,9 @@ class Injection:
         self.recovered = [r for r in recovered if r not in detections]
         self.recovered_times = self.time[self.recovered].to_list()
 
+        # List of all times greater than dt_min
+        self.all_times = self.time[self.time > dt_min].to_list()
+
         # Plot
         if plot:
             self.plot(recovered=self.recovered, detections=detections)
@@ -432,4 +202,12 @@ class Injection:
 
 
 if __name__ == '__main__':
-    main()
+    dill.settings['recurse']=True
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--iterations', '-i', type=int, help='Iterations')
+    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
+    args = parser.parse_args()
+
+    main(args.iterations, args.overwrite)
