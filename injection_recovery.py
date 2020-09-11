@@ -30,32 +30,69 @@ SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 SAVE_DIR = Path('save')
+DATA_DIR = Path('data')
 
 def main(iterations, overwrite=False):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 
-    tstarts = (0, 1000)
-    scales = (0.5, 2)
-    sigma = [5, 3]
-    sigma_count = [1, 3]
-    recovery_df = run_trials('SN2007on', 'NUV', iterations, sn_info=sn_info)
+    supernovae = sn_info.sort_values('pref_dist').index
+    run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite)
 
 
-def run_all(supernovae, iterations, **kwargs):
+def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
         iterations: iterations of injection & recovery for each SN
+        sn_info: supernova info reference DataFrame
+        overwrite: bool, whether to overwrite previous save files
         kwargs: keyword arguments for run_trials
-    Outputs:
-
     """
 
-    pass
+    combos = get_data_list(supernovae, iterations, overwrite=overwrite)
+    
+    for i, (sn_name, band) in enumerate(combos):
+        # if not overwrite and sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
+        print('\n%s - %s [%s/%s]' % (sn_name, band, i+1, len(combos)))
+        # try:
+        # Initialize Supernova and LightCurve objects
+        sn = Supernova(sn_name, sn_info=sn_info)
+        lc = LightCurve(sn, band)
+        # except (KeyError, FileNotFoundError):
+        #     # LC file doesn't exist
+        #     print('\tno data found!')
+        #     continue
+
+        run_trials(sn, lc, iterations, **kwargs)
 
 
-def run_trials(sn_name, band, iterations, sn_info=[], save=True, **kwargs):
+def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
+        overwrite=False):
+    """Returns list of light curve files corresponding to given supernovae, and
+    removes SNe from list with previous save files, unless overwrite.
+    Output:
+        combos: list of (sn_name, band) tuples
+    """
+
+    # Combine list of bands and list of supernovae
+    bands = ['FUV', 'NUV']
+    supernovae = [sn_name for sn_name in supernovae for b in bands]
+    bands = bands * int(len(supernovae) / len(bands))
+    combos = list(zip(supernovae, bands))
+
+    # Remove combinations with previously saved files, unless overwrite
+    if not overwrite:
+        combos = [c for c in combos if not (save_dir / sn2fname(c[0], c[1], 
+                suffix='-%s.csv' % iterations)).is_file()]
+
+    # Remove combinations without data files
+    combos = [c for c in combos if (data_dir / sn2fname(c[0], c[1])).is_file()]
+
+    return combos
+
+
+def run_trials(sn, lc, iterations, save=True, **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
@@ -67,10 +104,6 @@ def run_trials(sn_name, band, iterations, sn_info=[], save=True, **kwargs):
     Outputs:
         recovery_df: DataFrame of injection parameters and recovered times
     """
-
-    # Initialize Supernova and LightCurve objects
-    sn = Supernova(sn_name, sn_info=sn_info)
-    lc = LightCurve(sn, band)
 
     # Run injection-recovery trials in parallel
     recovery_df = []
@@ -85,7 +118,7 @@ def run_trials(sn_name, band, iterations, sn_info=[], save=True, **kwargs):
 
     # Save CSV
     if save:
-        fname = sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
+        fname = sn2fname(sn.name, lc.band, suffix='-%s.csv' % iterations)
         recovery_df.to_csv(SAVE_DIR / fname, index=False)
 
     return recovery_df
