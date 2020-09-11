@@ -28,15 +28,19 @@ def main():
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 
+    recovery_df = run_trials('SN2007on', 'NUV', 100, (600, 610), (0.5, 2), 
+            [5, 3], [1, 3], sn_info=sn_info)
+    print(recovery_df)
+
     # sn = Supernova('SDSS-II SN 16121', sn_info)
-    sn = Supernova('SN2007on')
-    lc = LightCurve(sn, 'NUV')
-    inj = Injection(sn, lc, (600, 610), (0.5, 2))
-    print(inj.time)
-    print(inj.tstart)
-    print(inj.scale)
-    recovered = inj.recover([5, 3], count=[1, 3], plot=True)
-    print(recovered)
+    # sn = Supernova('SN2007on')
+    # lc = LightCurve(sn, 'NUV')
+    # inj = Injection(sn, lc, (600, 610), (0.5, 2))
+    # print(inj.time)
+    # print(inj.tstart)
+    # print(inj.scale)
+    # recovered = inj.recover([5, 3], count=[1, 3], plot=True)
+    # print(recovered)
 
     # sys.path.insert(0, 'CSMmodel')
     # print(sys.path)
@@ -294,27 +298,38 @@ def run_trials(sn_name, band, iterations, tstarts, scales, sigma, count, sn_info
     sn = Supernova(sn_name, sn_info=sn_info)
     lc = LightCurve(sn, band)
 
+    recovery_df = []
+    for i in tqdm(range(iterations)):
+        inj = Injection(sn, lc, tstarts, scales)
+        inj.recover(sigma, count=count)
+        recovery = [inj.tstart, inj.scale, inj.recovered_times]
+        recovery_df.append(recovery)
+
+    recovery_df = pd.DataFrame(recovery_df, columns=['tstart', 'scale', 'recovered_times'])
+
+    return recovery_df
+
     # Run injection-recovery trials in parallel
-    with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
-                scales=scales, sigma=sigma, count=count)
-        imap = pool.imap(func, chunksize=100)
-        for _ in tqdm(imap, total=iterations):
-            pass
+    # with Pool() as pool:
+    #     func = partial(inject_recover, sn=sn, lc=lc, tstarts=tstarts, 
+    #             scales=scales, sigma=sigma, count=count)
+    #     imap = pool.imap(func, chunksize=100)
+    #     for _ in tqdm(imap, total=iterations):
+    #         pass
 
 
-def inject_recover(sn, lc, tstarts, scales, sigma, count):
-    """Perform injection and recovery for given SN and model parameters.
-    Inputs:
-        sn: Supernova object
-        lc: LightCurve object
-    Output:
-        list of times of recovered data
-    """
+# def inject_recover(sn, lc, tstarts, scales, sigma, count):
+#     """Perform injection and recovery for given SN and model parameters.
+#     Inputs:
+#         sn: Supernova object
+#         lc: LightCurve object
+#     Output:
+#         list of times of recovered data
+#     """
 
-    inj = Injection(sn, lc, tstarts, scales)
-    inj.recover(sigma, count=count)
-    return [self.tstart, self.scale, self.recovered_times]
+#     inj = Injection(sn, lc, tstarts, scales)
+#     inj.recover(sigma, count=count)
+#     return [inj.tstart, inj.scale, inj.recovered_times]
 
 
 class Injection:
@@ -346,7 +361,6 @@ class Injection:
         # Inject model
         self.model = CSMmodel(self.tstart, self.width, self.decay, 
                 scale=self.scale)
-        print(self.model(self.time, sn.z)[lc.band])
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 
@@ -375,6 +389,8 @@ class Injection:
             dt_min: minimum time since discovery to include detections
             detections: indices which were detected without injection; pass for
                     faster calcs
+        Outputs:
+            recovered: indices of data recovered by detection algorithm
         """
 
         # Run detections on original data
@@ -388,7 +404,7 @@ class Injection:
 
         # Remove points that would have been detected either way
         self.recovered = [r for r in recovered if r not in detections]
-        self.recovered_times = self.time[self.recovered]
+        self.recovered_times = self.time[self.recovered].to_list()
 
         # Plot
         if plot:
