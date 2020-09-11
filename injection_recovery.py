@@ -1,11 +1,8 @@
 from tqdm import tqdm
-import itertools
-# from multiprocessing import Pool
 from functools import partial
-from functools import reduce
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-import sys
+# from matplotlib.ticker import MultipleLocator
+# import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -38,9 +35,6 @@ def main(iterations, overwrite=False):
 
     supernovae = sn_info.sort_values('pref_dist').index
     run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite)
-
-
-def import_saves(save_dir=SAVE_DIR):
 
 
 def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
