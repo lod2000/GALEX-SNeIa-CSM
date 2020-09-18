@@ -9,7 +9,7 @@ from pathos.multiprocessing import ProcessingPool as Pool
 from utils import *
 
 
-def main(iterations, t_min=RECOV_MIN, t_max=1500, scale_min=SCALE_MIN,
+def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, bin_height=0.1, overwrite=False):
 
     # Bin edges
@@ -52,7 +52,7 @@ def plot(hist, show=False, output_file='recovery.png'):
     im = ax.imshow(hist, aspect='auto', origin='lower', extent=extent)
     ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
     ax.yaxis.set_minor_locator(MultipleLocator(bin_height))
-    ax.set_xlabel('Rest frame time since discovery [days]')
+    ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
     plt.colorbar(im, label='No. of excluded SNe Ia')
     fig.tight_layout()
@@ -130,10 +130,14 @@ class RecoveryData:
         self.all_times = join_list(data.all_times)
 
         # Join lists of recovered scales and all scales
-        count_scale = lambda x: [data.loc[i,'scale'] for i, l in enumerate(x) 
+        count_param = lambda x, y: [data.loc[i,y] for i, l in enumerate(x) 
                 for t in l if t != '']
-        self.recovered_scales = count_scale(data.recovered_times)
-        self.all_scales = count_scale(data.all_times)
+        self.recovered_scales = count_param(data.recovered_times, 'scale')
+        self.all_scales = count_param(data.all_times, 'scale')
+
+        # Join lists of CSM interaction start times
+        self.recovered_tstarts = count_param(data.recovered_times, 'tstart')
+        self.all_tstarts = count_param(data.all_times, 'tstart')
 
 
     def hist(self, x_edges, y_edges):
@@ -144,9 +148,9 @@ class RecoveryData:
         """
 
         # 2D histograms for recovered data and total data
-        recovered = np.histogram2d(self.recovered_times, self.recovered_scales, 
+        recovered = np.histogram2d(self.recovered_tstarts, self.recovered_scales, 
                 [x_edges, y_edges])[0]
-        total = np.histogram2d(self.all_times, self.all_scales, 
+        total = np.histogram2d(self.all_tstarts, self.all_scales, 
                 [x_edges, y_edges])[0]
 
         # Calculate recovery rate
@@ -167,4 +171,4 @@ if __name__ == '__main__':
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     args = parser.parse_args()
 
-    main(args.iterations, overwrite=args.overwrite)
+    main(args.iterations, t_min=0, overwrite=args.overwrite)

@@ -4,6 +4,8 @@ import pandas as pd
 
 # Default values
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
+TSTART_MIN = 0
+TSTART_MAX = 1000
 SCALE_MIN = 0.5
 SCALE_MAX = 2.
 

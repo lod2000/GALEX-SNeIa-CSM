@@ -14,8 +14,6 @@ from light_curve import LightCurve
 from supernova import Supernova
 
 # Default values
-TSTART_MIN = 0
-TSTART_MAX = 1000
 DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx
 SIGMA = [5, 3] # detection certainty
