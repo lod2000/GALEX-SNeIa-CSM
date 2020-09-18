@@ -66,8 +66,8 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
 
 def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
         overwrite=False):
-    """Returns list of light curve files corresponding to given supernovae, and
-    removes SNe from list with previous save files, unless overwrite is True.
+    """Return list of light curve files corresponding to given supernovae, and
+    remove SNe from list with previous save files, unless overwrite is True.
     Output:
         combos: list of (sn_name, band) tuples
     """
@@ -80,11 +80,11 @@ def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR,
 
     # Remove combinations with previously saved files, unless overwrite
     if not overwrite:
-        combos = [c for c in combos if not (save_dir / sn2fname(c[0], c[1], 
+        combos = [c for c in combos if not (Path(save_dir) / sn2fname(c[0], c[1], 
                 suffix='-%s.csv' % iterations)).is_file()]
 
     # Remove combinations without data files
-    combos = [c for c in combos if (data_dir / sn2fname(c[0], c[1])).is_file()]
+    combos = [c for c in combos if (Path(data_dir) / sn2fname(c[0], c[1])).is_file()]
 
     return combos
 
