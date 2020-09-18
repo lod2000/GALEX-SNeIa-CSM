@@ -1,8 +1,6 @@
 from tqdm import tqdm
 from functools import partial
 import matplotlib.pyplot as plt
-# from matplotlib.ticker import MultipleLocator
-# import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -54,6 +52,11 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
         except:
             # If there's some problem with the light curve data, skip
             print('\tproblem with the data!')
+            continue
+
+        # Skip if no data after minimum recovery time
+        if np.max(lc.data['t_delta_rest']) < RECOV_MIN:
+            print('\tno data after t=%s d' % RECOV_MIN)
             continue
 
         run_trials(sn, lc, iterations, **kwargs)
