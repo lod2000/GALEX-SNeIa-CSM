@@ -1,6 +1,7 @@
 from functools import reduce
 from functools import partial
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -9,14 +10,71 @@ from utils import *
 
 
 def main(iterations, t_min=RECOV_MIN, t_max=1500, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1):
-    
-    # List of files in save dir
-    save_files = get_save_files(iterations)
+        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1, overwrite=False):
 
     # Bin edges
-    x_edges = np.arange(t_min, t_max, bin_width)
-    y_edges = np.arange(scale_min, scale_max, bin_height)
+    x_edges = np.arange(t_min, t_max+bin_width, bin_width)
+    y_edges = np.arange(scale_min, scale_max+bin_height, bin_height)
+
+    # Separate plot for each band
+    for band in ['FUV', 'NUV']:
+        # List of files in save dir
+        save_files = get_save_files(iterations, band)
+        # Generate summed histogram
+        hist_file = Path('hist-%s.csv' % band)
+        if overwrite or not (OUTPUT_DIR / hist_file).is_file():
+            print('\nImporting and summing %s saves...' % band)
+            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+        else:
+            print('\nImporting %s histogram...' % band)
+            hist = pd.read_csv(OUTPUT_DIR / hist_file, index_col=0)
+
+        # Plot histogram
+        print('Plotting...')
+        plot(hist, output_file='recovery-%s.png' % band)
+
+
+def plot(hist, show=False, output_file='recovery.png'):
+    """Plot 2D histogram of recovery rate by time since discovery and scale factor."""
+
+    # Flip y-axis
+    hist.sort_index(ascending=True, inplace=True)
+
+    # Calculate data range
+    x_bins = hist.columns.to_numpy(dtype=float)
+    y_bins = hist.index.to_numpy(dtype=float)
+    bin_width = x_bins[1] - x_bins[0]
+    bin_height = y_bins[1] - y_bins[0]
+    extent = (x_bins[0], x_bins[-1]+bin_width, y_bins[0], y_bins[-1]+bin_height)
+
+    # Plot
+    fig, ax = plt.subplots()
+    im = ax.imshow(hist, aspect='auto', origin='lower', extent=extent)
+    ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
+    ax.yaxis.set_minor_locator(MultipleLocator(bin_height))
+    ax.set_xlabel('Rest frame time since discovery [days]')
+    ax.set_ylabel('Scale factor')
+    plt.colorbar(im, label='No. of excluded SNe Ia')
+    fig.tight_layout()
+    plt.savefig(OUTPUT_DIR / Path(output_file), dpi=300)
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
+    """Generate histograms for each save file and sum together.
+    Inputs:
+        save_files: list of recovery output CSVs
+        x_edges: list of x-axis bin edges
+        y_edges: list of y-axis bin edges
+        save: save summed histogram as CSV
+        output_file: output CSV file name
+    Output:
+        hist: summed histogram from all given save data
+    """
 
     hist = []
     with Pool() as pool:
@@ -25,16 +83,13 @@ def main(iterations, t_min=RECOV_MIN, t_max=1500, scale_min=SCALE_MIN,
         for h in tqdm(imap, total=len(save_files)):
             hist.append(h)
 
-    # Import recovery save files
-    # hist = []
-    # for f in tqdm(save_files):
-        # rd = RecoveryData(f)
-        # Append histogram of time vs scale for recovered data
-        # hist.append(rd.hist(x_edges, y_edges))
-
     # Sum 2D histograms
     hist = reduce(lambda x, y: x.add(y, fill_value=0), hist)
-    print(hist)
+
+    if save:
+        hist.to_csv(OUTPUT_DIR / Path(output_file))
+
+    return hist
 
 
 def get_save_files(iterations, band='*', save_dir=SAVE_DIR):
@@ -45,7 +100,11 @@ def get_save_files(iterations, band='*', save_dir=SAVE_DIR):
 
 
 def get_hist(fname, x_edges, y_edges):
-    """Import recovery save data and return histogram."""
+    """Import recovery save data and return histogram.
+    Inputs:
+        x_edges: list of x-axis bin edges
+        y_edges: list of y-axis bin edges
+    """
 
     rd = RecoveryData(fname)
     return rd.hist(x_edges, y_edges)
@@ -53,7 +112,10 @@ def get_hist(fname, x_edges, y_edges):
 
 class RecoveryData:
     def __init__(self, fname):
-        """Import recovery save data."""
+        """Import recovery save data.
+        Input:
+            fname: path to CSV
+        """
 
         # Import save file; convert columns from strings to lists
         split_list = lambda x: x[1:-1].split(', ')
@@ -74,13 +136,12 @@ class RecoveryData:
         self.all_scales = count_scale(data.all_times)
 
 
-    def __call__(self, tstart, scale):
-        row = self.data[(self.data['tstart'] == tstart) & (self.data['scale'] == scale)]
-        return row['all_times'].iloc[0]
-
-
     def hist(self, x_edges, y_edges):
-        """Generate 2D histogram of recovery rate according to given bin edges."""
+        """Generate 2D histogram of recovery rate according to given bin edges.
+        Inputs:
+            x_edges: list of x-axis bin edges
+            y_edges: list of y-axis bin edges
+        """
 
         # 2D histograms for recovered data and total data
         recovered = np.histogram2d(self.recovered_times, self.recovered_scales, 
@@ -103,6 +164,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
+    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     args = parser.parse_args()
 
-    main(args.iterations)
+    main(args.iterations, overwrite=args.overwrite)
