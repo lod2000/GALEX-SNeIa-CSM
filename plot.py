@@ -3,15 +3,17 @@ import pandas as pd
 import numpy as np
 from utils import *
 
-SAVE_DIR = Path('save')
 
-def main(iterations):
+def main(iterations, t_min=RECOV_MIN, t_max=1500, scale_min=SCALE_MIN,
+        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1):
     save_files = get_save_files(iterations)
     rd = RecoveryData(save_files[0])
-    # print(rd.data)
-    # tstarts = rd.data['tstart']
-    # scales = rd.data['scale']
-    # print(rd(tstarts[0], scales[0]))
+
+    # Bin edges
+    x_edges = np.arange(t_min, t_max, bin_width)
+    y_edges = np.arange(scale_min, scale_max, bin_height)
+
+    print(rd.hist(x_edges, y_edges))
 
 
 def get_save_files(iterations, band='*', save_dir=SAVE_DIR):
@@ -51,10 +53,6 @@ class RecoveryData:
 
     def hist(self, x_edges, y_edges):
         """Generate 2D histogram of recovery rate according to given bin edges."""
-
-        # Bin edges
-        x_edges = np.arange(RECOV_MIN, x_max, bin_width)
-        y_edges = np.arange(y_min, y_max, bin_height)
 
         # 2D histograms for recovered data and total data
         recovered = np.histogram2d(self.recovered_times, self.recovered_scales, 

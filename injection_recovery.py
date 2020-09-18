@@ -18,16 +18,11 @@ from supernova import Supernova
 # Default values
 TSTART_MIN = 0
 TSTART_MAX = 1000
-SCALE_MIN = 0.5
-SCALE_MAX = 2.
 DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx
-RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
-SAVE_DIR = Path('save')
-DATA_DIR = Path('data')
 
 def main(iterations, overwrite=False):
 

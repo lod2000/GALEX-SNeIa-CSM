@@ -2,6 +2,11 @@ from pathlib import Path
 import platform
 import pandas as pd
 
+RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
+SCALE_MIN = 0.5
+SCALE_MAX = 2.
+SAVE_DIR = Path('save')
+DATA_DIR = Path('data')
 
 def fname2sn(fname):
     """Extract SN name and band from a file name."""
