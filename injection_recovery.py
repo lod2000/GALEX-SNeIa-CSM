@@ -3,6 +3,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from numpy.random import default_rng
 from pathlib import Path
 import random
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -23,7 +24,6 @@ SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 def main(iterations, overwrite=False):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
-
     supernovae = sn_info.sort_values('pref_dist').index
     run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite)
 
@@ -38,71 +38,92 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
         kwargs: keyword arguments for run_trials
     """
 
-    combos = get_data_list(supernovae, iterations, overwrite=overwrite)
-    
-    for i, (sn_name, band) in enumerate(combos):
-        # if not overwrite and sn2fname(sn_name, band, suffix='-%s.csv' % iterations)
-        print('\n%s - %s [%s/%s]' % (sn_name, band, i+1, len(combos)))
-        try:
-            # Initialize Supernova and LightCurve objects
-            sn = Supernova(sn_name, sn_info=sn_info)
-            lc = LightCurve(sn, band, data_dir=DATA_DIR)
-        except:
-            # If there's some problem with the light curve data, skip
-            print('\tproblem with the data!')
-            continue
-
-        # Skip if no data after minimum recovery time
-        if np.max(lc.data['t_delta_rest']) < RECOV_MIN:
-            print('\tno data after t=%s d' % RECOV_MIN)
-            continue
-
-        run_trials(sn, lc, iterations, **kwargs)
-
-
-def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
-        overwrite=False):
-    """Return list of light curve files corresponding to given supernovae, and
-    remove SNe from list with previous save files, unless overwrite is True.
-    Output:
-        combos: list of (sn_name, band) tuples
-    """
-
-    # Combine list of bands and list of supernovae
-    bands = ['FUV', 'NUV']
-    supernovae = [sn_name for sn_name in supernovae for b in bands]
-    bands = bands * int(len(supernovae) / len(bands))
-    combos = list(zip(supernovae, bands))
-
-    # Remove combinations with previously saved files, unless overwrite
+    # Remove SNe with previous save files from list
     if not overwrite:
-        combos = [c for c in combos if not (Path(save_dir) / sn2fname(c[0], c[1], 
-                suffix='-%s.csv' % iterations)).is_file()]
+        supernovae = [s for s in supernovae if not check_save(s, iterations)]
+    
+    for i, sn_name in enumerate(supernovae):
+        print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
+        # Initialize SN object
+        sn = Supernova(sn_name, sn_info=sn_info)
+        # Import light curves
+        lcs = []
+        for band in ['FUV', 'NUV']:
+            try:
+                lc = LightCurve(sn, band, data_dir=DATA_DIR)
+            except:
+                # No data for this channel
+                continue
 
-    # Remove combinations without data files
-    combos = [c for c in combos if (Path(data_dir) / sn2fname(c[0], c[1])).is_file()]
+            # Skip if no data after minimum recovery time
+            if np.max(lc.data['t_delta_rest']) < RECOV_MIN:
+                continue
 
-    return combos
+            lcs.append(lc)
+
+        # If light curve import was unsuccessful
+        if len(lcs) == 0:
+            print('\tno data available!')
+            continue
+
+        run_trials(sn, lcs, iterations, **kwargs)
 
 
-def run_trials(sn, lc, iterations, save=True, **kwargs):
+def check_save(sn_name, iterations, save_dir=SAVE_DIR):
+    """Checks if save file exists for given SN and iterations."""
+
+    save_file = sn2fname(sn_name, str(iterations), parent=save_dir)
+    return save_file.is_file()
+
+
+# def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
+#         overwrite=False):
+#     """Return list of light curve files corresponding to given supernovae, and
+#     remove SNe from list with previous save files, unless overwrite is True.
+#     Output:
+#         combos: list of (sn_name, band) tuples
+#     """
+
+#     # Combine list of bands and list of supernovae
+#     bands = ['FUV', 'NUV']
+#     supernovae = [sn_name for sn_name in supernovae for b in bands]
+#     bands = bands * int(len(supernovae) / len(bands))
+#     combos = list(zip(supernovae, bands))
+#     # combos = [[s, [b for b in bands if sn2fname(s, b, parent=data_dir).is_file()]] 
+#     #         for s in supernovae]
+
+#     # Remove combinations with previously saved files, unless overwrite
+#     if not overwrite:
+#         combos = [c for c in combos if not (Path(save_dir) / sn2fname(c[0], c[1], 
+#                 suffix='-%s.csv' % iterations)).is_file()]
+#         # combos = [c for c in combos if not sn2fname(c[0][0], c)]
+
+#     # Remove combinations without data files
+#     combos = [c for c in combos if (Path(data_dir) / sn2fname(c[0], c[1])).is_file()]
+
+#     return combos
+
+
+def run_trials(sn, lcs, iterations, save=True, sn_info=[], **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
-        band: GALEX band 'FUV' or 'NUV'
         iterations: iterations of injection & recovery
-        sn_info: supernova info data frame
         save: bool, output recovery_df to CSV
+        sn_info: supernova info reference DataFrame
         kwargs: keyword arguments for inject_recover
     Outputs:
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
+    # Random injection parameter sample
+    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX)
+
     # Run injection-recovery trials in parallel
     recovery_df = []
     with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lc=lc, **kwargs)
-        imap = pool.imap(func, list(range(iterations)), chunksize=100)
+        func = partial(inject_recover, sn=sn, lcs=lcs, **kwargs)
+        imap = pool.imap(func, params, chunksize=100)
         for recovery in tqdm(imap, total=iterations):
             recovery_df.append(recovery)
 
@@ -111,21 +132,30 @@ def run_trials(sn, lc, iterations, save=True, **kwargs):
 
     # Save CSV
     if save:
-        fname = sn2fname(sn.name, lc.band, suffix='-%s.csv' % iterations)
+        fname = sn2fname(sn.name, str(iterations)) # format sn_name-iterations.csv
         recovery_df.to_csv(SAVE_DIR / fname, index=False)
 
     return recovery_df
 
 
-def inject_recover(i, sn, lc, tstart_min=TSTART_MIN, tstart_max=TSTART_MAX, 
-        scale_min=SCALE_MIN, scale_max=SCALE_MAX, sigma=SIGMA, count=SIGMA_COUNT):
+def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
+    """Generate random injection-recovery parameters."""
+
+    rng = default_rng()
+    tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
+    scale = rng.uniform(scale_min, scale_max, iterations)
+    params = np.column_stack((tstart, scale))
+
+    return params
+
+
+def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
-        i: dummy argument for pool.imap
+        params: tuple of (tstart, scale) injection parameters
         sn: Supernova object
-        lc: LightCurve object
-        tstart_min, tstart_max: tstart parameter bounds
-        scale_min, scale_max: scale parameter bounds
+        lcs: list of LightCurve objects (typically NUV and FUV data); if a SN is
+                excluded in one band, it is considered excluded overall
         sigma: float or list, confidence level required for detection (if 
                 multiple, use multi-tier detection)
         count: list, number of points at or above associated sigma to count
@@ -134,32 +164,37 @@ def inject_recover(i, sn, lc, tstart_min=TSTART_MIN, tstart_max=TSTART_MAX,
         list with injection parameters, recovered times, and all times
     """
 
-    inj = Injection(sn, lc, tstart_min, tstart_max, scale_min, scale_max)
-    inj.recover(sigma, count=count)
-    return [inj.tstart, inj.scale, inj.recovered_times, inj.all_times]
+    # Unpack parameters
+    tstart, scale = params
+
+    # Inject all light curves
+    recovered_times = []
+    all_times = []
+    for lc in lcs:
+        inj = Injection(sn, lc, tstart, scale)
+        inj.recover(sigma, count=count)
+        recovered_times += inj.recovered_times
+        all_times += inj.all_times
+
+    # Remove duplicates
+    recovered_times = sorted(list(dict.fromkeys(recovered_times)))
+    all_times = sorted(list(dict.fromkeys(all_times)))
+
+    return [tstart, scale, recovered_times, all_times]
 
 
 class Injection:
-    def __init__(self, sn, lc, tstart_min, tstart_max, scale_min, scale_max, 
-            width=WIDTH, decay=DECAY_RATE):
+    def __init__(self, sn, lc, tstart, scale, width=WIDTH, decay=DECAY_RATE):
         """Generate random model parameters, initialize model and inject into
         data.
         Inputs:
             sn: Supernova object associated with data
             lc: LightCurve object with data to be injected
-            tstart_min, tstart_max: tstart parameter bounds
-            scale_min, scale_max: scale parameter bounds
+            tstart: CSM model start time, int
+            scale: model scale factor, float
             width: model width, int
             decay: model decay rate, float
         """
-        
-        # Generate random parameters
-        self.tstart = random.randint(tstart_min, tstart_max)
-        self.scale = random.uniform(scale_min, scale_max)
-
-        # Other parameters
-        self.width = width
-        self.decay = decay
 
         # Get data
         self.time = lc.data['t_delta_rest'].copy()
@@ -167,8 +202,7 @@ class Injection:
         self.err = lc.data['luminosity_hostsub_err'].copy()
 
         # Inject model
-        self.model = CSMmodel(self.tstart, self.width, self.decay, 
-                scale=self.scale)
+        self.model = CSMmodel(tstart, width, decay, scale=scale)
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 
@@ -177,13 +211,13 @@ class Injection:
 
 
     @classmethod
-    def from_name(self, sn_name, band, tstarts, scales, sn_info=[], **kwargs):
+    def from_name(self, sn_name, band, tstart, scale, sn_info=[], **kwargs):
         """Generate Injection instance from a supernova name and GALEX band,
         also creating a Supernova and LightCurve object in the process."""
 
         sn = Supernova(sn_name, sn_info=sn_info)
         lc = LightCurve(sn, band)
-        return Injection(sn, lc, tstarts, scales, **kwargs)
+        return Injection(sn, lc, tstart, scale, **kwargs)
 
 
     def recover(self, sigma, count=[1], dt_min=RECOV_MIN, detections=None, 

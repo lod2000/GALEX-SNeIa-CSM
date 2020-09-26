@@ -29,7 +29,7 @@ def fname2sn(fname):
     return sn_name, band
 
 
-def sn2fname(sn_name, band, suffix='.csv'):
+def sn2fname(sn_name, band, suffix='.csv', parent=None):
     """Convert SN name and GALEX band to a file name, e.g. for a light curve CSV."""
 
     fname = '-'.join((sn_name, band)) + suffix
@@ -37,6 +37,9 @@ def sn2fname(sn_name, band, suffix='.csv'):
     # Make Windows-friendly
     if (platform.system() == 'Windows') or ('Microsoft' in platform.release()):
         fname = fname.replace(':', '_')
+    # Include parent dir
+    if parent:
+        return Path(parent) / Path(fname)
     return Path(fname)
 
 
