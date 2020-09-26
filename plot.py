@@ -10,28 +10,27 @@ from utils import *
 
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1, overwrite=False):
+        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1, overwrite=False,
+        show_plot=False):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.arange(scale_min, scale_max+bin_height, bin_height)
 
-    # Separate plot for each band
-    for band in ['FUV', 'NUV']:
-        # List of files in save dir
-        save_files = get_save_files(iterations, band)
-        # Generate summed histogram
-        hist_file = Path('hist-%s.csv' % band)
-        if overwrite or not (OUTPUT_DIR / hist_file).is_file():
-            print('\nImporting and summing %s saves...' % band)
-            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
-        else:
-            print('\nImporting %s histogram...' % band)
-            hist = pd.read_csv(OUTPUT_DIR / hist_file, index_col=0)
+    # List of files in save dir
+    save_files = list(Path(SAVE_DIR).glob('*-%s.csv' % iterations))
+    # Generate summed histogram
+    hist_file = Path('hist.csv')
+    if overwrite or not (OUTPUT_DIR / hist_file).is_file():
+        print('\nImporting and summing saves...')
+        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+    else:
+        print('\nImporting histogram...')
+        hist = pd.read_csv(OUTPUT_DIR / hist_file, index_col=0)
 
-        # Plot histogram
-        print('Plotting...')
-        plot(hist, output_file='recovery-%s.png' % band)
+    # Plot histogram
+    print('Plotting...')
+    plot(hist, show=show_plot)
 
 
 def plot(hist, show=False, output_file='recovery.png'):
@@ -90,13 +89,6 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
         hist.to_csv(OUTPUT_DIR / Path(output_file))
 
     return hist
-
-
-def get_save_files(iterations, band='*', save_dir=SAVE_DIR):
-    """Return list of files in save directory for given iterations"""
-
-    save_files = list(Path(save_dir).glob('*-%s-%s.csv' % (band, iterations)))
-    return save_files
 
 
 def get_hist(fname, x_edges, y_edges):
