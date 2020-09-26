@@ -76,34 +76,6 @@ def check_save(sn_name, iterations, save_dir=SAVE_DIR):
     return save_file.is_file()
 
 
-# def get_data_list(supernovae, iterations, save_dir=SAVE_DIR, data_dir=DATA_DIR, 
-#         overwrite=False):
-#     """Return list of light curve files corresponding to given supernovae, and
-#     remove SNe from list with previous save files, unless overwrite is True.
-#     Output:
-#         combos: list of (sn_name, band) tuples
-#     """
-
-#     # Combine list of bands and list of supernovae
-#     bands = ['FUV', 'NUV']
-#     supernovae = [sn_name for sn_name in supernovae for b in bands]
-#     bands = bands * int(len(supernovae) / len(bands))
-#     combos = list(zip(supernovae, bands))
-#     # combos = [[s, [b for b in bands if sn2fname(s, b, parent=data_dir).is_file()]] 
-#     #         for s in supernovae]
-
-#     # Remove combinations with previously saved files, unless overwrite
-#     if not overwrite:
-#         combos = [c for c in combos if not (Path(save_dir) / sn2fname(c[0], c[1], 
-#                 suffix='-%s.csv' % iterations)).is_file()]
-#         # combos = [c for c in combos if not sn2fname(c[0][0], c)]
-
-#     # Remove combinations without data files
-#     combos = [c for c in combos if (Path(data_dir) / sn2fname(c[0], c[1])).is_file()]
-
-#     return combos
-
-
 def run_trials(sn, lcs, iterations, save=True, sn_info=[], **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
