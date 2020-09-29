@@ -10,12 +10,12 @@ from utils import *
 
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=50, bin_height=0.1, overwrite=False,
+        scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
         show_plot=False):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.arange(scale_min, scale_max+bin_height, bin_height)
+    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
     # List of files in save dir
     save_files = list(Path(SAVE_DIR).glob('*-%s.csv' % iterations))
@@ -30,30 +30,22 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting...')
-    plot(hist, show=show_plot)
+    plot(x_edges, y_edges, hist, show=show_plot)
 
 
-def plot(hist, show=False, output_file='recovery.png'):
+def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png'):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor."""
 
     # Flip y-axis
     hist.sort_index(ascending=True, inplace=True)
 
-    # Calculate data range
-    x_bins = hist.columns.to_numpy(dtype=float)
-    y_bins = hist.index.to_numpy(dtype=float)
-    bin_width = x_bins[1] - x_bins[0]
-    bin_height = y_bins[1] - y_bins[0]
-    extent = (x_bins[0], x_bins[-1]+bin_width, y_bins[0], y_bins[-1]+bin_height)
-
     # Plot
     fig, ax = plt.subplots()
-    im = ax.imshow(hist, aspect='auto', origin='lower', extent=extent)
-    ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
-    ax.yaxis.set_minor_locator(MultipleLocator(bin_height))
+    pcm = ax.pcolormesh(x_edges, y_edges, hist)
+    ax.set_yscale('log')
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
-    plt.colorbar(im, label='No. of excluded SNe Ia')
+    plt.colorbar(pcm, label='No. of excluded SNe Ia')
     fig.tight_layout()
     plt.savefig(OUTPUT_DIR / Path(output_file), dpi=300)
 
