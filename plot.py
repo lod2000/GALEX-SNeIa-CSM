@@ -1,7 +1,7 @@
 from functools import reduce
 from functools import partial
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import ScalarFormatter, FuncFormatter
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -43,6 +43,9 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png'):
     fig, ax = plt.subplots()
     pcm = ax.pcolormesh(x_edges, y_edges, hist)
     ax.set_yscale('log')
+    formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
+    # formatter.set_scientific(False)
+    ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
     plt.colorbar(pcm, label='No. of excluded SNe Ia')
