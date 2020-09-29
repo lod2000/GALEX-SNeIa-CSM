@@ -2,6 +2,7 @@ from functools import reduce
 from functools import partial
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, FuncFormatter
+from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -39,12 +40,20 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png'):
     # Flip y-axis
     hist.sort_index(ascending=True, inplace=True)
 
+    # Colormap
+    cmap = plt.cm.jet
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+    cmaplist = [(0, 0, 0, 1)] + cmaplist
+    cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
+    hist_max = int(np.max(hist.to_numpy()))+1
+    cmap_bounds = np.linspace(0, hist_max, hist_max+1)
+    norm = BoundaryNorm(cmap_bounds, cmap.N)
+
     # Plot
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(x_edges, y_edges, hist)
+    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm)
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
-    # formatter.set_scientific(False)
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
