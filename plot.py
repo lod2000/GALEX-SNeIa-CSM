@@ -1,7 +1,7 @@
 from functools import reduce
 from functools import partial
 import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter, FuncFormatter
+from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator
 from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 import pandas as pd
 import numpy as np
@@ -34,30 +34,42 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     plot(x_edges, y_edges, hist, show=show_plot)
 
 
-def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png'):
-    """Plot 2D histogram of recovery rate by time since discovery and scale factor."""
+def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
+            cbin_width=2):
+    """Plot 2D histogram of recovery rate by time since discovery and scale factor.
+    Inputs:
+        x_edges: x-axis bin edges
+        y_edges: y-axis bin edges
+        hist: 2D histogram
+        show: whether to display plot
+        output_file: output png plot file
+        cbin_width: width of colormap bins
+    """
 
     # Flip y-axis
     hist.sort_index(ascending=True, inplace=True)
 
     # Colormap
-    cmap = plt.cm.jet
+    cmap = plt.cm.jet # colormap of choice
     cmaplist = [cmap(i) for i in range(cmap.N)]
-    cmaplist = [(0, 0, 0, 1)] + cmaplist
+    cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
     cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
-    hist_max = int(np.max(hist.to_numpy()))+1
-    cmap_bounds = np.linspace(0, hist_max, hist_max+1)
+    hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
+    cmap_bounds = np.arange(1, hist_max, cbin_width)
+    # include lower, uppper bounds
+    cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
     norm = BoundaryNorm(cmap_bounds, cmap.N)
 
     # Plot
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm)
+    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm, vmin=0)
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
-    plt.colorbar(pcm, label='No. of excluded SNe Ia')
+    cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
+    cbar.ax.yaxis.set_minor_locator(MultipleLocator(1))
     fig.tight_layout()
     plt.savefig(OUTPUT_DIR / Path(output_file), dpi=300)
 
