@@ -5,15 +5,15 @@ import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
 
-W0 = 1000. #model wwavelength start
-W1 = 3000. #model wavelength end
+W0 = 800. #model wwavelength start
+W1 = 3200. #model wavelength end
 DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
 HST_AREA = (1.2e2)**2. * np.pi # cm2
 L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
 Z_2015cp = 0.0413
-F275_W_EFF = 416.66 # A
+F275W_W_EFF = 416.66 # A
 GRAHAM_SCALE = 0.1069 # set scale factor 1 equal to SN2015cp flux
 
 T0 = 0. #model time start
@@ -28,18 +28,14 @@ COLORS = { #for simple plotting
 
 def main(tstart, twidth, decay_rate, scale):
 
-	C94 = Chev94Model()
-	print(C94.gen_model(366))
-	print(len(C94.gen_model(366)))
-	print(max(C94.gen_model(366)))
-
-	L_2015_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp
+	L_2015cp_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp, erg/s/A
+	L_2015cp_F275W = L_2015cp_cgs * F275W_W_EFF
 	baseline_model = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
-	L_baseline = baseline_model([0], Z_2015cp, plot_spec=True)
-	Graham_scale = L_2015_cgs / L_baseline['F275W']
+	L_baseline = baseline_model([0], Z_2015cp)
+	Graham_scale = L_2015cp_cgs / L_baseline['F275W']
 	print(Graham_scale)
 
-	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale)
+	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model='Chev94')
 	
 	test = np.arange(250., 2500., 20)
 	for z,m in zip([0.041, 0.25], ['.', 's']):
@@ -70,7 +66,6 @@ def main(tstart, twidth, decay_rate, scale):
 		plt.plot(zvals, vals[name], color+'.:', label=name)
 
 
-	# plt.ylim(0.9e36, 2e38)
 	plt.yscale('log')
 	plt.legend()
 
@@ -136,7 +131,6 @@ class CSMmodel:
 
 		"""
 
-
 		#only running it at 1yr epoch
 		init_spec = self.spec_model.gen_model(366.) # erg /s / A
 
@@ -182,7 +176,6 @@ def compute_fuv(wl, flux):
 	return obs_fl.sum()
 
 def compute_f275w(wl, flux):
-
 	#read resp table, already in throughput so no need to scale
 	det_wl, det_fl = np.genfromtxt(Path('ref/F275W.resp'), unpack=True, dtype=float)
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
@@ -206,7 +199,7 @@ class Chev94Model:
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
 			#print(name)
 			if name == 'Hbeta':
-				coeffs = np.array([float(fl)*1e36*scale*GRAHAM_SCALE for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
+				coeffs = np.array([float(fl)*1e36*GRAHAM_SCALE*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
 			model = LineModel(float(wl), self.times, linelum)
@@ -250,11 +243,11 @@ class FlatModel:
 	def __init__(self, scale=1.):
 		"""CSM model based on a flat spectrum."""
 		L_2015_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp, erg/s/A
-		self.model_data = L_2015_cgs * scale
+		self.model_data = L_2015_cgs / F275W_W_EFF * scale
 
 	def gen_model(self, t):
 		wl = np.arange(W0, W1, DW)
-		fl = np.zeros_like(wl) * self.model_data
+		fl = np.zeros_like(wl) + self.model_data
 		return fl
 
 
@@ -263,7 +256,6 @@ def gen_spectrum(wl, vwidth):
 	gauss = GaussianModel()
 	fl = gauss.eval(x=arr, center=wl, sigma=wl*vwidth/3e5, amplitude=1.)
 	return fl
-
 
 
 if __name__=='__main__':

@@ -12,16 +12,17 @@ from utils import *
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False):
+        show_plot=False, model='Chev94'):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
     # List of files in save dir
-    save_files = list(Path(SAVE_DIR).glob('*-%s.csv' % iterations))
+    save_dir = SAVE_DIR / Path(model)
+    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
-    hist_file = Path('hist.csv')
+    hist_file = Path('hist-%s.csv' % model)
     if overwrite or not (OUTPUT_DIR / hist_file).is_file():
         print('\nImporting and summing saves...')
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
@@ -31,7 +32,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting...')
-    plot(x_edges, y_edges, hist, show=show_plot)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file='recovery-%s.png' % model)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
@@ -177,6 +178,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, overwrite=args.overwrite)

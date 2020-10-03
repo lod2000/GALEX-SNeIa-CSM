@@ -21,11 +21,11 @@ SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 
-def main(iterations, overwrite=False):
+def main(iterations, overwrite=False, model='Chev94'):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     supernovae = sn_info.sort_values('pref_dist').index
-    run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite)
+    run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model)
 
 
 def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
@@ -76,7 +76,7 @@ def check_save(sn_name, iterations, save_dir=SAVE_DIR):
     return save_file.is_file()
 
 
-def run_trials(sn, lcs, iterations, save=True, sn_info=[], **kwargs):
+def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
@@ -104,8 +104,9 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], **kwargs):
 
     # Save CSV
     if save:
+        save_dir = SAVE_DIR / Path(model)
         fname = sn2fname(sn.name, str(iterations)) # format sn_name-iterations.csv
-        recovery_df.to_csv(SAVE_DIR / fname, index=False)
+        recovery_df.to_csv(save_dir / fname, index=False)
 
     return recovery_df
 
@@ -121,7 +122,7 @@ def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
     return params
 
 
-def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT):
+def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev94'):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         params: tuple of (tstart, scale) injection parameters
@@ -143,7 +144,7 @@ def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT):
     recovered_times = []
     all_times = []
     for lc in lcs:
-        inj = Injection(sn, lc, tstart, scale)
+        inj = Injection(sn, lc, tstart, scale, model=model)
         inj.recover(sigma, count=count)
         recovered_times += inj.recovered_times
         all_times += inj.all_times
@@ -156,7 +157,8 @@ def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT):
 
 
 class Injection:
-    def __init__(self, sn, lc, tstart, scale, width=WIDTH, decay=DECAY_RATE):
+    def __init__(self, sn, lc, tstart, scale, width=WIDTH, decay=DECAY_RATE,
+            model='Chev94'):
         """Generate random model parameters, initialize model and inject into
         data.
         Inputs:
@@ -174,7 +176,7 @@ class Injection:
         self.err = lc.data['luminosity_hostsub_err'].copy()
 
         # Inject model
-        self.model = CSMmodel(tstart, width, decay, scale=scale)
+        self.model = CSMmodel(tstart, width, decay, scale=scale, model=model)
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 
@@ -256,6 +258,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
+    parser.add_argument('--model', '-m', type='str', default='Chev94', help='CSM model spectrum')
     args = parser.parse_args()
 
-    main(args.iterations, args.overwrite)
+    main(args.iterations, args.overwrite, args.model)
