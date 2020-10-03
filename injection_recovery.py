@@ -258,7 +258,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
-    parser.add_argument('--model', '-m', type='str', default='Chev94', help='CSM model spectrum')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     args = parser.parse_args()
 
     main(args.iterations, args.overwrite, args.model)
