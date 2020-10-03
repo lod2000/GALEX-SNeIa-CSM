@@ -11,6 +11,9 @@ DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
 HST_AREA = (1.2e2)**2. * np.pi # cm2
+L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
+Z_2015cp = 0.0413
+F275_W_EFF = 416.66 # A
 
 
 T0 = 0. #model time start
@@ -23,17 +26,28 @@ COLORS = { #for simple plotting
 	'F275W':'r'
 }
 
-def main(tstart, twidth, decay_rate):
+def main(tstart, twidth, decay_rate, scale):
 
-	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=1)
+	C94 = Chev94Model()
+	print(C94.gen_model(366))
+	print(len(C94.gen_model(366)))
+	print(max(C94.gen_model(366)))
+
+	L_2015_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp
+	baseline_model = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
+	L_baseline = baseline_model([0], Z_2015cp, plot_spec=True)
+	Graham_scale = L_2015_cgs / L_baseline['F275W']
+	print(Graham_scale)
+
+	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale)
 	
 	test = np.arange(250., 2500., 20)
-	for z,m in zip([0.05, 0.25], ['.', 's']):
+	for z,m in zip([0.041, 0.25], ['.', 's']):
 		f = model1(test, z)
 		for name, fls in f.items():
 			plt.plot(test, fls, label=name+' - z=%.2f' % z, color=COLORS[name], marker=m)
 
-	plt.ylim(1e34, 1e38)
+	plt.ylim(1e34, None)
 	plt.yscale('log')
 	plt.xlim(250, 1500)
 	plt.legend()
@@ -56,7 +70,7 @@ def main(tstart, twidth, decay_rate):
 		plt.plot(zvals, vals[name], color+'.:', label=name)
 
 
-	plt.ylim(0.9e36, 2e38)
+	# plt.ylim(0.9e36, 2e38)
 	plt.yscale('log')
 	plt.legend()
 
@@ -68,7 +82,8 @@ def main(tstart, twidth, decay_rate):
 
 
 class CSMmodel:
-	def __init__(self, tstart, twidth, decay_rate, scale=0.5, vwidth=2000):
+	def __init__(self, tstart, twidth, decay_rate, scale=0.5, vwidth=2000,
+			model='Chev94'):
 		"""
 		Initializes a CSM model with input variables:
 			tstart: Days after peak that ejecta impacts CSM 
@@ -76,10 +91,11 @@ class CSMmodel:
 			decay_rate: decay rate per 100 days after plateau ends - see Graham paper
 			scale: multiplicative scale factor applied to the CSM model to indicative brighter/fainter CSM interaction
 			vwidth: velocity width of the CSM emission lines in km/s, using 2000 based on typical emission lines of SNe Ia-CSM
+			model: 'Chev94' for emission line-based or 'flat' for flat
 
 		Attributes:
 			wlarr: np.array of wavelength values for the Chevalier CSM model determined by W0,W1,DW
-			chev_model: Class instance of Chev94Model with input scale and vwidth parameters
+			spec_model: Class instance of Chev94Model or FlatModel with input scale and vwidth parameters
 			time: time array used for model interpolation determined by T0,T1,DT
 			tscale: scale factor applied to the CSM light curve after platuea regime has ended determined by decay_rate
 
@@ -91,7 +107,12 @@ class CSMmodel:
 
 		self.wlarr = np.arange(W0, W1, DW)
 
-		self.chev_model = Chev94Model(vwidth=vwidth, scale=scale)
+		if model == 'Chev94':
+			self.spec_model = Chev94Model(vwidth=vwidth, scale=scale)
+		elif model == 'flat':
+			self.spec_model = FlatModel(scale=scale)
+		else:
+			print('No such model %s' % model)
 
 		self.time = np.arange(T0, T1, DT)
 		self.tscale = np.zeros_like(self.time)
@@ -117,7 +138,7 @@ class CSMmodel:
 
 
 		#only running it at 1yr epoch
-		init_spec = self.chev_model.gen_model(366.) # erg /s / A
+		init_spec = self.spec_model.gen_model(366.) # erg /s / A
 
 		#shift to redshift		
 		wl_obs = self.wlarr * (1.+z)
@@ -198,6 +219,7 @@ class Chev94Model:
 			fl += model(t)
 		return fl
 
+
 class LineModel:
 	def __init__(self, wl, times, linelum, vwidth=500.):
 		"""
@@ -224,6 +246,17 @@ class LineModel:
 			return self.interper(t)
 
 
+class FlatModel:
+	def __init__(self, scale=1.):
+		"""CSM model based on a flat spectrum."""
+		L_2015_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp, erg/s/A
+		self.model_data = L_2015_cgs * scale
+
+	def gen_model(self, t):
+		wl = np.arange(W0, W1, DW)
+		fl = np.zeros_like(wl) * self.model_data
+		return fl
+
 
 def gen_spectrum(wl, vwidth):
 	arr = np.arange(W0, W1, DW)
@@ -239,6 +272,7 @@ if __name__=='__main__':
 	parser.add_argument('--tstart', '-s', help='When the ejecta impacts the CSM, days after max', default=300., type=float)
 	parser.add_argument('--twidth', '-w', help='plateau width [days]', default=200., type=float)
 	parser.add_argument('--decay-rate', '-D', help='fractional decay rate per 100 days', default=0.3, type=float)
+	parser.add_argument('--scale', '-S', help='scale factor', default=1., type=float)
 
 	args = parser.parse_args()
-	main(args.tstart, args.twidth, args.decay_rate)
+	main(args.tstart, args.twidth, args.decay_rate, args.scale)
