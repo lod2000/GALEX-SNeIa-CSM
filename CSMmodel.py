@@ -14,7 +14,7 @@ HST_AREA = (1.2e2)**2. * np.pi # cm2
 L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
 Z_2015cp = 0.0413
 F275_W_EFF = 416.66 # A
-
+GRAHAM_SCALE = 0.1069 # set scale factor 1 equal to SN2015cp flux
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
@@ -206,7 +206,7 @@ class Chev94Model:
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
 			#print(name)
 			if name == 'Hbeta':
-				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
+				coeffs = np.array([float(fl)*1e36*scale*GRAHAM_SCALE for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
 			model = LineModel(float(wl), self.times, linelum)
