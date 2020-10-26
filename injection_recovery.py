@@ -8,6 +8,7 @@ from pathlib import Path
 import random
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
+import json
 
 from utils import *
 from CSMmodel import CSMmodel
@@ -25,10 +26,24 @@ def main(iterations, overwrite=False, model='Chev94'):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     supernovae = sn_info.sort_values('pref_dist').index
+
+    # Save run parameters
+    base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
+    base_model_nuv_lum = base_model(0, 0)['NUV'] # NUV luminosity for scale 1
+    params = {'iterations': iterations,
+              'decay_rate': DECAY_RATE,
+              'width': WIDTH,
+              'sigma': SIGMA,
+              'sigma_count': SIGMA_COUNT,
+              'model': model,
+              'base_model_nuv_lum': base_model_nuv_lum}
+    with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
+        file.write(json.dumps(params))
+
     run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model)
 
 
-def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
+def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94', **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
@@ -40,7 +55,7 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
 
     # Remove SNe with previous save files from list
     if not overwrite:
-        supernovae = [s for s in supernovae if not check_save(s, iterations)]
+        supernovae = [s for s in supernovae if not check_save(s, iterations, model)]
     
     for i, sn_name in enumerate(supernovae):
         print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
@@ -69,10 +84,10 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, **kwargs):
         run_trials(sn, lcs, iterations, **kwargs)
 
 
-def check_save(sn_name, iterations, save_dir=SAVE_DIR):
+def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
     """Checks if save file exists for given SN and iterations."""
 
-    save_file = sn2fname(sn_name, str(iterations), parent=save_dir)
+    save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
     return save_file.is_file()
 
 

@@ -199,7 +199,7 @@ class Chev94Model:
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
 			#print(name)
 			if name == 'Hbeta':
-				coeffs = np.array([float(fl)*1e36*GRAHAM_SCALE*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
+				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
 			model = LineModel(float(wl), self.times, linelum)
