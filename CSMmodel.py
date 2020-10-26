@@ -35,7 +35,7 @@ def main(tstart, twidth, decay_rate, scale):
 	Graham_scale = L_2015cp_cgs / L_baseline['F275W']
 	print(Graham_scale)
 
-	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model='Chev94')
+	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model='flat')
 	
 	test = np.arange(250., 2500., 20)
 	for z,m in zip([0.041, 0.25], ['.', 's']):

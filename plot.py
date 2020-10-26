@@ -12,7 +12,7 @@ from utils import *
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False, model='Chev94'):
+        show_plot=False, model='Chev94', cbin_width=2):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -32,7 +32,8 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file='recovery-%s.png' % model)
+    plot(x_edges, y_edges, hist, show=show_plot, 
+            output_file='recovery-%s.png' % model, cbin_width=cbin_width)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
@@ -179,6 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+    parser.add_argument('--cstep', type=int, default=2, help='Colorbar bin width')
     args = parser.parse_args()
 
-    main(args.iterations, t_min=0, overwrite=args.overwrite)
+    main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, cbin_width=args.cstep)

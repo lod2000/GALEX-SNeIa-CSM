@@ -29,14 +29,17 @@ def main(iterations, overwrite=False, model='Chev94'):
 
     # Save run parameters
     base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
-    base_model_nuv_lum = base_model(0, 0)['NUV'] # NUV luminosity for scale 1
+    base_model_z = 0.04
+    base_model_nuv_lum = base_model(0, base_model_z)['NUV'] # NUV luminosity for scale 1
+    base_model_hst_lum = base_model(0, base_model_z)['F275W'] # NUV luminosity for scale 1
     params = {'iterations': iterations,
               'decay_rate': DECAY_RATE,
               'width': WIDTH,
               'sigma': SIGMA,
               'sigma_count': SIGMA_COUNT,
               'model': model,
-              'base_model_nuv_lum': base_model_nuv_lum}
+              'base_model_nuv_lum': base_model_nuv_lum,
+              'base_model_hst_lum': base_model_hst_lum}
     with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
         file.write(json.dumps(params))
 
