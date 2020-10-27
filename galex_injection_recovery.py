@@ -3,9 +3,9 @@ from functools import partial
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from numpy.random import default_rng
+# from numpy.random import default_rng
 from pathlib import Path
-import random
+# import random
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
 import json
@@ -16,8 +16,8 @@ from light_curve import LightCurve
 from supernova import Supernova
 
 # Default values
-DECAY_RATE = 0.3 # CSM curve decay factor
-WIDTH = 250 # days, from PTF11kx
+# DECAY_RATE = 0.3 # CSM curve decay factor
+# WIDTH = 250 # days, from PTF11kx
 SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
@@ -84,14 +84,14 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94',
             print('\tno data available!')
             continue
 
-        run_trials(sn, lcs, iterations, **kwargs)
+        run_trials(sn, lcs, iterations, model=model, **kwargs)
 
 
-def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
-    """Checks if save file exists for given SN and iterations."""
+# def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
+#     """Checks if save file exists for given SN and iterations."""
 
-    save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
-    return save_file.is_file()
+#     save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
+#     return save_file.is_file()
 
 
 def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwargs):
@@ -112,7 +112,7 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwa
     # Run injection-recovery trials in parallel
     recovery_df = []
     with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lcs=lcs, **kwargs)
+        func = partial(inject_recover, sn=sn, lcs=lcs, model=model, **kwargs)
         imap = pool.imap(func, params, chunksize=100)
         for recovery in tqdm(imap, total=iterations):
             recovery_df.append(recovery)
@@ -129,15 +129,15 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwa
     return recovery_df
 
 
-def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
-    """Generate random injection-recovery parameters."""
+# def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
+#     """Generate random injection-recovery parameters."""
 
-    rng = default_rng()
-    tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
-    scale = rng.uniform(scale_min, scale_max, iterations)
-    params = np.column_stack((tstart, scale))
+#     rng = default_rng()
+#     tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
+#     scale = rng.uniform(scale_min, scale_max, iterations)
+#     params = np.column_stack((tstart, scale))
 
-    return params
+    # return params
 
 
 def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev94'):

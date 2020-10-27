@@ -1,6 +1,8 @@
 from pathlib import Path
 import platform
 import pandas as pd
+import numpy as np
+from numpy.random import default_rng
 
 # Default values
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
@@ -8,6 +10,8 @@ TSTART_MIN = 0
 TSTART_MAX = 1000
 SCALE_MIN = 0.1
 SCALE_MAX = 10.
+DECAY_RATE = 0.3 # CSM curve decay factor
+WIDTH = 250 # days, from PTF11kx
 
 # Default directories
 SAVE_DIR = Path('save')
@@ -41,6 +45,24 @@ def sn2fname(sn_name, band, suffix='.csv', parent=None):
     if parent:
         return Path(parent) / Path(fname)
     return Path(fname)
+
+
+def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
+    """Checks if save file exists for given SN and iterations."""
+
+    save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
+    return save_file.is_file()
+
+
+def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
+    """Generate random injection-recovery parameters."""
+
+    rng = default_rng()
+    tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
+    scale = rng.uniform(scale_min, scale_max, iterations)
+    params = np.column_stack((tstart, scale))
+
+    return params
 
 
 def detect_csm(time, data, err, sigma, count=[1], dt_min=-30):
