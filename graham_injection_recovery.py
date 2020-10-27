@@ -87,7 +87,7 @@ def run_trials(sn_name, data, iterations, save=True, model='Chev94', **kwargs):
             recovery_df.append(recovery)
 
     recovery_df = pd.DataFrame(recovery_df, 
-            columns=['tstart', 'scale', 'recovered'])
+            columns=['tstart', 'scale', 'recovered_times', 'all_times'])
 
     # Save CSV
     if save:
@@ -111,8 +111,10 @@ def inject_recover(params, nondetection, model='Chev94'):
     tstart, scale = params
     # Inject & recover
     recovered = nondetection.inject_recover(tstart, scale, model=model)
+    recovered_times = [nondetection.rest_phase] if recovered else []
+    all_times = [nondetection.rest_phase]
 
-    return [tstart, scale, int(recovered)]
+    return [tstart, scale, recovered_times, all_times]
 
 
 class Nondetection:

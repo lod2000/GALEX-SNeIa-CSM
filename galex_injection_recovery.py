@@ -16,8 +16,6 @@ from light_curve import LightCurve
 from supernova import Supernova
 
 # Default values
-# DECAY_RATE = 0.3 # CSM curve decay factor
-# WIDTH = 250 # days, from PTF11kx
 SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
@@ -87,13 +85,6 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94',
         run_trials(sn, lcs, iterations, model=model, **kwargs)
 
 
-# def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
-#     """Checks if save file exists for given SN and iterations."""
-
-#     save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
-#     return save_file.is_file()
-
-
 def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
@@ -127,17 +118,6 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwa
         recovery_df.to_csv(save_dir / fname, index=False)
 
     return recovery_df
-
-
-# def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max):
-#     """Generate random injection-recovery parameters."""
-
-#     rng = default_rng()
-#     tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
-#     scale = rng.uniform(scale_min, scale_max, iterations)
-#     params = np.column_stack((tstart, scale))
-
-    # return params
 
 
 def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev94'):

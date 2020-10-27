@@ -12,32 +12,37 @@ from utils import *
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False, model='Chev94', cbin_width=2):
+        show_plot=False, model='Chev94', cbin_width=2, study='galex'):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
     # List of files in save dir
-    save_dir = SAVE_DIR / Path(model)
+    if study == 'graham':
+        save_dir = Path('Graham/save/%s' % model)
+        output_dir = Path('Graham/out')
+    else:
+        save_dir = SAVE_DIR / Path(model)
+        output_dir = OUTPUT_DIR
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
     hist_file = Path('hist-%s.csv' % model)
-    if overwrite or not (OUTPUT_DIR / hist_file).is_file():
+    if overwrite or not (output_dir / hist_file).is_file():
         print('\nImporting and summing saves...')
-        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file, output_dir=output_dir)
     else:
         print('\nImporting histogram...')
-        hist = pd.read_csv(OUTPUT_DIR / hist_file, index_col=0)
+        hist = pd.read_csv(output_dir / hist_file, index_col=0)
 
     # Plot histogram
     print('Plotting...')
-    plot(x_edges, y_edges, hist, show=show_plot, 
+    plot(x_edges, y_edges, hist, show=show_plot, output_dir=output_dir,
             output_file='recovery-%s.png' % model, cbin_width=cbin_width)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
-            cbin_width=2):
+            cbin_width=2, output_dir=OUTPUT_DIR):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -73,7 +78,7 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
     cbar.ax.yaxis.set_minor_locator(MultipleLocator(1))
     fig.tight_layout()
-    plt.savefig(OUTPUT_DIR / Path(output_file), dpi=300)
+    plt.savefig(output_dir / Path(output_file), dpi=300)
 
     if show:
         plt.show()
@@ -81,7 +86,8 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv',
+        output_dir=OUTPUT_DIR):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
@@ -104,7 +110,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
     hist = reduce(lambda x, y: x.add(y, fill_value=0), hist)
 
     if save:
-        hist.to_csv(OUTPUT_DIR / Path(output_file))
+        hist.to_csv(output_dir / Path(output_file))
 
     return hist
 
@@ -181,6 +187,8 @@ if __name__ == '__main__':
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     parser.add_argument('--cstep', type=int, default=2, help='Colorbar bin width')
+    parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
     args = parser.parse_args()
 
-    main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, cbin_width=args.cstep)
+    main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
+            cbin_width=args.cstep, study=args.study.lower())
