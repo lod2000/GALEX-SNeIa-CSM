@@ -11,10 +11,13 @@ DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
 HST_AREA = (1.2e2)**2. * np.pi # cm2
+F275W_LAMBDA_EFF = 2714.65
 L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
+L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # luminosity of 2015cp, erg/s/A
 Z_2015cp = 0.0413
-F275W_W_EFF = 416.66 # A
-GRAHAM_SCALE = 0.1069 # set scale factor 1 equal to SN2015cp flux
+# set scale factor 1 equal to SN2015cp flux
+CHEV94_SCALE = 0.1069 
+FLAT_SCALE = 0.0635
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
@@ -26,16 +29,20 @@ COLORS = { #for simple plotting
 	'F275W':'r'
 }
 
-def main(tstart, twidth, decay_rate, scale):
+def main(tstart, twidth, decay_rate, scale, model='Chev94'):
 
-	L_2015cp_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp, erg/s/A
-	L_2015cp_F275W = L_2015cp_cgs * F275W_W_EFF
-	baseline_model = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
-	L_baseline = baseline_model([0], Z_2015cp)
-	Graham_scale = L_2015cp_cgs / L_baseline['F275W']
-	print(Graham_scale)
+	# Corrective scale factor for Chev94 model
+	Chev94_baseline = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
+	L_Chev94 = Chev94_baseline([0], Z_2015cp)
+	Chev94_scale = L_2015cp_cgs / L_Chev94['F275W']
+	print(Chev94_scale)
 
-	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model='flat')
+	flat_baseline = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1., model='flat')
+	L_flat = flat_baseline([0], Z_2015cp)
+	flat_scale = L_2015cp_cgs / L_flat['F275W']
+	print(flat_scale)
+
+	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model=model)
 	
 	test = np.arange(250., 2500., 20)
 	for z,m in zip([0.041, 0.25], ['.', 's']):
@@ -199,7 +206,7 @@ class Chev94Model:
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
 			#print(name)
 			if name == 'Hbeta':
-				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
+				coeffs = np.array([float(fl)*1e36*CHEV94_SCALE*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
 			model = LineModel(float(wl), self.times, linelum)
@@ -242,8 +249,7 @@ class LineModel:
 class FlatModel:
 	def __init__(self, scale=1.):
 		"""CSM model based on a flat spectrum."""
-		L_2015_cgs = L_2015cp * (3e18) / (2714.65**2) # luminosity of 2015cp, erg/s/A
-		self.model_data = L_2015_cgs / F275W_W_EFF * scale
+		self.model_data = 1e36 * scale * FLAT_SCALE # erg/s/A
 
 	def gen_model(self, t):
 		wl = np.arange(W0, W1, DW)
@@ -265,6 +271,7 @@ if __name__=='__main__':
 	parser.add_argument('--twidth', '-w', help='plateau width [days]', default=200., type=float)
 	parser.add_argument('--decay-rate', '-D', help='fractional decay rate per 100 days', default=0.3, type=float)
 	parser.add_argument('--scale', '-S', help='scale factor', default=1., type=float)
+	parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
 
 	args = parser.parse_args()
 	main(args.tstart, args.twidth, args.decay_rate, args.scale)

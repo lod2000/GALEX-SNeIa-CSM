@@ -93,31 +93,6 @@ class LightCurve:
         return self.data.loc[self.detections]
 
 
-    # def detect(self, sigma, count=[1], dt_min=-30):
-    #     """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
-    #     Inputs:
-    #         sigma: detection confidence level, int or list
-    #         count: number of data points above sigma to count as detection, list
-    #         dt_min: cutoff between background and SN data, days post-disc.
-    #     """
-
-    #     # separate SN data from host background data
-    #     sn_data = self.data[self.data['t_delta_rest'] > dt_min]
-
-    #     if type(sigma) == int:
-    #         sigma = [sigma]
-
-    #     # Tiered detection: requires N points above X sigma or M points above Y sigma
-    #     detections = []
-    #     for s, c in zip(sigma, count):
-    #         detected = sn_data[sn_data['sigma'] >= s]
-    #         if len(detected.index) >= c:
-    #             detections.append(detected)
-        
-    #     detections = pd.concat(detections).sort_index().drop_duplicates()
-    #     return detections
-
-
 def add_luminosity(data, sn, band):
     """Calculate luminosity based on flux and add columns to DataFrame."""
 
