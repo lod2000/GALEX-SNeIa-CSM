@@ -7,13 +7,16 @@ from pathlib import Path
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
 import json
+import astropy.units as u
 
 from utils import *
 from CSMmodel import CSMmodel
+from light_curve import flux2luminosity
 
 # Default values & constants
 SIGMA = 3 # detection certainty
 z_2015cp = 0.038 # redshift of SN 2015cp
+F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
 # Directories
 SAVE_DIR = Path('Graham/save')
@@ -24,7 +27,7 @@ DATA_DIR = Path('Graham/data')
 def main(iterations, overwrite=False, model='Chev94'):
 
     # Import Graham data
-    data = pd.read_csv(DATA_DIR / Path('nondetect_limits.csv'), index_col='Target')
+    data = import_graham_data()
     supernovae = data.index
 
     # Save run parameters
@@ -40,6 +43,24 @@ def main(iterations, overwrite=False, model='Chev94'):
         file.write(json.dumps(params))
 
     run_all(supernovae, data, iterations, overwrite=overwrite, model=model)
+
+
+def import_graham_data(fname='limiting_magnitudes.csv', data_dir=DATA_DIR, sigma=SIGMA):
+    """Import data from Graham+ 2019 and convert 50% limiting magnitudes to
+    (3)-sigma luminosity limits."""
+
+    # Import CSV
+    data = pd.read_csv(DATA_DIR / Path(fname), index_col='Target')
+    # Convert limiting magnitude & error to n-sigma magnitude limit
+    data['Sigma Limit'] = data['Limiting Magnitude'] - sigma * data['Limiting Magnitude Error']
+    # Convert magnitude limit to flux limit
+    data['Flux Limit'] = 10**(-2/5 * data['Sigma Limit']) * F275W_ZERO_POINT
+    # Gather distance and redshift data for targets
+    dist = data['Distance [Mpc]'].to_numpy() * u.Mpc
+    z = data['Redshift']
+    # Convert flux limit to luminosity limit
+    data['Luminosity Limit'] = data['Flux Limit'] * (4*np.pi*dist.to('cm')**2) * (1+z)**3
+    return data
 
 
 def run_all(supernovae, data, iterations, overwrite=False, model='Chev94', **kwargs):
@@ -130,9 +151,10 @@ class Nondetection:
         self.z = data.loc[sn_name, 'Redshift']
         self.phase = data.loc[sn_name, 'Phase']
         self.rest_phase = 1/(1+self.z) * self.phase
-        limiting_mag = data.loc[sn_name, '50% Limiting Magnitude']
-        luminosity_limit = data.loc[sn_name, '50% Luminosity Limit [erg/s/A]']
-        self.luminosity_limit = self.get_luminosity_limit(luminosity_limit, sigma)
+        self.luminosity_limit = data.loc[sn_name, 'Luminosity Limit']
+        # limiting_mag = data.loc[sn_name, '50% Limiting Magnitude']
+        # luminosity_limit = data.loc[sn_name, '50% Luminosity Limit [erg/s/A]']
+        # self.luminosity_limit = self.get_luminosity_limit(luminosity_limit, sigma)
 
 
     def inject_recover(self, tstart, scale, width=WIDTH, decay=DECAY_RATE, model='Chev94'):
