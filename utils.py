@@ -61,16 +61,16 @@ def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
     return save_file.is_file()
 
 
-def gen_params(iterations, tstart_min, tstart_max, scale_min, scale_max, log=True):
+def gen_params(iterations, tstart_lims, scale_lims, log=True):
     """Generate random injection-recovery parameters."""
 
     rng = default_rng()
-    tstart = rng.integers(tstart_min, tstart_max, iterations, endpoint=True)
+    tstart = rng.integers(tstart_lims[0], tstart_lims[1], iterations, endpoint=True)
     if log:
-        scale = rng.uniform(np.log10(scale_min), np.log10(scale_max), iterations)
+        scale = rng.uniform(np.log10(scale_lims[0]), np.log10(scale_lims[1]), iterations)
         scale = 10 ** scale
     else:
-        scale = rng.uniform(scale_min, scale_max, iterations)
+        scale = rng.uniform(scale_lims[0], scale_lims[1], iterations)
     params = np.column_stack((tstart, scale))
 
     return params

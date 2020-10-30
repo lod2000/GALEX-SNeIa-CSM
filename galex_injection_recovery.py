@@ -33,14 +33,19 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
     with open(save_dir / Path('_scale.txt'), 'w') as file:
         file.write(str(scale1))
 
-    # run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model, save_dir=save_dir)
+    run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=sn_info, 
+            overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
+            decay_rate=decay_rate)
 
 
-def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94', **kwargs):
+def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[], 
+        overwrite=False, model='Chev94', **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
         iterations: iterations of injection & recovery for each SN
+        tstart_lims: tuple or list of bounds on start time
+        scale_lims: tuple or list of bounds on scale factor
         sn_info: supernova info reference DataFrame
         overwrite: bool, whether to overwrite previous save files
         kwargs: keyword arguments for run_trials
@@ -74,28 +79,33 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94',
             print('\tno data available!')
             continue
 
-        run_trials(sn, lcs, iterations, model=model, **kwargs)
+        run_trials(sn, lcs, iterations, tstart_lims, scale_lims, model=model, **kwargs)
 
 
-def run_trials(sn, lcs, iterations, save=True, save_dir='', sn_info=[], model='Chev94', **kwargs):
+def run_trials(sn, lcs, iterations, tstart_lims, scale_lims, save=True, 
+        save_dir='', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
-        sn_name: supernova name
+        sn: Supernova object
+        lcs: list of associated LightCurve objects
         iterations: iterations of injection & recovery
+        tstart_lims: tuple or list of bounds on start time
+        scale_lims: tuple or list of bounds on scale factor
         save: bool, output recovery_df to CSV
-        sn_info: supernova info reference DataFrame
+        save_dir: directory to place save file
+        model: 'Chev94' or 'flat'
         kwargs: keyword arguments for inject_recover
     Outputs:
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
     # Random injection parameter sample
-    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX, log=True)
+    params = gen_params(iterations, tstart_lims, scale_lims, log=True)
 
     # Run injection-recovery trials in parallel
     recovery_df = []
     with Pool() as pool:
-        func = partial(inject_recover, sn=sn, lcs=lcs, model=model, **kwargs)
+        func = partial(inject_recover, sn=sn, lcs=lcs, **kwargs)
         imap = pool.imap(func, params, chunksize=100)
         for recovery in tqdm(imap, total=iterations):
             recovery_df.append(recovery)
@@ -111,7 +121,7 @@ def run_trials(sn, lcs, iterations, save=True, save_dir='', sn_info=[], model='C
     return recovery_df
 
 
-def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev94'):
+def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, **kwargs):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         params: tuple of (tstart, scale) injection parameters
@@ -133,7 +143,7 @@ def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev9
     recovered_times = []
     all_times = []
     for lc in lcs:
-        inj = Injection(sn, lc, tstart, scale, model=model)
+        inj = Injection(sn, lc, tstart, scale, **kwargs)
         inj.recover(sigma, count=count)
         recovered_times += inj.recovered_times
         all_times += inj.all_times
@@ -146,7 +156,7 @@ def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, model='Chev9
 
 
 class Injection:
-    def __init__(self, sn, lc, tstart, scale, width=WIDTH, decay=DECAY_RATE,
+    def __init__(self, sn, lc, tstart, scale, twidth=WIDTH, decay_rate=DECAY_RATE,
             model='Chev94'):
         """Generate random model parameters, initialize model and inject into
         data.
@@ -155,8 +165,8 @@ class Injection:
             lc: LightCurve object with data to be injected
             tstart: CSM model start time, int
             scale: model scale factor, float
-            width: model width, int
-            decay: model decay rate, float
+            twidth: model width, int
+            decay_rate: model decay rate, float
         """
 
         # Get data
@@ -165,7 +175,7 @@ class Injection:
         self.err = lc.data['luminosity_hostsub_err'].copy()
 
         # Inject model
-        self.model = CSMmodel(tstart, width, decay, scale=scale, model=model)
+        self.model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
         self.injection = self.data + self.model(self.time, sn.z)[lc.band]
 
 

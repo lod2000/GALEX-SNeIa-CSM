@@ -24,26 +24,25 @@ OUTPUT_DIR = Path('Graham/out')
 DATA_DIR = Path('Graham/data')
 
 
-def main(iterations, tstart_lims, scale_lims, twidth=WIDTH, decay_rate=DECAY_RATE, 
-        overwrite=False, model='Chev94'):
+def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
+        decay_rate=DECAY_RATE, overwrite=False, model='Chev94'):
 
     # Import Graham data
     data = import_graham_data()
     supernovae = data.index
 
-    # Save run parameters
+    # Record luminosities of CSM model for scale 1
     base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
-    base_model_hst_lum = base_model(0, z_2015cp)['F275W'] # NUV luminosity for scale 1
-    params = {'iterations': iterations,
-              'decay_rate': DECAY_RATE,
-              'width': WIDTH,
-              'sigma': SIGMA,
-              'model': model,
-              'base_model_hst_lum': base_model_hst_lum}
-    with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
-        file.write(json.dumps(params))
+    base_model_z = 0.04
+    scale1 = {'base_model_fuv_lum': base_model(0, base_model_z)['FUV'],
+              'base_model_nuv_lum': base_model(0, base_model_z)['NUV'],
+              'base_model_hst_lum': base_model(0, base_model_z)['F275W']}
+    with open(save_dir / Path('_scale.txt'), 'w') as file:
+        file.write(str(scale1))
 
-    run_all(supernovae, data, iterations, overwrite=overwrite, model=model)
+    run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
+            overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
+            decay_rate=decay_rate)
 
 
 def import_graham_data(fname='limiting_magnitudes.csv', data_dir=DATA_DIR, sigma=SIGMA):
@@ -64,7 +63,8 @@ def import_graham_data(fname='limiting_magnitudes.csv', data_dir=DATA_DIR, sigma
     return data
 
 
-def run_all(supernovae, data, iterations, overwrite=False, model='Chev94', **kwargs):
+def run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
+        overwrite=False, model='Chev94', **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
@@ -80,10 +80,12 @@ def run_all(supernovae, data, iterations, overwrite=False, model='Chev94', **kwa
     
     for i, sn_name in enumerate(supernovae):
         print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
-        run_trials(sn_name, data, iterations, model=model, **kwargs)
+        run_trials(sn_name, data, iterations, tstart_lims, scale_lims, 
+                model=model, **kwargs)
 
 
-def run_trials(sn_name, data, iterations, save=True, model='Chev94', **kwargs):
+def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True, 
+        save_dir='', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
@@ -98,7 +100,7 @@ def run_trials(sn_name, data, iterations, save=True, model='Chev94', **kwargs):
     nondetection = Nondetection(sn_name, data)
 
     # Random injection parameter sample
-    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX, log=True)
+    params = gen_params(iterations, tstart_lims, scale_lims, log=True)
 
     # Run injection-recovery trials in parallel
     recovery_df = []
@@ -113,14 +115,13 @@ def run_trials(sn_name, data, iterations, save=True, model='Chev94', **kwargs):
 
     # Save CSV
     if save:
-        save_dir = SAVE_DIR / Path(model)
         fname = sn2fname(sn_name, str(iterations)) # format sn_name-iterations.csv
         recovery_df.to_csv(save_dir / fname, index=False)
 
     return recovery_df
 
 
-def inject_recover(params, nondetection, model='Chev94'):
+def inject_recover(params, nondetection, **kwargs):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         params: tuple of (tstart, scale) injection parameters
@@ -132,7 +133,7 @@ def inject_recover(params, nondetection, model='Chev94'):
     # Unpack parameters
     tstart, scale = params
     # Inject & recover
-    recovered = nondetection.inject_recover(tstart, scale, model=model)
+    recovered = nondetection.inject_recover(tstart, scale, **kwargs)
     recovered_times = [nondetection.rest_phase] if recovered else []
     all_times = [nondetection.rest_phase]
 
@@ -153,21 +154,19 @@ class Nondetection:
         self.phase = data.loc[sn_name, 'Phase']
         self.rest_phase = 1/(1+self.z) * self.phase
         self.luminosity_limit = data.loc[sn_name, 'Luminosity Limit']
-        # limiting_mag = data.loc[sn_name, '50% Limiting Magnitude']
-        # luminosity_limit = data.loc[sn_name, '50% Luminosity Limit [erg/s/A]']
-        # self.luminosity_limit = self.get_luminosity_limit(luminosity_limit, sigma)
 
 
-    def inject_recover(self, tstart, scale, width=WIDTH, decay=DECAY_RATE, model='Chev94'):
+    def inject_recover(self, tstart, scale, twidth=WIDTH, decay_rate=DECAY_RATE, 
+            model='Chev94'):
         """
             tstart: CSM model start time, int
             scale: model scale factor, float
-            width: model width, int
-            decay: model decay rate, float
+            twidth: model width, int
+            decay_rate: model decay rate, float
         """
 
         # Inject model
-        self.model = CSMmodel(tstart, width, decay, scale=scale, model=model)
+        self.model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
         self.injection = self.model(self.rest_phase, self.z)['F275W']
 
         # Recover
@@ -205,5 +204,10 @@ if __name__ == '__main__':
             help='CSM spectrum model to use')
     args = parser.parse_args()
 
-    main(args.iterations, args.tstart, args.scale, args.twidth, args.decay_rate, 
-            args.overwrite, args.model)
+    # Save run parameters
+    save_dir = SAVE_DIR / Path(args.model)
+    with open(save_dir / Path('_params.txt'), 'w') as file:
+        file.write(str(args))
+
+    main(args.iterations, args.tstart, args.scale, save_dir, args.twidth, 
+            args.decay_rate, args.overwrite, args.model)
