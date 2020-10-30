@@ -18,29 +18,22 @@ SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 
-def main(iterations, tstart_lims, scale_lims, twidth=WIDTH, decay_rate=DECAY_RATE, 
-        overwrite=False, model='Chev94'):
+def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
+        decay_rate=DECAY_RATE, overwrite=False, model='Chev94'):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     supernovae = sn_info.sort_values('pref_dist').index
 
-    # Save run parameters
+    # Record luminosities of CSM model for scale 1
     base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
     base_model_z = 0.04
-    base_model_nuv_lum = base_model(0, base_model_z)['NUV'] # NUV luminosity for scale 1
-    base_model_hst_lum = base_model(0, base_model_z)['F275W'] # NUV luminosity for scale 1
-    params = {'iterations': iterations,
-              'decay_rate': DECAY_RATE,
-              'width': WIDTH,
-              'sigma': SIGMA,
-              'sigma_count': SIGMA_COUNT,
-              'model': model,
-              'base_model_nuv_lum': base_model_nuv_lum,
-              'base_model_hst_lum': base_model_hst_lum}
-    # with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
-        # file.write(json.dumps(params))
+    scale1 = {'base_model_fuv_lum': base_model(0, base_model_z)['FUV'],
+              'base_model_nuv_lum': base_model(0, base_model_z)['NUV'],
+              'base_model_hst_lum': base_model(0, base_model_z)['F275W']}
+    with open(save_dir / Path('_scale.txt'), 'w') as file:
+        file.write(str(scale1))
 
-    # run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model)
+    # run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model, save_dir=save_dir)
 
 
 def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94', **kwargs):
@@ -84,7 +77,7 @@ def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94',
         run_trials(sn, lcs, iterations, model=model, **kwargs)
 
 
-def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwargs):
+def run_trials(sn, lcs, iterations, save=True, save_dir='', sn_info=[], model='Chev94', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
@@ -112,7 +105,6 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwa
 
     # Save CSV
     if save:
-        save_dir = SAVE_DIR / Path(model)
         fname = sn2fname(sn.name, str(iterations)) # format sn_name-iterations.csv
         recovery_df.to_csv(save_dir / fname, index=False)
 
@@ -269,5 +261,10 @@ if __name__ == '__main__':
             help='CSM spectrum model to use')
     args = parser.parse_args()
 
-    main(args.iterations, args.tstart, args.scale, args.twidth, args.decay_rate, 
-            args.overwrite, args.model)
+    # Save run parameters
+    save_dir = SAVE_DIR / Path(args.model)
+    with open(save_dir / Path('_params.txt'), 'w') as file:
+        file.write(str(args))
+
+    main(args.iterations, args.tstart, args.scale, save_dir, args.twidth, 
+            args.decay_rate, args.overwrite, args.model)
