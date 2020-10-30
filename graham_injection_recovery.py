@@ -97,7 +97,7 @@ def run_trials(sn_name, data, iterations, save=True, model='Chev94', **kwargs):
     nondetection = Nondetection(sn_name, data)
 
     # Random injection parameter sample
-    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX)
+    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX, log=True)
 
     # Run injection-recovery trials in parallel
     recovery_df = []

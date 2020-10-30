@@ -8,10 +8,11 @@ from numpy.random import default_rng
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 TSTART_MIN = 0
 TSTART_MAX = 1000
-SCALE_MIN = 0.1
-SCALE_MAX = 10.
+SCALE_MIN = 1
+SCALE_MAX = 1000
 DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx
+ITERATIONS = 10000 # injection-recovery iterations per SN
 
 # Default directories
 SAVE_DIR = Path('save')

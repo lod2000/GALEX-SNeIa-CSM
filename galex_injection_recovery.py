@@ -3,9 +3,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-# from numpy.random import default_rng
 from pathlib import Path
-# import random
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
 import json
@@ -20,7 +18,8 @@ SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 
-def main(iterations, overwrite=False, model='Chev94'):
+def main(iterations, tstart_lims, scale_lims, twidth=WIDTH, decay_rate=DECAY_RATE, 
+        overwrite=False, model='Chev94'):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     supernovae = sn_info.sort_values('pref_dist').index
@@ -38,10 +37,10 @@ def main(iterations, overwrite=False, model='Chev94'):
               'model': model,
               'base_model_nuv_lum': base_model_nuv_lum,
               'base_model_hst_lum': base_model_hst_lum}
-    with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
-        file.write(json.dumps(params))
+    # with open(SAVE_DIR / Path(model) / Path('_params.txt'), 'w') as file:
+        # file.write(json.dumps(params))
 
-    run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model)
+    # run_all(supernovae, iterations, sn_info=sn_info, overwrite=overwrite, model=model)
 
 
 def run_all(supernovae, iterations, sn_info=[], overwrite=False, model='Chev94', **kwargs):
@@ -98,7 +97,7 @@ def run_trials(sn, lcs, iterations, save=True, sn_info=[], model='Chev94', **kwa
     """
 
     # Random injection parameter sample
-    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX)
+    params = gen_params(iterations, TSTART_MIN, TSTART_MAX, SCALE_MIN, SCALE_MAX, log=True)
 
     # Run injection-recovery trials in parallel
     recovery_df = []
@@ -254,9 +253,21 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
-    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
-    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+    parser.add_argument('--iterations', '-i', type=int, default=ITERATIONS, 
+            help='Iterations')
+    parser.add_argument('--tstart', '-s', default=[TSTART_MIN, TSTART_MAX], 
+           nargs=2, type=int, help='Limits on CSM model start/end times')
+    parser.add_argument('--scale', '-S', type=float, nargs=2, 
+            default=[SCALE_MIN, SCALE_MAX], help='Scale factor limits')
+    parser.add_argument('--twidth', '-w', help='Plateau width [days]', 
+            default=WIDTH, type=float)
+    parser.add_argument('--decay-rate', '-D', default=DECAY_RATE, type=float, 
+            help='Fractional decay rate per 100 days')
+    parser.add_argument('--overwrite', '-o', action='store_true', 
+            help='Overwrite previous saves?')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', 
+            help='CSM spectrum model to use')
     args = parser.parse_args()
 
-    main(args.iterations, args.overwrite, args.model)
+    main(args.iterations, args.tstart, args.scale, args.twidth, args.decay_rate, 
+            args.overwrite, args.model)
