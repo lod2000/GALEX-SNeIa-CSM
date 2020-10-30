@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
+from utils import COLORS
 
-W0 = 800. #model wwavelength start
-W1 = 3200. #model wavelength end
+W0 = 1000. #model wwavelength start
+W1 = 3000. #model wavelength end
 DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
@@ -16,18 +17,12 @@ L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
 L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # luminosity of 2015cp, erg/s/A
 Z_2015cp = 0.0413
 # set scale factor 1 equal to SN2015cp flux
-CHEV94_SCALE = 0.1069 
-FLAT_SCALE = 0.0635
+# CHEV94_SCALE = 0.1069 
+# FLAT_SCALE = 0.0635
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
-
-COLORS = { #for simple plotting
-	'NUV':'g', 
-	'FUV':'c',
-	'F275W':'r'
-}
 
 def main(tstart, twidth, decay_rate, scale, model='Chev94'):
 
@@ -50,7 +45,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94'):
 		for name, fls in f.items():
 			plt.plot(test, fls, label=name+' - z=%.2f' % z, color=COLORS[name], marker=m)
 
-	plt.ylim(1e34, None)
+	plt.ylim(1e31, 1e37)
 	plt.yscale('log')
 	plt.xlim(250, 1500)
 	plt.legend()
@@ -69,10 +64,12 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94'):
 		f = model1(400., z)
 		for name, fl in f.items(): vals[name].append(fl)
 
-	for name, color in zip(['F275W', 'NUV', 'FUV'], ['r', 'g', 'b']):
-		plt.plot(zvals, vals[name], color+'.:', label=name)
+	for name in ['F275W', 'NUV', 'FUV']:
+		print(COLORS[name])
+		plt.plot(zvals, vals[name], color=COLORS[name], ls=':', marker='.', label=name)
 
 
+	# plt.ylim(1e34, 5e36)
 	plt.yscale('log')
 	plt.legend()
 
@@ -169,25 +166,26 @@ class CSMmodel:
 def compute_nuv(wl, flux):
 	# read resp table
 	det_wl, det_fl = np.genfromtxt(Path('ref/NUV.resp'), unpack=True, dtype=float)
-	det_fl /= GALEX_EFF_AREA
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
-	obs_fl = filt(wl) * flux # ergs/s/A
-	return obs_fl.sum()
+	obs_fl = filt(wl) * flux # erg/s/A^2
+	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl)) # normalize by filter response -> erg/s/A
+	return filter_flux
 
 def compute_fuv(wl, flux):
 	#read resp table
 	det_wl, det_fl = np.genfromtxt(Path('ref/FUV.resp'), unpack=True, dtype=float)
-	det_fl /= GALEX_EFF_AREA
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
 	obs_fl = filt(wl) * flux
-	return obs_fl.sum()
+	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl))
+	return filter_flux
 
 def compute_f275w(wl, flux):
 	#read resp table, already in throughput so no need to scale
 	det_wl, det_fl = np.genfromtxt(Path('ref/F275W.resp'), unpack=True, dtype=float)
 	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
 	obs_fl = filt(wl) * flux
-	return obs_fl.sum()
+	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl))
+	return filter_flux
 
 
 class Chev94Model:
@@ -203,14 +201,17 @@ class Chev94Model:
 		self.fname = Path('ref/chev_model.dat')
 		self.times = np.array([1., 2., 5., 10., 17.5, 30.])*365.25
 		self.model_data = {}
+		self.line_wl = {}
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
 			#print(name)
 			if name == 'Hbeta':
-				coeffs = np.array([float(fl)*1e36*CHEV94_SCALE*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
+				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
 			model = LineModel(float(wl), self.times, linelum)
 			self.model_data[name] = model
+			self.line_wl[name] = wl
+
 
 	def gen_model(self, t):
 		wl = np.arange(W0, W1, DW)
@@ -218,6 +219,41 @@ class Chev94Model:
 		for name, model in self.model_data.items():
 			fl += model(t)
 		return fl
+
+
+	def plot(self, t, save=False, show=False, fname='out/Chev94_spectrum.png'):
+		"""Plot spectral model."""
+
+		wl = np.arange(W0, W1, DW)
+		fl = self.gen_model(t)
+		plt.plot(wl, fl/1e37)
+		plt.ylim((0, 6))
+		# Label peaks
+		for name in self.line_wl.keys():
+			# Set label position
+			peak_wl = float(self.line_wl[name])
+			x = peak_wl + 20
+			peak_fl = fl[np.argwhere(np.round(wl,1) == peak_wl)[0][0]]
+			y = max(min(peak_fl/1e37, max(plt.ylim()) - 0.2), min(plt.ylim()) + 0.4)
+			# Ignore smaller lines which get in the way
+			if name == 'OV]' or name == 'SiII]':
+				continue
+			# Adjust names
+			text = name
+			text = text.replace('I', ' I', 1)
+			text = text.replace('V', ' V', 1)
+			text = text.replace('Lyman_alpha', 'Ly-α')
+			text = text.replace('V I', 'VI')
+			text = text.replace('I V', 'IV')
+			plt.text(x, y, text, size=12, va='top')
+		plt.xlabel('Wavelength [Å]')
+		plt.ylabel('Luminosity [$10^{37}$ erg/s]')
+		plt.tight_layout(True)
+		if save: plt.savefig(Path(fname), dpi=300)
+		if show:
+			plt.show()
+		else:
+			plt.close()
 
 
 class LineModel:
@@ -249,7 +285,7 @@ class LineModel:
 class FlatModel:
 	def __init__(self, scale=1.):
 		"""CSM model based on a flat spectrum."""
-		self.model_data = 1e36 * scale * FLAT_SCALE # erg/s/A
+		self.model_data = 1e36 * scale # erg/s/A
 
 	def gen_model(self, t):
 		wl = np.arange(W0, W1, DW)

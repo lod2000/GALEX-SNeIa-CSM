@@ -18,6 +18,12 @@ SAVE_DIR = Path('save')
 DATA_DIR = Path('data')
 OUTPUT_DIR = Path('out')
 
+# Plot color palette
+COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
+          'UVW1': '#cb4', 'UVM2': '#283', 'UVW2': '#6ce', # Swift
+          'F275W': '#e67' # Hubble
+          }
+
 
 def fname2sn(fname):
     """Extract SN name and band from a file name."""
