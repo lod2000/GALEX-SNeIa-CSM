@@ -24,7 +24,8 @@ OUTPUT_DIR = Path('Graham/out')
 DATA_DIR = Path('Graham/data')
 
 
-def main(iterations, overwrite=False, model='Chev94'):
+def main(iterations, tstart_lims, scale_lims, twidth=WIDTH, decay_rate=DECAY_RATE, 
+        overwrite=False, model='Chev94'):
 
     # Import Graham data
     data = import_graham_data()
@@ -188,9 +189,21 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
-    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite saves')
-    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+    parser.add_argument('--iterations', '-i', type=int, default=ITERATIONS, 
+            help='Iterations')
+    parser.add_argument('--tstart', '-s', default=[TSTART_MIN, TSTART_MAX], 
+           nargs=2, type=int, help='Limits on CSM model start/end times')
+    parser.add_argument('--scale', '-S', type=float, nargs=2, 
+            default=[SCALE_MIN, SCALE_MAX], help='Scale factor limits')
+    parser.add_argument('--twidth', '-w', help='Plateau width [days]', 
+            default=WIDTH, type=float)
+    parser.add_argument('--decay-rate', '-D', default=DECAY_RATE, type=float, 
+            help='Fractional decay rate per 100 days')
+    parser.add_argument('--overwrite', '-o', action='store_true', 
+            help='Overwrite previous saves?')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', 
+            help='CSM spectrum model to use')
     args = parser.parse_args()
 
-    main(args.iterations, args.overwrite, args.model)
+    main(args.iterations, args.tstart, args.scale, args.twidth, args.decay_rate, 
+            args.overwrite, args.model)
