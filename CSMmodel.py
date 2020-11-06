@@ -235,6 +235,9 @@ class Chev94Model:
 			x = peak_wl + 20
 			peak_fl = fl[np.argwhere(np.round(wl,1) == peak_wl)[0][0]]
 			y = max(min(peak_fl/1e37, max(plt.ylim()) - 0.2), min(plt.ylim()) + 0.4)
+			# Text alignment
+			va = 'top'
+			ha = 'left'
 			# Ignore smaller lines which get in the way
 			if name == 'OV]' or name == 'SiII]':
 				continue
@@ -245,7 +248,13 @@ class Chev94Model:
 			text = text.replace('Lyman_alpha', 'Ly-α')
 			text = text.replace('V I', 'VI')
 			text = text.replace('I V', 'IV')
-			plt.text(x, y, text, size=12, va='top')
+			# Custom adjustments
+			if text == 'C II]' or text == 'C I]':
+				x = peak_wl
+				ha = 'center'
+				va = 'bottom'
+				y = peak_fl/1e37 + 0.1
+			plt.text(x, y, text, size=14, va=va, ha=ha)
 		plt.xlabel('Wavelength [Å]')
 		plt.ylabel('Luminosity [$10^{37}$ erg/s]')
 		plt.tight_layout(True)

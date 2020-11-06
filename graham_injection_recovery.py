@@ -152,6 +152,7 @@ class Nondetection:
         self.sn_name = sn_name
         self.z = data.loc[sn_name, 'Redshift']
         self.phase = data.loc[sn_name, 'Phase']
+        # Convert observed phase to rest-frame phase
         self.rest_phase = 1/(1+self.z) * self.phase
         self.luminosity_limit = data.loc[sn_name, 'Luminosity Limit']
 
@@ -172,15 +173,6 @@ class Nondetection:
         # Recover
         self.recovered = self.injection > self.luminosity_limit
         return self.recovered
-
-
-    def get_luminosity_limit(self, limiting_mag, sigma):
-        """Convert 50% limiting magnitude to any sigma upper limit for luminosity."""
-
-        # Temporary: use 50% luminosity limit instead
-        luminosity_limit = limiting_mag * (sigma / 0.675)
-
-        return luminosity_limit
 
 
 if __name__ == '__main__':
