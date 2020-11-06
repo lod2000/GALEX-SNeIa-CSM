@@ -54,10 +54,10 @@ def sn2fname(sn_name, band, suffix='.csv', parent=None):
     return Path(fname)
 
 
-def check_save(sn_name, iterations, model, save_dir=SAVE_DIR):
+def check_save(sn_name, iterations, save_dir=SAVE_DIR):
     """Checks if save file exists for given SN and iterations."""
 
-    save_file = sn2fname(sn_name, str(iterations), parent=save_dir / Path(model))
+    save_file = sn2fname(sn_name, str(iterations), parent=save_dir)
     return save_file.is_file()
 
 

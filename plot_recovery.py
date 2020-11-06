@@ -18,16 +18,20 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
-    # List of files in save dir
+    # Define folder structure
+    output_dir = OUTPUT_DIR
     if study == 'graham':
-        save_dir = Path('Graham/save/%s' % model)
-        output_dir = Path('Graham/out')
+        save_dir = SAVE_DIR / Path('Graham_%s' % model)
+        hist_file = Path('Graham-hist-%s.csv' % model)
+        plot_file = Path('Graham-recovery-%s.png' % model)
     else:
         save_dir = SAVE_DIR / Path(model)
-        output_dir = OUTPUT_DIR
+        hist_file = Path('hist-%s.csv' % model)
+        plot_file = Path('recovery-%s.png' % model)
+
+    # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
-    hist_file = Path('hist-%s.csv' % model)
     if overwrite or not (output_dir / hist_file).is_file():
         print('\nImporting and summing saves...')
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file, output_dir=output_dir)
@@ -38,7 +42,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Plot histogram
     print('Plotting...')
     plot(x_edges, y_edges, hist, show=show_plot, output_dir=output_dir,
-            output_file='recovery-%s.png' % model, cbin_width=cbin_width)
+            output_file=plot_file, cbin_width=cbin_width)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',

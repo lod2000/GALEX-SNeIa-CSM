@@ -19,9 +19,9 @@ z_2015cp = 0.038 # redshift of SN 2015cp
 F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
 # Directories
-SAVE_DIR = Path('Graham/save')
-OUTPUT_DIR = Path('Graham/out')
-DATA_DIR = Path('Graham/data')
+# SAVE_DIR = Path('Graham/save')
+# OUTPUT_DIR = Path('Graham/out')
+# DATA_DIR = Path('Graham/data')
 
 
 def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
@@ -45,12 +45,12 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
             decay_rate=decay_rate)
 
 
-def import_graham_data(fname='limiting_magnitudes.csv', data_dir=DATA_DIR, sigma=SIGMA):
+def import_graham_data(path='ref/Graham_limiting_magnitudes.csv', sigma=SIGMA):
     """Import data from Graham+ 2019 and convert 50% limiting magnitudes to
     (3)-sigma luminosity limits."""
 
     # Import CSV
-    data = pd.read_csv(DATA_DIR / Path(fname), index_col='Target')
+    data = pd.read_csv(Path(path), index_col='Target')
     # Convert limiting magnitude & error to n-sigma magnitude limit
     data['Sigma Limit'] = data['Limiting Magnitude'] - sigma * data['Limiting Magnitude Error']
     # Convert magnitude limit to flux limit
@@ -64,7 +64,7 @@ def import_graham_data(fname='limiting_magnitudes.csv', data_dir=DATA_DIR, sigma
 
 
 def run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
-        overwrite=False, model='Chev94', **kwargs):
+        overwrite=False, model='Chev94', save_dir=SAVE_DIR, **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
@@ -76,12 +76,12 @@ def run_all(supernovae, data, iterations, tstart_lims, scale_lims,
 
     # Remove SNe with previous save files from list
     if not overwrite:
-        supernovae = [s for s in supernovae if not check_save(s, iterations, model, save_dir=SAVE_DIR)]
+        supernovae = [s for s in supernovae if not check_save(s, iterations, save_dir)]
     
     for i, sn_name in enumerate(supernovae):
         print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
         run_trials(sn_name, data, iterations, tstart_lims, scale_lims, 
-                model=model, **kwargs)
+                model=model, save_dir=save_dir, **kwargs)
 
 
 def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True, 
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = SAVE_DIR / Path(args.model)
+    save_dir = SAVE_DIR / Path('Graham_%s' % args.model)
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 

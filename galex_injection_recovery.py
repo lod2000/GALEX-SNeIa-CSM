@@ -53,7 +53,7 @@ def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[],
 
     # Remove SNe with previous save files from list
     if not overwrite:
-        supernovae = [s for s in supernovae if not check_save(s, iterations, model)]
+        supernovae = [s for s in supernovae if not check_save(s, iterations, save_dir=SAVE_DIR / Path(model))]
     
     for i, sn_name in enumerate(supernovae):
         print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
