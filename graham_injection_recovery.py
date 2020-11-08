@@ -25,10 +25,10 @@ F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
 
 def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
-        decay_rate=DECAY_RATE, overwrite=False, model='Chev94'):
+        decay_rate=DECAY_RATE, overwrite=False, model='Chev94', sigma=SIGMA):
 
     # Import Graham data
-    data = import_graham_data()
+    data = import_graham_data(sigma=sigma)
     supernovae = data.index
 
     # Record luminosities of CSM model for scale 1
@@ -194,6 +194,7 @@ if __name__ == '__main__':
             help='Overwrite previous saves?')
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
             help='CSM spectrum model to use')
+    parser.add_argument('--sigma', type=float, default=SIGMA, help='detection sigma level')
     args = parser.parse_args()
 
     # Save run parameters
@@ -202,4 +203,4 @@ if __name__ == '__main__':
         file.write(str(args))
 
     main(args.iterations, args.tstart, args.scale, save_dir, args.twidth, 
-            args.decay_rate, args.overwrite, args.model)
+            args.decay_rate, args.overwrite, args.model, args.sigma)
