@@ -18,8 +18,7 @@ SIGMA = [5, 3] # detection certainty
 SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
 
 
-def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
-        decay_rate=DECAY_RATE, overwrite=False, model='Chev94'):
+def main(iterations, tstart_lims, scale_lims, save_dir, model='Chev94', **kwargs):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     supernovae = sn_info.sort_values('pref_dist').index
@@ -34,12 +33,11 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
         file.write(str(scale1))
 
     run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=sn_info, 
-            overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
-            decay_rate=decay_rate)
+            model=model, save_dir=save_dir, **kwargs)
 
 
 def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[], 
-        overwrite=False, model='Chev94', **kwargs):
+        overwrite=False, model='Chev94', save_dir=SAVE_DIR, **kwargs):
     """Run injection recovery trials on all supernovae in given list.
     Inputs:
         supernovae: list of supernova names
@@ -53,7 +51,7 @@ def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[],
 
     # Remove SNe with previous save files from list
     if not overwrite:
-        supernovae = [s for s in supernovae if not check_save(s, iterations, save_dir=SAVE_DIR / Path(model))]
+        supernovae = [s for s in supernovae if not check_save(s, iterations, save_dir=save_dir)]
     
     for i, sn_name in enumerate(supernovae):
         print('\n%s [%s/%s]' % (sn_name, i+1, len(supernovae)))
@@ -79,7 +77,8 @@ def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[],
             print('\tno data available!')
             continue
 
-        run_trials(sn, lcs, iterations, tstart_lims, scale_lims, model=model, **kwargs)
+        run_trials(sn, lcs, iterations, tstart_lims, scale_lims, model=model, 
+                save_dir=save_dir, **kwargs)
 
 
 def run_trials(sn, lcs, iterations, tstart_lims, scale_lims, save=True, 
@@ -269,14 +268,23 @@ if __name__ == '__main__':
             help='Overwrite previous saves?')
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
             help='CSM spectrum model to use')
+    parser.add_argument('--sigma', type=int, nargs='+', default=SIGMA, 
+            help='Detection confidence level (multiple for tiered detections)')
+    parser.add_argument('--sigcount', type=int, nargs='+', default=SIGMA_COUNT,
+            help='Number of points at corresponding sigma to count as detection')
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = SAVE_DIR / Path(args.model)
+    sigma_str = ''.join([str(s) for s in args.sigma])
+    save_dir = SAVE_DIR / Path('%s_%ssigma' % (args.model, sigma_str))
     if not save_dir.is_dir():
         save_dir.mkdir()
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 
-    main(args.iterations, args.tstart, args.scale, save_dir, args.twidth, 
-            args.decay_rate, args.overwrite, args.model)
+    # Adjust sigma count length
+    sigma_count = args.sigcount[:len(args.sigma)]
+
+    main(args.iterations, args.tstart, args.scale, save_dir, args.model, 
+            twidth=args.twidth, decay_rate=args.decay_rate, 
+            overwrite=args.overwrite, sigma=args.sigma, count=sigma_count)

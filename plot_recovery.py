@@ -14,7 +14,8 @@ SIGMA = 3
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False, model='Chev94', cbin_width=2, study='galex', sigma=SIGMA):
+        show_plot=False, model='Chev94', cbin_width=2, study='galex', 
+        sigma_str=str(SIGMA)):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -23,13 +24,13 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Define folder structure
     output_dir = OUTPUT_DIR
     if study == 'graham':
-        save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (model, sigma))
-        hist_file = Path('Graham-hist-%s-%ssigma.csv' % (model, sigma))
-        plot_file = Path('Graham-recovery-%s-%ssigma.png' % (model, sigma))
+        save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (model, sigma_str))
     else:
-        save_dir = SAVE_DIR / Path(model)
-        hist_file = Path('hist-%s.csv' % model)
-        plot_file = Path('recovery-%s.png' % model)
+        save_dir = SAVE_DIR / Path('%s_%ssigma' % (model, sigma_str))
+    hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
+    plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
+    hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
+    plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
@@ -194,8 +195,12 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     parser.add_argument('--cstep', type=int, default=2, help='Colorbar bin width')
     parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
-    parser.add_argument('--sigma', type=int, default=SIGMA, help='detection sigma level')
+    parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
+            help='Detection confidence level (multiple for tiered detections)')
     args = parser.parse_args()
 
+    # Convert sigma to str
+    sigma_str = ''.join([str(s) for s in args.sigma])
+
     main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
-            cbin_width=args.cstep, study=args.study.lower(), sigma=args.sigma)
+            cbin_width=args.cstep, study=args.study.lower(), sigma_str=sigma_str)
