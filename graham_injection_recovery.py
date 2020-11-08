@@ -198,7 +198,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (args.model, args.sigma))
+    save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (args.model, int(args.sigma)))
+    if not save_dir.is_dir():
+        save_dir.mkdir()
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 

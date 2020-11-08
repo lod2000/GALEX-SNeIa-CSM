@@ -273,6 +273,8 @@ if __name__ == '__main__':
 
     # Save run parameters
     save_dir = SAVE_DIR / Path(args.model)
+    if not save_dir.is_dir():
+        save_dir.mkdir()
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 
