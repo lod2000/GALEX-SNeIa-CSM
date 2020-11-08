@@ -9,10 +9,12 @@ from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
 from utils import *
 
+SIGMA = 3
+
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False, model='Chev94', cbin_width=2, study='galex'):
+        show_plot=False, model='Chev94', cbin_width=2, study='galex', sigma=SIGMA):
 
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -21,9 +23,9 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Define folder structure
     output_dir = OUTPUT_DIR
     if study == 'graham':
-        save_dir = SAVE_DIR / Path('Graham_%s' % model)
-        hist_file = Path('Graham-hist-%s.csv' % model)
-        plot_file = Path('Graham-recovery-%s.png' % model)
+        save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (model, sigma))
+        hist_file = Path('Graham-hist-%s-%ssigma.csv' % (model, sigma))
+        plot_file = Path('Graham-recovery-%s-%ssigma.png' % (model, sigma))
     else:
         save_dir = SAVE_DIR / Path(model)
         hist_file = Path('hist-%s.csv' % model)
@@ -192,7 +194,8 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     parser.add_argument('--cstep', type=int, default=2, help='Colorbar bin width')
     parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
+    parser.add_argument('--sigma', type=int, default=SIGMA, help='detection sigma level')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
-            cbin_width=args.cstep, study=args.study.lower())
+            cbin_width=args.cstep, study=args.study.lower(), sigma=args.sigma)
