@@ -169,13 +169,18 @@ class Injection:
         """
 
         # Get data
-        self.time = lc.data['t_delta_rest'].copy()
-        self.data = lc.data['luminosity_hostsub'].copy()
-        self.err = lc.data['luminosity_hostsub_err'].copy()
+        self.lc = lc
+        self.time_col = 't_delta_rest'
+        self.data_col = 'luminosity_hostsub'
+        self.err_col = 'luminosity_hostsub_err'
+        self.time = lc.data[self.time_col].copy()
+        # self.data = lc.data['luminosity_hostsub'].copy()
+        # self.err = lc.data['luminosity_hostsub_err'].copy()
 
         # Inject model
         self.model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
-        self.injection = self.data + self.model(self.time, sn.z)[lc.band]
+        # self.injection = self.data + self.model(self.time, sn.z)[lc.band]
+        self.injection = lc.inject(self.model(self.time, sn.z)[lc.band], self.data_col)
 
 
     def __call__(self):
@@ -208,18 +213,24 @@ class Injection:
             recovered: indices of data recovered by detection algorithm
         """
 
+        # Convert count to list
+        if type(count) == int:
+            count = [count]
+
         # Run detections on original data
         if detections == None:
-            detections = detect_csm(self.time, self.data, self.err, sigma, 
-                    count=count)
+            # detections = detect_csm(self.time, self.data, self.err, sigma, 
+            #         count=count)
+            detections = self.lc.detect_csm(sigma, count=count, dt_min=dt_min,
+                    data_col=self.data_col, err_col=self.err_col)
 
         # Run detections on injected data
-        recovered = detect_csm(self.time, self.injection, self.err, sigma,
-                count=count, dt_min=dt_min)
+        recovered = self.lc.detect_csm(sigma, count=count, dt_min=dt_min, 
+                data_col='%s_injected' % self.data_col, err_col=self.err_col)
 
         # Remove points that would have been detected either way
-        self.recovered = [r for r in recovered if r not in detections]
-        self.recovered_times = self.time[self.recovered].to_list()
+        self.recovered = recovered.drop(detections.index)
+        self.recovered_times = self.recovered[self.time_col].to_list()
 
         # List of all times greater than dt_min
         self.all_times = self.time[self.time > dt_min].to_list()

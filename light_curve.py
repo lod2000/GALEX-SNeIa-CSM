@@ -19,7 +19,8 @@ PLATE_SCALE = 6 * u.arcsec / u.pix
 
 def main(sn_name, band, sigma, count):
     lc = LightCurve.from_name(sn_name, band)
-    print(lc.detect(sigma, count=count))
+    detections = lc.detect_csm(sigma, count=count)
+    print(detections)
 
 
 class LightCurve:
@@ -86,10 +87,46 @@ class LightCurve:
         return data
 
 
-    def detect(self, sigma, **kwargs):
-        self.detections = detect_csm(self.data['t_delta_rest'], 
-                self.data['flux_hostsub'], self.data['flux_hostsub_err'], sigma,
-                **kwargs)
+    def inject(self, model_data, data_col):
+        """Inject model data into data from given column."""
+
+        injection = self.data[data_col] + model_data
+        self.data['%s_injected' % data_col] = injection
+        return injection
+
+
+    def detect_csm(self, sigma, count=[1], dt_min=-30, time_col='t_delta_rest', 
+            data_col='flux_hostsub', err_col='flux_hostsub_err'):
+        """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
+        Inputs:
+            time_col, data_col, err_col: column labels
+            sigma: detection confidence level, int or list
+            count: number of data points above sigma to count as detection, list
+            dt_min: minimum number of days post-discovery
+        Output:
+            detections: list of indices of detected observations
+        """
+
+        # separate SN data from host background data
+        all_time = self.data[time_col]
+        time = all_time[all_time > dt_min]
+        data = self.data[data_col][time.index]
+        err = self.data[err_col][time.index]
+        # confidence level of data being away from 0
+        conf = data / err
+
+        if type(sigma) == int:
+            sigma = [sigma]
+
+        # Tiered detection: requires N points above X sigma or M points above Y sigma
+        detections = []
+        for s, c in zip(sigma, count):
+            detected = time[conf >= s].index.to_list()
+            if len(detected) >= c:
+                detections += detected
+        
+        # Remove duplicates, sort, and return indices of detections
+        self.detections = sorted(list(dict.fromkeys(detections)))
         return self.data.loc[self.detections]
 
 
