@@ -171,15 +171,12 @@ class Injection:
         # Get data
         self.lc = lc
         self.time_col = 't_delta_rest'
+        self.time = lc.data[self.time_col].copy()
         self.data_col = 'luminosity_hostsub'
         self.err_col = 'luminosity_hostsub_err'
-        self.time = lc.data[self.time_col].copy()
-        # self.data = lc.data['luminosity_hostsub'].copy()
-        # self.err = lc.data['luminosity_hostsub_err'].copy()
 
         # Inject model
         self.model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
-        # self.injection = self.data + self.model(self.time, sn.z)[lc.band]
         self.injection = lc.inject(self.model(self.time, sn.z)[lc.band], self.data_col)
 
 
@@ -219,8 +216,6 @@ class Injection:
 
         # Run detections on original data
         if detections == None:
-            # detections = detect_csm(self.time, self.data, self.err, sigma, 
-            #         count=count)
             detections = self.lc.detect_csm(sigma, count=count, dt_min=dt_min,
                     data_col=self.data_col, err_col=self.err_col)
 
