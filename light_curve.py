@@ -17,9 +17,9 @@ LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
 
-def main():
-    lc = LightCurve.from_name('SN2007on', 'NUV')
-    print(lc.detect(3))
+def main(sn_name, band, sigma, count):
+    lc = LightCurve.from_name(sn_name, band)
+    print(lc.detect(sigma, count=count))
 
 
 class LightCurve:
@@ -348,4 +348,4 @@ def wavelength2freq(flux, wavelength):
 
 
 if __name__=='__main__':
-    main()
+    main('SN2007on', 'NUV', [5,3], [1,3])

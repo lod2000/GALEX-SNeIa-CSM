@@ -24,7 +24,12 @@ T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
 
-def main(tstart, twidth, decay_rate, scale, model='Chev94'):
+def main(tstart, twidth, decay_rate, scale, model='Chev94', plot_spectrum=False):
+
+	# Plot Chev94 spectrum
+	if plot_spectrum:
+		chev_model = Chev94Model()
+		chev_model.plot(0, save=True, show=True)
 
 	# Corrective scale factor for Chev94 model
 	Chev94_baseline = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
@@ -65,7 +70,6 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94'):
 		for name, fl in f.items(): vals[name].append(fl)
 
 	for name in ['F275W', 'NUV', 'FUV']:
-		print(COLORS[name])
 		plt.plot(zvals, vals[name], color=COLORS[name], ls=':', marker='.', label=name)
 
 
@@ -317,6 +321,8 @@ if __name__=='__main__':
 	parser.add_argument('--decay-rate', '-D', help='fractional decay rate per 100 days', default=0.3, type=float)
 	parser.add_argument('--scale', '-S', help='scale factor', default=1., type=float)
 	parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+	parser.add_argument('--plot-spectrum', '-p', action='store_true', 
+			help='Plot Chev94 line emission model spectrum')
 
 	args = parser.parse_args()
-	main(args.tstart, args.twidth, args.decay_rate, args.scale)
+	main(args.tstart, args.twidth, args.decay_rate, args.scale, args.model, args.plot_spectrum)
