@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import platform
 
 from astropy.time import Time
 from statsmodels.stats.weightstats import DescrStatsW
