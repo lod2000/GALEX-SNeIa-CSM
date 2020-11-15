@@ -28,11 +28,6 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
-    # hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
-    # plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
-    # hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
-    # plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
-
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
@@ -44,7 +39,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         hist = pd.read_csv(hist_file, index_col=0)
 
     # Plot histogram
-    print('Plotting...')
+    print('Plotting recovery histogram...')
     plot(x_edges, y_edges, hist, show=show_plot,
             output_file=plot_file, cbin_width=cbin_width)
 
