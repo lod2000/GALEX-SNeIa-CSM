@@ -92,6 +92,8 @@ if __name__ == '__main__':
     parser.add_argument('graham_dir', type=str)
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+    parser.add_argument('--scale', '-S', type=float, default=SCALE)
     args = parser.parse_args()
 
-    main(args.galex_dir, args.graham_dir, overwrite=args.overwrite, model=args.model)
+    main(args.galex_dir, args.graham_dir, overwrite=args.overwrite, 
+            model=args.model, scale=args.scale)
