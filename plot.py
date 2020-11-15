@@ -17,39 +17,40 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         show_plot=False, model='Chev94', cbin_width=2, study='galex', 
         sigma_str=str(SIGMA)):
 
+    # Define folder structure
+    save_dir = run_dir(study, model, sigma_str)
+    output_dir = save_dir / Path('out')
+    if not output_dir.is_file(): output_dir.mkdir()
+    hist_file = output_dir / Path('hist.csv')
+    plot_file = output_dir / Path('recovery.png')
+
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
-    # Define folder structure
-    output_dir = OUTPUT_DIR
-    if study == 'graham':
-        save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (model, sigma_str))
-    else:
-        save_dir = SAVE_DIR / Path('%s_%ssigma' % (model, sigma_str))
-    hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
-    plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
-    hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
-    plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
+    # hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
+    # plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
+    # hist_file = Path('%s-hist-%s-%ssigma.csv' % (study, model, sigma_str))
+    # plot_file = Path('%s-recovery-%s-%ssigma.png' % (study, model, sigma_str))
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
-    if overwrite or not (output_dir / hist_file).is_file():
+    if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
-        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file, output_dir=output_dir)
+        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
     else:
         print('\nImporting histogram...')
-        hist = pd.read_csv(output_dir / hist_file, index_col=0)
+        hist = pd.read_csv(hist_file, index_col=0)
 
     # Plot histogram
     print('Plotting...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_dir=output_dir,
+    plot(x_edges, y_edges, hist, show=show_plot,
             output_file=plot_file, cbin_width=cbin_width)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
-            cbin_width=2, output_dir=OUTPUT_DIR):
+            cbin_width=2, detections=0):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -82,10 +83,23 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
+
+    # Color bar
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
     cbar.ax.yaxis.set_minor_locator(MultipleLocator(1))
+
+    # Binomial limits
+    # conf_level = 0.9
+    # cax_lim = np.array(cbar.ax.get_ylim())
+    # cax2 = cbar.ax.twinx()
+    # cax2_bounds = 100 * binom_conf_interval(detections, cmap_bounds[1:], 
+            # confidence_level=conf_level, interval='jeffreys')[1]
+    # print(cax2_bounds)
+    # cax2.set_ylim(cax2_lim)
+    # cax2.set_ylabel('Interaction Rate Upper Limit [\%]')
+
     fig.tight_layout()
-    plt.savefig(output_dir / Path(output_file), dpi=300)
+    plt.savefig(output_file, dpi=300)
 
     if show:
         plt.show()
@@ -93,8 +107,7 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv',
-        output_dir=OUTPUT_DIR):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
@@ -117,7 +130,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv',
     hist = reduce(lambda x, y: x.add(y, fill_value=0), hist)
 
     if save:
-        hist.to_csv(output_dir / Path(output_file))
+        hist.to_csv(output_file)
 
     return hist
 

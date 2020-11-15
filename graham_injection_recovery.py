@@ -18,11 +18,6 @@ SIGMA = 3 # detection certainty
 z_2015cp = 0.038 # redshift of SN 2015cp
 F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
-# Directories
-# SAVE_DIR = Path('Graham/save')
-# OUTPUT_DIR = Path('Graham/out')
-# DATA_DIR = Path('Graham/data')
-
 
 def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
         decay_rate=DECAY_RATE, overwrite=False, model='Chev94', sigma=SIGMA):
@@ -198,9 +193,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = SAVE_DIR / Path('Graham_%s_%ssigma' % (args.model, int(args.sigma)))
-    if not save_dir.is_dir():
-        save_dir.mkdir()
+    save_dir = run_dir('Graham', args.model, int(args.sigma))
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 

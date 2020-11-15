@@ -15,7 +15,7 @@ WIDTH = 250 # days, from PTF11kx
 ITERATIONS = 10000 # injection-recovery iterations per SN
 
 # Default directories
-SAVE_DIR = Path('save')
+SAVE_DIR = Path('runs')
 DATA_DIR = Path('data')
 OUTPUT_DIR = Path('out')
 
@@ -74,3 +74,14 @@ def gen_params(iterations, tstart_lims, scale_lims, log=True):
     params = np.column_stack((tstart, scale))
 
     return params
+
+def run_dir(study, model, sigma):
+    """Generate run save directory."""
+
+    if type(sigma) == list:
+        sigma = ''.join([str(s) for s in sigma])
+    run_name = '%s_%s_%ssigma' % (study, model, sigma)
+    run = SAVE_DIR / Path(run_name)
+    if not run.is_dir(): run.mkdir()
+
+    return run

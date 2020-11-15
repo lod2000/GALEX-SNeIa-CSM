@@ -281,10 +281,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Save run parameters
-    sigma_str = ''.join([str(s) for s in args.sigma])
-    save_dir = SAVE_DIR / Path('%s_%ssigma' % (args.model, sigma_str))
-    if not save_dir.is_dir():
-        save_dir.mkdir()
+    save_dir = run_dir('galex', args.model, args.sigma)
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 
