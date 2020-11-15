@@ -15,18 +15,18 @@ SIGMA = 3
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
         show_plot=False, model='Chev94', cbin_width=2, study='galex', 
-        sigma_str=str(SIGMA)):
-
-    # Define folder structure
-    save_dir = run_dir(study, model, sigma_str)
-    output_dir = save_dir / Path('out')
-    if not output_dir.is_file(): output_dir.mkdir()
-    hist_file = output_dir / Path('hist.csv')
-    plot_file = output_dir / Path('recovery.png')
-
+        sigma=SIGMA, plot_rates=False):
+    
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
+
+    # Define folder structure
+    save_dir = run_dir(study, model, sigma)
+    output_dir = save_dir / Path('out')
+    if not output_dir.is_dir(): output_dir.mkdir()
+    hist_file = output_dir / Path('hist.csv')
+    plot_file = output_dir / Path('recovery.png')
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
@@ -40,12 +40,12 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot,
-            output_file=plot_file, cbin_width=cbin_width)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, 
+            cbin_width=cbin_width)
 
 
 def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
-            cbin_width=2, detections=0):
+            cbin_width=2):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -148,6 +148,7 @@ class RecoveryData:
             fname: path to CSV
         """
 
+        self.fname = fname
         # Import save file; convert columns from strings to lists
         split_list = lambda x: x[1:-1].split(', ')
         data = pd.read_csv(fname, 
@@ -186,6 +187,7 @@ class RecoveryData:
 
         # Calculate recovery rate
         rate_hist = recovered / total
+        # rate_hist = recovered
 
         # Transpose and convert to DataFrame with time increasing along the rows
         # and scale height increasing down the columns. Column and index labels
@@ -207,8 +209,5 @@ if __name__ == '__main__':
             help='Detection confidence level (multiple for tiered detections)')
     args = parser.parse_args()
 
-    # Convert sigma to str
-    sigma_str = ''.join([str(s) for s in args.sigma])
-
     main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
-            cbin_width=args.cstep, study=args.study.lower(), sigma_str=sigma_str)
+            cbin_width=args.cstep, study=args.study.lower(), sigma=args.sigma)

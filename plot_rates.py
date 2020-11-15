@@ -6,91 +6,92 @@ from astropy.stats import binom_conf_interval
 from utils import *
 from plot import sum_hist
 
-TSTART_BINS = [0, 100, 500, 100]
+TSTART_BINS = [0, 100, 500, 1000]
 CONF = 0.9
 MODEL = 'Chev94'
 SCALE = 50
-
-def main():
-    hist_file = Path('out/%s-rates-%s-%ssigma' % (study, model, sigma))
-    hist = 
-    plot()
+GRAHAM_RATE = 6 # percent
 
 
-def plot(model=MODEL):
+def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE, 
+        iterations=10000, overwrite=False, model=MODEL):
 
     fig, ax = plt.subplots()
+    
+    # Bin edges
+    x_edges = np.array(tstart_bins)
+    y_edges = np.array([scale, 1000])
+    nbins = len(tstart_bins)-1
+    x_pos = np.arange(nbins)
 
-    # Include all nondetections below the luminosity of 2015cp
-    below_graham = nondetections[nondetections['luminosity_hostsub_err_hz'] * LIMIT_SIGMA < cutoff]
-    # Also include limits from near-peak SNe
-    below_graham.append(lc_non[lc_non['luminosity_hostsub_err_hz'] * LIMIT_SIGMA < cutoff])
-    # Only those after discovery
-    below_graham = below_graham[below_graham['t_delta_rest'] > 0]
-    print('Number of SNe with limits fainter than 2015cp: %s' % len(below_graham.drop_duplicates('name').index))
-    print('Number of observations with limits fainter than 2015cp: %s' % len(below_graham.index))
-    bins = [0, 100, 500, 2500]
-    k = []
-    n = []
+    # Sum histograms
+    for run_dir in [galex_run_dir, graham_run_dir]:
+        # File names
+        hist_file = run_dir / Path('out/rates_hist.csv')
+        save_files = list(Path(run_dir).glob('*-%s.csv' % iterations))
+
+        # Generate summed histogram
+        if overwrite or not hist_file.is_file():
+            print('\nImporting and summing saves...')
+            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+    
+    print('\nImporting histograms...')
+    galex_hist = pd.read_csv(galex_run_dir/Path('out/rates_hist.csv'), index_col=0)
+    graham_hist = pd.read_csv(graham_run_dir/Path('out/rates_hist.csv'), index_col=0)
+
+    # Add our binomial confidence interval
+    ax = plot_bci(ax, 0, galex_hist.iloc[0], x_pos, color='r', label='This study')
+
+    # Add Graham 2019
+    ax = plot_bci(ax, [1,1,0], graham_hist.iloc[0], x_pos, color='g', label='G19',
+            x_adjust=-0.1)
+    ax.scatter([1.9], [GRAHAM_RATE], marker='v', color='g', s=100, label='G19 reported')
+
+    # ASASSN
+    ax = plot_bci(ax, 3, [460], 0, color='y', x_adjust=0.1, label='ASAS-SN')
+
+    # Zwicky Transient Facility
+    ax = plot_bci(ax, 1, [127], 0, color='b', x_adjust=0.2, label='ZTF')
+
+    # x axis labels
     labels = []
-    for i in range(len(bins)-1):
-        limits = below_graham[(below_graham['t_delta_rest'] >= bins[i]) & (below_graham['t_delta_rest'] < bins[i+1])]
-        discrete_sne = limits.drop_duplicates('name')
-        k.append(0)
-        n.append(len(discrete_sne.index))
-        labels.append('%s - %s' % (bins[i], bins[i+1]))
-    print(bins)
-    print(n)
-    bci = 100 * binom_conf_interval(k, n, confidence_level=CONF, interval='jeffreys')
-    print(bci)
-    midpoint = np.mean(bci, axis=0)
-    x_pos = np.arange(len(bins)-1)
-    ax.errorbar(x_pos, midpoint, yerr=np.abs(bci - midpoint), capsize=10, 
-            marker='o', linestyle='none', ms=10, mec='r', c='r', mfc='w',
-            label='This study')
+    for i in range(nbins):
+        labels.append('%s - %s' % (tstart_bins[i], tstart_bins[i+1]))
 
-    # Confidence interval from Yao 2019
-    ztf_bci = 100 * binom_conf_interval(1, 127, confidence_level=CONF, interval='jeffreys')
-    print(ztf_bci)
-    ztf_mean = np.mean(ztf_bci)
-    ax.errorbar([0.1], [ztf_mean], yerr=([ztf_mean - ztf_bci[0]], [ztf_bci[1] - ztf_mean]),
-            marker='o', c='b', linestyle='none', ms=10, capsize=10, mec='b', mfc='w',
-            label='ZTF')
-
-    # ASAS-SN interval
-    asassn_bci = 100 * binom_conf_interval(3, 460, confidence_level=CONF, interval='jeffreys')
-    print(asassn_bci)
-    asassn_mean = np.mean(asassn_bci)
-    ax.errorbar([0.2], [asassn_mean], yerr=([asassn_mean - asassn_bci[0]], [asassn_bci[1] - asassn_mean]),
-            marker='o', c='orange', linestyle='none', ms=10, capsize=10, mec='orange', mfc='w',
-            label='ASAS-SN')
-
-    # Confidence interval & assumed late-onset rate from Graham 2019
-    graham_rate = 6
-    graham_bci = 100 * binom_conf_interval(1, 64, confidence_level=CONF, interval='jeffreys')
-    print(graham_bci)
-    ax.errorbar([2.1], [graham_rate], yerr=([graham_rate - graham_bci[0]], [graham_bci[1] - graham_rate]),
-            marker='v', color='g', linestyle='none', ms=15, capsize=10, label='G19')
-    # ax.annotate('G19', (2.1, graham_rate), textcoords='offset points', 
-    #         xytext=(10, 0), ha='left', va='center', size=18, color='g')
-
+    # Format axis
     ax.set_xlim((x_pos[0]-0.5, x_pos[-1]+0.5))
     ax.set_xticks(x_pos)
     ax.set_xticklabels(labels)
     ax.tick_params(axis='x', which='minor', bottom=False, top=False)
-    ax.set_xlabel('Rest frame time since discovery [days]')
+    ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Rate of CSM interaction [%]')
-
-    # Preliminary!
-    if args.presentation:
-        fig.text(0.95, 0.05, 'PRELIMINARY', fontsize=72, color='gray', 
-                rotation='30', ha='right', va='bottom', alpha=0.5)
 
     plt.tight_layout()
     plt.legend()
-    plt.savefig(Path('out/%s-rates.png' % model), dpi=300)
+    plt.savefig(Path('out/rates_%s.png' % model), dpi=300)
     plt.show()
 
 
+def plot_bci(ax, detections, trials, x_pos, color='r', label='', x_adjust=0., 
+        conf_level=CONF):
+
+    bci = 100 * binom_conf_interval(detections, trials, 
+            confidence_level=conf_level, interval='jeffreys')
+    midpoint = np.mean(bci, axis=0)
+    ax.errorbar(x_pos+x_adjust, midpoint, yerr=np.abs(bci - midpoint), 
+            capsize=10, marker='o', linestyle='none', ms=10, mec=color, c=color, 
+            mfc='w', label=label)
+
+    return ax
+
+
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('galex_dir', type=str)
+    parser.add_argument('graham_dir', type=str)
+    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
+    args = parser.parse_args()
+
+    main(args.galex_dir, args.graham_dir, overwrite=args.overwrite, model=args.model)
