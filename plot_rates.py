@@ -11,6 +11,7 @@ CONF = 0.9
 MODEL = 'Chev94'
 SCALE = 50
 GRAHAM_RATE = 6 # percent
+SIGMA = 3
 
 
 def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE, 

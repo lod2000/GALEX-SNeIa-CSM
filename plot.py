@@ -14,7 +14,7 @@ SIGMA = 3
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=False, model='Chev94', cbin_width=2, study='galex', 
+        show_plot=True, model='Chev94', study='galex', 
         sigma=SIGMA, plot_rates=False):
     
     # Bin edges
@@ -40,12 +40,10 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, 
-            cbin_width=cbin_width)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file)
 
 
-def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
-            cbin_width=2):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.png'):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -65,7 +63,9 @@ def plot(x_edges, y_edges, hist, show=False, output_file='recovery.png',
     cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
     cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
     hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
+    cbin_width = int(hist_max / 12)
     cmap_bounds = np.arange(1, hist_max, cbin_width)
+    # cmap_bounds = np.linspace(1, hist_max, num=n_cmap)
     # include lower, uppper bounds
     cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
     norm = BoundaryNorm(cmap_bounds, cmap.N)
@@ -152,24 +152,30 @@ class RecoveryData:
         # Import save file; convert columns from strings to lists
         split_list = lambda x: x[1:-1].split(', ')
         data = pd.read_csv(fname, 
-                converters={'recovered_times': split_list, 
-                            'all_times': split_list},
+                # converters={'recovered_times': split_list, 
+                #             'all_times': split_list},
         )
+        data['recovered'] = data['recovered_times'].str.len() > 2
         
         # Join lists of recovered times and all times
-        join_list = lambda x: [float(t) for l in x for t in l if t != '']
-        self.recovered_times = join_list(data.recovered_times)
-        self.all_times = join_list(data.all_times)
+        # join_list = lambda x: [float(t) for l in x for t in l if t != '']
+        # self.recovered_times = join_list(data.recovered_times)
+        # self.all_times = join_list(data.all_times)
 
         # Join lists of recovered scales and all scales
-        count_param = lambda x, y: [data.loc[i,y] for i, l in enumerate(x) 
-                for t in l if t != '']
-        self.recovered_scales = count_param(data.recovered_times, 'scale')
-        self.all_scales = count_param(data.all_times, 'scale')
+        # count_param = lambda x, y: [data.loc[i,y] for i, l in enumerate(x) 
+        #         for t in l if t != '']
+        # self.recovered_scales = count_param(data.recovered_times, 'scale')
+        # self.all_scales = count_param(data.all_times, 'scale')
 
         # Join lists of CSM interaction start times
-        self.recovered_tstarts = count_param(data.recovered_times, 'tstart')
-        self.all_tstarts = count_param(data.all_times, 'tstart')
+        # self.recovered_tstarts = count_param(data.recovered_times, 'tstart')
+        # self.all_tstarts = count_param(data.all_times, 'tstart')
+
+        self.recovered_scales = data[data['recovered']]['scale'].to_numpy()
+        self.all_scales = data['scale'].to_numpy()
+        self.recovered_tstarts = data[data['recovered']]['tstart'].to_numpy()
+        self.all_tstarts = data['tstart'].to_numpy()
 
 
     def hist(self, x_edges, y_edges):
@@ -187,12 +193,17 @@ class RecoveryData:
 
         # Calculate recovery rate
         rate_hist = recovered / total
-        # rate_hist = recovered
+        # rate_hist = (recovered > 0).astype(int)
 
         # Transpose and convert to DataFrame with time increasing along the rows
         # and scale height increasing down the columns. Column and index labels
         # are the lower bound of each bin
         rate_hist = pd.DataFrame(rate_hist.T, index=y_edges[:-1], columns=x_edges[:-1])
+        # print(self.recovered_scales)
+
+        # if True in (recovered > 1):
+        #     print(rate_hist)
+
         return rate_hist
 
 
@@ -203,11 +214,10 @@ if __name__ == '__main__':
     parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
-    parser.add_argument('--cstep', type=int, default=2, help='Colorbar bin width')
     parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
-            cbin_width=args.cstep, study=args.study.lower(), sigma=args.sigma)
+            study=args.study.lower(), sigma=args.sigma)
