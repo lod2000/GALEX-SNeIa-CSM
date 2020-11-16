@@ -43,7 +43,7 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
     ax = plot_bci(ax, 0, galex_hist.iloc[0], x_pos, color='r', label='This study')
 
     # Add Graham 2019
-    ax = plot_bci(ax, [1,1,0], graham_hist.iloc[0], x_pos, color='g', label='G19',
+    ax = plot_bci(ax, [0,1,1], graham_hist.iloc[0], x_pos, color='g', label='G19',
             x_adjust=-0.1)
     ax.scatter([1.9], [GRAHAM_RATE], marker='v', color='g', s=100, label='G19 reported')
 
