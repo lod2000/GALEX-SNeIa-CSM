@@ -150,27 +150,8 @@ class RecoveryData:
 
         self.fname = fname
         # Import save file; convert columns from strings to lists
-        split_list = lambda x: x[1:-1].split(', ')
-        data = pd.read_csv(fname, 
-                # converters={'recovered_times': split_list, 
-                #             'all_times': split_list},
-        )
+        data = pd.read_csv(fname)
         data['recovered'] = data['recovered_times'].str.len() > 2
-        
-        # Join lists of recovered times and all times
-        # join_list = lambda x: [float(t) for l in x for t in l if t != '']
-        # self.recovered_times = join_list(data.recovered_times)
-        # self.all_times = join_list(data.all_times)
-
-        # Join lists of recovered scales and all scales
-        # count_param = lambda x, y: [data.loc[i,y] for i, l in enumerate(x) 
-        #         for t in l if t != '']
-        # self.recovered_scales = count_param(data.recovered_times, 'scale')
-        # self.all_scales = count_param(data.all_times, 'scale')
-
-        # Join lists of CSM interaction start times
-        # self.recovered_tstarts = count_param(data.recovered_times, 'tstart')
-        # self.all_tstarts = count_param(data.all_times, 'tstart')
 
         self.recovered_scales = data[data['recovered']]['scale'].to_numpy()
         self.all_scales = data['scale'].to_numpy()
@@ -193,16 +174,11 @@ class RecoveryData:
 
         # Calculate recovery rate
         rate_hist = recovered / total
-        # rate_hist = (recovered > 0).astype(int)
 
         # Transpose and convert to DataFrame with time increasing along the rows
         # and scale height increasing down the columns. Column and index labels
         # are the lower bound of each bin
         rate_hist = pd.DataFrame(rate_hist.T, index=y_edges[:-1], columns=x_edges[:-1])
-        # print(self.recovered_scales)
-
-        # if True in (recovered > 1):
-        #     print(rate_hist)
 
         return rate_hist
 
