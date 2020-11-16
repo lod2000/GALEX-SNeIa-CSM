@@ -59,7 +59,7 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
         labels.append('%s - %s' % (tstart_bins[i], tstart_bins[i+1]))
 
     # Format axis
-    ax.set_xlim((x_pos[0]-0.5, x_pos[-1]+0.5))
+    ax.set_xlim((x_pos[0]-0.5, x_pos[-1]+1.5))
     ax.set_xticks(x_pos)
     ax.set_xticklabels(labels)
     ax.tick_params(axis='x', which='minor', bottom=False, top=False)
@@ -67,7 +67,7 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
     ax.set_ylabel('Rate of CSM interaction [%]')
 
     plt.tight_layout()
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.savefig(Path('out/rates_%s.png' % model), dpi=300)
     plt.show()
 
