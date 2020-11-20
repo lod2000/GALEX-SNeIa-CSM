@@ -46,7 +46,6 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
     # Add Graham 2019
     ax = plot_bci(ax, [0,1,1], graham_hist.iloc[0], x_pos, color='g', label='G19',
             x_adjust=-0.1)
-    ax.scatter([1.9], [GRAHAM_RATE], marker='v', color='g', s=100, label='G19 reported')
 
     # ASASSN
     ax = plot_bci(ax, 3, [460], 0, color='y', x_adjust=0.1, label='ASAS-SN')
@@ -69,7 +68,7 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
 
     plt.tight_layout()
     plt.legend(loc='upper right')
-    plt.savefig(Path('out/rates_%s.png' % model), dpi=300)
+    plt.savefig(Path('out/rates_%s.pdf' % model), dpi=300)
     plt.show()
 
 

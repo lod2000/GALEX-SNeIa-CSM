@@ -14,7 +14,7 @@ SIGMA = 3
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
-        show_plot=True, model='Chev94', study='galex', 
+        show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, plot_rates=False):
     
     # Bin edges
@@ -23,10 +23,10 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
-    output_dir = save_dir / Path('out')
-    if not output_dir.is_dir(): output_dir.mkdir()
-    hist_file = output_dir / Path('hist.csv')
-    plot_file = output_dir / Path('recovery.png')
+    run_out_dir = save_dir / Path('out')
+    if not run_out_dir.is_dir(): run_out_dir.mkdir()
+    hist_file = run_out_dir / Path('hist.csv')
+    plot_file = OUTPUT_DIR / Path('recovery_%s_%s.pdf' % (study, model))
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
@@ -40,10 +40,10 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.png'):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -63,9 +63,9 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.png'):
     cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
     cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
     hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
+    hist_max = hist_max if cmax == None else cmax
     cbin_width = int(hist_max / 12)
     cmap_bounds = np.arange(1, hist_max, cbin_width)
-    # cmap_bounds = np.linspace(1, hist_max, num=n_cmap)
     # include lower, uppper bounds
     cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
     norm = BoundaryNorm(cmap_bounds, cmap.N)
@@ -81,17 +81,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.png'):
 
     # Color bar
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
-    cbar.ax.yaxis.set_minor_locator(MultipleLocator(1))
-
-    # Binomial limits
-    # conf_level = 0.9
-    # cax_lim = np.array(cbar.ax.get_ylim())
-    # cax2 = cbar.ax.twinx()
-    # cax2_bounds = 100 * binom_conf_interval(detections, cmap_bounds[1:], 
-            # confidence_level=conf_level, interval='jeffreys')[1]
-    # print(cax2_bounds)
-    # cax2.set_ylim(cax2_lim)
-    # cax2.set_ylabel('Interaction Rate Upper Limit [\%]')
+    cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
 
     fig.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -193,7 +183,8 @@ if __name__ == '__main__':
     parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
+    parser.add_argument('--max', type=float, help='Max colorbar value')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
-            study=args.study.lower(), sigma=args.sigma)
+            study=args.study.lower(), sigma=args.sigma, cmax=args.max)

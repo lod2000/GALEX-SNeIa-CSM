@@ -225,7 +225,7 @@ class Chev94Model:
 		return fl
 
 
-	def plot(self, t, save=False, show=False, fname='out/Chev94_spectrum.png'):
+	def plot(self, t, save=False, show=False, fname='out/Chev94_spectrum.pdf'):
 		"""Plot spectral model."""
 
 		wl = np.arange(W0, W1, DW)
