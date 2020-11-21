@@ -41,7 +41,7 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
             print('\nImporting histograms...')
             hist = pd.read_csv(hist_file, index_col=0)
         
-        histograms.append(hist)
+        histograms.append(hist.iloc[0].to_numpy())
 
     [galex_hist, graham_hist] = histograms
     uv_hist = galex_hist + graham_hist
@@ -51,21 +51,35 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     graham_det_hist = np.histogram(graham_detections['Rest Phase'], tstart_bins)[0]
 
     # Add our binomial confidence interval
-    ax = plot_bci(ax, 0, galex_hist.iloc[0], x_pos, color='r', label='This study')
+    ax = plot_bci(ax, 0, galex_hist, x_pos, color='r', label='$\it{GALEX}$')
 
     # Add Graham 2019
-    ax = plot_bci(ax, graham_det_hist, graham_hist.iloc[0], x_pos, color='g', label='G19',
-            x_adjust=-0.1)
+    graham_trials = graham_hist + graham_det_hist
+    ax = plot_bci(ax, graham_det_hist, graham_trials, x_pos, 
+            color='g', label='G19', x_adjust=0.1)
 
     # UV combined rates
-    ax = plot_bci(ax, graham_det_hist, uv_hist.iloc[0], x_pos, label='UV Combined', 
-            x_adjust=0.1, color='k')
+    uv_trials = uv_hist + graham_det_hist
+    ax = plot_bci(ax, graham_det_hist, uv_trials, x_pos, 
+            label='UV combined', x_adjust=0.2, color='k')
 
     # ASASSN
-    ax = plot_bci(ax, 3, [460], 0, color='y', x_adjust=0.1, label='ASAS-SN')
+    asassn_det = 3
+    asassn_trials = 464
+    ax = plot_bci(ax, asassn_det, [asassn_trials], 0, color='y', x_adjust=-0.1, 
+            label='ASAS-SN')
 
     # Zwicky Transient Facility
-    ax = plot_bci(ax, 1, [127], 0, color='b', x_adjust=0.2, label='ZTF')
+    ztf_det = 1
+    ztf_trials = 127
+    ax = plot_bci(ax, ztf_det, [ztf_trials], 0, color='b', x_adjust=-0.2, 
+            label='ZTF')
+
+    # All combined
+    all_trials = uv_trials[0] + ztf_trials + asassn_trials
+    all_det = graham_det_hist[0] + ztf_det + asassn_det
+    ax = plot_bci(ax, [all_det], [all_trials], 0, label='All combined', 
+            x_adjust=0.3, color='k')
 
     # x axis labels
     labels = []
