@@ -6,7 +6,7 @@ from astropy.stats import binom_conf_interval
 from utils import *
 from plot import sum_hist
 
-TSTART_BINS = [0, 100, 500, 1000]
+TSTART_BINS = [0, 20, 100, 500, 1000]
 CONF = 0.9
 MODEL = 'Chev94'
 SCALE = 50
@@ -14,8 +14,8 @@ GRAHAM_RATE = 6 # percent
 SIGMA = 3
 
 
-def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE, 
-        iterations=10000, overwrite=False, model=MODEL):
+def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False, 
+        model=MODEL, sigma=SIGMA):
 
     fig, ax = plt.subplots()
     
@@ -25,27 +25,41 @@ def main(galex_run_dir, graham_run_dir, tstart_bins=TSTART_BINS, scale=SCALE,
     nbins = len(tstart_bins)-1
     x_pos = np.arange(nbins)
 
-    # Sum histograms
-    for run_dir in [galex_run_dir, graham_run_dir]:
+    # Import non-detections and sum histograms
+    histograms = []
+    for study in ['galex', 'graham']:
         # File names
-        hist_file = run_dir / Path('out/rates_hist.csv')
-        save_files = list(Path(run_dir).glob('*-%s.csv' % iterations))
+        save_dir = run_dir(study, model, sigma)
+        hist_file = save_dir / Path('out/rates_hist.csv')
+        save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
 
         # Generate summed histogram
         if overwrite or not hist_file.is_file():
             print('\nImporting and summing saves...')
             hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
-    
-    print('\nImporting histograms...')
-    galex_hist = pd.read_csv(galex_run_dir/Path('out/rates_hist.csv'), index_col=0)
-    graham_hist = pd.read_csv(graham_run_dir/Path('out/rates_hist.csv'), index_col=0)
+        else:
+            print('\nImporting histograms...')
+            hist = pd.read_csv(hist_file, index_col=0)
+        
+        histograms.append(hist)
+
+    [galex_hist, graham_hist] = histograms
+    uv_hist = galex_hist + graham_hist
+
+    # Import detections
+    graham_detections = pd.read_csv('ref/Graham_detections.csv')
+    graham_det_hist = np.histogram(graham_detections['Rest Phase'], tstart_bins)[0]
 
     # Add our binomial confidence interval
     ax = plot_bci(ax, 0, galex_hist.iloc[0], x_pos, color='r', label='This study')
 
     # Add Graham 2019
-    ax = plot_bci(ax, [0,1,1], graham_hist.iloc[0], x_pos, color='g', label='G19',
+    ax = plot_bci(ax, graham_det_hist, graham_hist.iloc[0], x_pos, color='g', label='G19',
             x_adjust=-0.1)
+
+    # UV combined rates
+    ax = plot_bci(ax, graham_det_hist, uv_hist.iloc[0], x_pos, label='UV Combined', 
+            x_adjust=0.1, color='k')
 
     # ASASSN
     ax = plot_bci(ax, 3, [460], 0, color='y', x_adjust=0.1, label='ASAS-SN')
@@ -88,12 +102,14 @@ def plot_bci(ax, detections, trials, x_pos, color='r', label='', x_adjust=0.,
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('galex_dir', type=str)
-    parser.add_argument('graham_dir', type=str)
+    # parser.add_argument('galex_dir', type=str)
+    # parser.add_argument('graham_dir', type=str)
     parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
     parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
     parser.add_argument('--scale', '-S', type=float, default=SCALE)
+    parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
+            help='Detection confidence level (multiple for tiered detections)')
     args = parser.parse_args()
 
-    main(args.galex_dir, args.graham_dir, overwrite=args.overwrite, 
-            model=args.model, scale=args.scale)
+    main(overwrite=args.overwrite, model=args.model, scale=args.scale, 
+            sigma=args.sigma)
