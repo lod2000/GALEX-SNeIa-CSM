@@ -60,26 +60,26 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
 
     # UV combined rates
     uv_trials = uv_hist + graham_det_hist
-    ax = plot_bci(ax, graham_det_hist, uv_trials, x_pos, 
-            label='UV combined', x_adjust=0.2, color='k')
+    ax = plot_bci(ax, graham_det_hist, uv_trials, x_pos, label='UV combined', 
+            x_adjust=0.2, color='k', elinewidth=3.5)
 
     # ASASSN
     asassn_det = 3
     asassn_trials = 464
     ax = plot_bci(ax, asassn_det, [asassn_trials], 0, color='y', x_adjust=-0.1, 
-            label='ASAS-SN')
+            label='ASAS-SN', marker='s')
 
     # Zwicky Transient Facility
     ztf_det = 1
     ztf_trials = 127
     ax = plot_bci(ax, ztf_det, [ztf_trials], 0, color='b', x_adjust=-0.2, 
-            label='ZTF')
+            label='ZTF', marker='s')
 
     # All combined
     all_trials = uv_trials[0] + ztf_trials + asassn_trials
     all_det = graham_det_hist[0] + ztf_det + asassn_det
     ax = plot_bci(ax, [all_det], [all_trials], 0, label='All combined', 
-            x_adjust=0.3, color='k')
+            x_adjust=0.3, color='k', marker='*', ms=16)
 
     # x axis labels
     labels = []
@@ -87,28 +87,33 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
         labels.append('%s - %s' % (tstart_bins[i], tstart_bins[i+1]))
 
     # Format axis
-    ax.set_xlim((x_pos[0]-0.5, x_pos[-1]+1.5))
+    ax.set_xlim((x_pos[0]-0.5, x_pos[-1]+2.))
     ax.set_xticks(x_pos)
     ax.set_xticklabels(labels)
     ax.tick_params(axis='x', which='minor', bottom=False, top=False)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Rate of CSM interaction [%]')
 
+    # Legend
+    handles, labels = ax.get_legend_handles_labels()
+    # remove errorbars
+    handles = [h[0] for h in handles]
+    plt.legend(handles, labels, loc='upper right')
+
     plt.tight_layout()
-    plt.legend(loc='upper right')
     plt.savefig(Path('out/rates_%s.pdf' % model), dpi=300)
     plt.show()
 
 
 def plot_bci(ax, detections, trials, x_pos, color='r', label='', x_adjust=0., 
-        conf_level=CONF):
+        conf_level=CONF, elinewidth=2, marker='o', ms=10):
 
     bci = 100 * binom_conf_interval(detections, trials, 
             confidence_level=conf_level, interval='jeffreys')
     midpoint = np.mean(bci, axis=0)
     ax.errorbar(x_pos+x_adjust, midpoint, yerr=np.abs(bci - midpoint), 
-            capsize=10, marker='o', linestyle='none', ms=10, mec=color, c=color, 
-            mfc='w', label=label)
+            capsize=8, marker=marker, linestyle='none', ms=ms, mec=color, c=color, 
+            mfc='w', label=label, elinewidth=elinewidth, mew=elinewidth)
 
     return ax
 
