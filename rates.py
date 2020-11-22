@@ -55,14 +55,10 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     graham_detections = pd.read_csv('ref/Graham_detections.csv')
     graham_det_hist = np.histogram(graham_detections['Rest Phase'], tstart_bins)[0]
 
-    # Row labels
-    rows = []
-    for i in range(nbins):
-        rows.append('%s - %s' % (tstart_bins[i], tstart_bins[i+1]))
-
     # DataFrame for number of trials per tstart bin and data source
     sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
-    trials = pd.DataFrame([], index=pd.Series(rows))
+    index = pd.Series(tstart_bins[:-1])
+    trials = pd.DataFrame([], index=index)
     trials['G19'] = (graham_hist + graham_det_hist).T
     trials['GALEX'] = galex_hist.T
     trials['UV'] = trials['GALEX'] + trials['G19']
@@ -72,7 +68,7 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     trials.loc[trials['All'] == trials['UV'], 'All'] = 0
 
     # DataFrame for number of detections per tstart bin and data source
-    detections = pd.DataFrame([], index=pd.Series(rows))
+    detections = pd.DataFrame([], index=index)
     detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
     detections['UV'] = detections['GALEX'] + detections['G19']
@@ -81,8 +77,8 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     detections['All'] = detections[sources].sum(axis=1)
 
     # Calculate binomial confidence intervals
-    bci_lower = pd.DataFrame([], index=pd.Series(rows))
-    bci_upper = pd.DataFrame([], index=pd.Series(rows))
+    bci_lower = pd.DataFrame([], index=index)
+    bci_upper = pd.DataFrame([], index=index)
     for col in trials.columns:
         # separate bins with no trials
         pos_index = trials[trials[col] > 0].index
@@ -98,16 +94,65 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
         bci_upper.loc[pos_index, col] = bci[1].T
         bci_upper.loc[zero_index,col] = np.nan
 
-    plot(bci_lower, bci_upper, tstart_bins=tstart_bins, show=True,
+    table(detections, trials, bci_upper)
+
+    plot(bci_lower, bci_upper, tstart_bins=tstart_bins, show=False,
             output_file=Path('out/rates_%s.pdf' % model))    
 
 
-def table():
-    pass
+def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
+        output_file='out/rates.tex'):
+    """Generate LATEX table to go along with plot."""
+    
+    # Combine to single DataFrame
+    df = pd.melt(detections.reset_index(), id_vars='index', var_name='Source', 
+            value_name='Detections')
+    df['Trials'] = pd.melt(trials.reset_index(), id_vars='index')['value']
+    df['Upper BCI'] = pd.melt(bci_upper.reset_index(), id_vars='index')['value']
+    # Remove empty rows & rename epochs col
+    df = df[pd.notna(df['Upper BCI'])].rename(columns={'index': 'Epoch'})
+    # Replace index and sort
+    df = df.sort_values('Epoch').set_index('Epoch')
+    df = df.astype({'Detections': int, 'Trials': int})
+    # Rearrange columns
+    df = df[['Detections', 'Trials', 'Upper BCI', 'Source']]
+
+    # Row labels
+    rows = {}
+    for i in range(len(tstart_bins)-1):
+        rows[tstart_bins[i]] = '%s - %s' % (tstart_bins[i], tstart_bins[i+1])
+    new_index = pd.Series(np.vectorize(rows.get)(df.index), name='Epoch')
+    df.set_index(new_index, inplace=True)
+    print(df)
+
+    table = df.to_latex(formatters={'Source': source_fmt, 'Upper BCI': '{:.2f}'.format}, escape=False)
+    # Replace table header and footer with template
+    # Edit this file if you need to change the number of columns or description
+    with open(Path('ref/deluxetable_template.tex'), 'r') as file:
+        dt_file = file.read()
+        header = dt_file.split('===')[0]
+        footer = dt_file.split('===')[1]
+    table = header + '\n'.join(table.split('\n')[5:-3]) + footer
+    # Write table
+    with open(Path(output_file), 'w') as file:
+        file.write(table)
 
 
-def plot(bci_lower, bci_upper, tstart_bins=TSTART_BINS, output_file='rates.pdf', 
-        show=True):
+def source_fmt(source):
+    """Format source string in LATEX table."""
+
+    fmt = { 'GALEX': '$\it{%s}$' % source, 
+            'G19': '\citetalias{Graham2019-SN2015cp}',
+            'ASAS-SN': '%s\\tablenotemark{a}' % source,
+            'ZTF': '%s\\tablenotemark{b}' % source,
+            'UV': 'UV', 'All': 'All'}
+
+    return fmt[source]
+
+
+def plot(bci_lower, bci_upper, tstart_bins=TSTART_BINS, 
+        output_file='out/rates.pdf', show=True):
+    """Plot binomial confidence limits for CSM interaction rate at multiple epochs."""
 
     fig, ax = plt.subplots()
 
