@@ -94,7 +94,8 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
         bci_upper.loc[pos_index, col] = bci[1].T
         bci_upper.loc[zero_index,col] = np.nan
 
-    table(detections, trials, bci_upper)
+    table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
+            output_file=Path('out/rates_%s.tex' % model))
 
     plot(bci_lower, bci_upper, tstart_bins=tstart_bins, show=False,
             output_file=Path('out/rates_%s.pdf' % model))    
