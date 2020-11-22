@@ -3,6 +3,7 @@ import platform
 import pandas as pd
 import numpy as np
 from numpy.random import default_rng
+from CSMmodel import CSMmodel
 
 # Default values
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
@@ -24,6 +25,11 @@ COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
           'UVW1': '#cb4', 'UVM2': '#283', 'UVW2': '#6ce', # Swift
           'F275W': '#e67' # Hubble
           }
+
+F275W_LAMBDA_EFF = 2714.65
+L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
+L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # luminosity of 2015cp, erg/s/A
+Z_2015cp = 0.0413
 
 
 def fname2sn(fname):
@@ -85,3 +91,14 @@ def run_dir(study, model, sigma):
     if not run.is_dir(): run.mkdir()
 
     return run
+
+
+def SN2015cp_scale(model):
+    """Get scale factor corresponding to UV luminosity of SN 2015cp (Graham+ 2019)."""
+
+    # Corrective scale factor: S=1 corresponds to 2015cp
+    csm_model = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1., model=model)
+    model_2015cp = csm_model([0], Z_2015cp)
+    scale_2015cp = L_2015cp_cgs / model_2015cp['F275W'][0]
+
+    return scale_2015cp

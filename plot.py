@@ -7,19 +7,24 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
+import dill
 from utils import *
+from CSMmodel import CSMmodel
 
 SIGMA = 3
-
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
         show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, plot_rates=False):
+
+    # Scale to UV luminosity of SN 2015cp
+    reduced_scale = SN2015cp_scale(model)
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
+    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins) 
+    y_edges /= reduced_scale
 
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
@@ -33,7 +38,8 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Generate summed histogram
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
-        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file,
+                reduced_scale=reduced_scale)
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
@@ -77,7 +83,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
-    ax.set_ylabel('Scale factor')
+    ax.set_ylabel('Relative scale factor')
 
     # Color bar
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
@@ -92,10 +98,11 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv', **kwargs):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
+        model: 'Chev94' or 'flat'
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
         save: save summed histogram as CSV
@@ -106,7 +113,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
 
     hist = []
     with Pool() as pool:
-        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges)
+        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges, **kwargs)
         imap = pool.imap(func, save_files, chunksize=10)
         for h in tqdm(imap, total=len(save_files)):
             hist.append(h)
@@ -120,19 +127,19 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv'):
     return hist
 
 
-def get_hist(fname, x_edges, y_edges):
-    """Import recovery save data and return histogram.
+def get_hist(fname, x_edges, y_edges, **kwargs):
+    """Import recovery save data and return histogram. Also scale to SN 2015cp.
     Inputs:
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
     """
 
-    rd = RecoveryData(fname)
+    rd = RecoveryData(fname, **kwargs)
     return rd.hist(x_edges, y_edges)
 
 
 class RecoveryData:
-    def __init__(self, fname):
+    def __init__(self, fname, reduced_scale=1):
         """Import recovery save data.
         Input:
             fname: path to CSV
@@ -143,8 +150,8 @@ class RecoveryData:
         data = pd.read_csv(fname)
         data['recovered'] = data['recovered_times'].str.len() > 2
 
-        self.recovered_scales = data[data['recovered']]['scale'].to_numpy()
-        self.all_scales = data['scale'].to_numpy()
+        self.recovered_scales = data[data['recovered']]['scale'].to_numpy() / reduced_scale
+        self.all_scales = data['scale'].to_numpy() / reduced_scale
         self.recovered_tstarts = data[data['recovered']]['tstart'].to_numpy()
         self.all_tstarts = data['tstart'].to_numpy()
 
@@ -174,6 +181,7 @@ class RecoveryData:
 
 
 if __name__ == '__main__':
+    dill.settings['recurse']=True
 
     import argparse
     parser = argparse.ArgumentParser()

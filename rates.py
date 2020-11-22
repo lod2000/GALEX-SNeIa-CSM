@@ -9,7 +9,7 @@ from plot import sum_hist
 TSTART_BINS = [0, 20, 100, 500, 1000]
 CONF = 0.9
 MODEL = 'Chev94'
-SCALE = 50
+SCALE = 1
 SIGMA = 3
 
 COLORS = {'GALEX': '#d81b60',
@@ -24,10 +24,13 @@ MARKERS = {'GALEX': 'o', 'G19': 'o', 'UV': 'o',
 
 def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False, 
         model=MODEL, sigma=SIGMA):
+
+    # Scale to UV luminosity of SN 2015cp
+    reduced_scale = SN2015cp_scale(model)
     
     # Bin edges
     x_edges = np.array(tstart_bins)
-    y_edges = np.array([scale, 1000])
+    y_edges = np.array([scale, 1000 / reduced_scale])
     nbins = len(tstart_bins)-1
 
     # Import non-detections and sum histograms for GALEX and G19
@@ -41,7 +44,8 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
         # Generate summed histogram
         if overwrite or not hist_file.is_file():
             print('Importing and summing %s saves...' % study)
-            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file,
+                    reduced_scale=reduced_scale)
         else:
             print('Importing %s histograms...' % study)
             hist = pd.read_csv(hist_file, index_col=0)
@@ -97,7 +101,7 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
             output_file=Path('out/rates_%s.tex' % model))
 
-    plot(bci_lower, bci_upper, tstart_bins=tstart_bins, show=False,
+    plot(bci_lower, bci_upper, tstart_bins=tstart_bins, show=True,
             output_file=Path('out/rates_%s.pdf' % model))    
 
 

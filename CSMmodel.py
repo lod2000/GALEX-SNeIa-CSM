@@ -4,25 +4,22 @@ import matplotlib.pyplot as plt
 import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
-from utils import COLORS
 
 W0 = 1000. #model wwavelength start
 W1 = 3000. #model wavelength end
 DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
-HST_AREA = (1.2e2)**2. * np.pi # cm2
-F275W_LAMBDA_EFF = 2714.65
-L_2015cp = 7.6e25 # erg/s/Hz (Graham+ 2019)
-L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # luminosity of 2015cp, erg/s/A
-Z_2015cp = 0.0413
-# set scale factor 1 equal to SN2015cp flux
-# CHEV94_SCALE = 0.1069 
-# FLAT_SCALE = 0.0635
+HST_AREA = (1.2e2)**2. * np.pi # cm2\
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
+
+# Plot color palette
+COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
+          'F275W': '#e67' # Hubble
+          }
 
 def main(tstart, twidth, decay_rate, scale, model='Chev94', plot_spectrum=False):
 
@@ -30,17 +27,6 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', plot_spectrum=False)
 	if plot_spectrum:
 		chev_model = Chev94Model()
 		chev_model.plot(0, save=True, show=True)
-
-	# Corrective scale factor for Chev94 model
-	Chev94_baseline = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1.)
-	L_Chev94 = Chev94_baseline([0], Z_2015cp)
-	Chev94_scale = L_2015cp_cgs / L_Chev94['F275W']
-	print(Chev94_scale)
-
-	flat_baseline = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1., model='flat')
-	L_flat = flat_baseline([0], Z_2015cp)
-	flat_scale = L_2015cp_cgs / L_flat['F275W']
-	print(flat_scale)
 
 	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model=model)
 	
