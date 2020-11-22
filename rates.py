@@ -123,7 +123,6 @@ def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS,
         rows[tstart_bins[i]] = '%s - %s' % (tstart_bins[i], tstart_bins[i+1])
     new_index = pd.Series(np.vectorize(rows.get)(df.index), name='Epoch')
     df.set_index(new_index, inplace=True)
-    print(df)
 
     table = df.to_latex(formatters={'Source': source_fmt, 'Upper BCI': '{:.2f}'.format}, escape=False)
     # Replace table header and footer with template
@@ -145,7 +144,7 @@ def source_fmt(source):
             'G19': '\citetalias{Graham2019-SN2015cp}',
             'ASAS-SN': '%s\\tablenotemark{a}' % source,
             'ZTF': '%s\\tablenotemark{b}' % source,
-            'UV': 'UV', 'All': 'All'}
+            'UV': 'Both UV', 'All': 'All'}
 
     return fmt[source]
 
