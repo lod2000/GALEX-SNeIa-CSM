@@ -63,8 +63,8 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
     index = pd.Series(tstart_bins[:-1])
     trials = pd.DataFrame([], index=index)
-    trials['G19'] = (graham_hist + graham_det_hist).T
-    trials['GALEX'] = galex_hist.T
+    trials['G19'] = (graham_hist + graham_det_hist).T.astype(int)
+    trials['GALEX'] = galex_hist.T.astype(int)
     trials['UV'] = trials['GALEX'] + trials['G19']
     trials['ASAS-SN'] = np.array([464] + [0]*(nbins-1)).T
     trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
