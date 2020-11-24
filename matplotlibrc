@@ -32,7 +32,7 @@ ytick.major.pad     : 5
 
 ## Legend
 legend.framealpha   : 1
-legend.fontsize     : 12
+legend.fontsize     : 11
 legend.edgecolor    : 0
 legend.borderpad    : 0.8
 legend.borderaxespad: 1
