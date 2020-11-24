@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import platform
+import argparse
+import matplotlib.pyplot as plt
 
 from astropy.time import Time
 from statsmodels.stats.weightstats import DescrStatsW
@@ -17,10 +19,112 @@ LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
 
-def main(sn_name, band, sigma, count):
-    lc = LightCurve.from_name(sn_name, band)
-    detections = lc.detect_csm(sigma, count=count)
-    print(detections)
+# Default detection limits
+SIGMA = [5, 3] # detection certainty
+SIGMA_COUNT = [1, 3] # Number of points at corresponding sigma to detect
+
+# Plot color palette
+COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
+          'UVW1': '#cb4', 'UVM2': '#283', 'UVW2': '#6ce', # Swift
+          'F275W': '#e67', # Hubble
+          'B': '#6ce', 'V': '#283', "r'": '#e67', "i'": '#888' # CfA
+          }
+
+# Other plot settings
+BG_SPAN_ALPHA = 0.2 # background span transparency
+BG_LINE_ALPHA = 0.7 # background line transparency
+BG_SIGMA = 1 # background uncertainty
+DT_MIN = -30 # Separation between background and SN data (days)
+DET_SIGMA = 3 # detection threshold & nondetection upper limit
+
+
+def main(sn_name, detect=False, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
+        tmax=4000, pad=0, swift=False, cfa=False, legend_col=3):
+
+    sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
+    sn = Supernova(sn_name, sn_info=sn_info)
+
+    if detect:
+        for band in ['FUV', 'NUV']:
+            print('\n%s DETECTIONS' % band)
+            lc = LightCurve.from_name(sn_name, band)
+            detections = lc.detect_csm(sigma, count=count)
+            print(detections)
+
+    if make_plot:
+        print('\nPlotting %s...' % sn.name)
+        plot(sn, tmax=tmax, pad=pad, swift=swift, cfa=cfa, legend_col=legend_col)
+
+
+def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
+    """Plot light curves for both GALEX filters plus external data.
+    Inputs:
+        sn: Supernova object
+        tmax: maximum x-axis value, rest frame days post-discovery
+        pad: float, fractional shift for both axes to avoid legend overlap
+        swift: bool, add Swift data if available
+        cfa: bool, add CfA4 data if available
+        legend_col: number of columns in legend
+    """
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    fig.set_tight_layout(True)
+
+    # Plot Swift data data
+    if swift:
+        lc = import_swift(sn)
+        ax = plot_external(ax, sn, lc, ['UVW1', 'UVM2', 'UVW2'])
+
+    # Plot CfA data
+    if cfa:
+        lc = import_cfa(sn)
+        ax = plot_external(ax, sn, lc, ['B', 'V', "r'", "i'"], marker='s')
+
+    # Import and plot GALEX data
+    ymin = []
+    for band in ['FUV', 'NUV']:
+        try:
+            lc = LightCurve(sn, band)
+            ax = plot_lc(ax, lc, tmax)
+            ymin.append(lc.bg / 1.5)
+        except:
+            # No data for this channel
+            continue
+
+    # Add legend
+    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.5, handlelength=1.2)
+
+    # Adjust and label axes
+    ax.set_xlabel('Rest frame time since discovery [days]')
+    ax.set_yscale('log')
+    ax.set_ylabel('Observed flux [erg s$^{-1}$ Å$^{-1}$ cm$^{-2}$]')
+    ax.set_ylim((np.min(ymin), None))
+
+    # Adjust limits
+    xlim = np.array(ax.get_xlim())
+    xlim[1] += (pad / 5) * (xlim[1] - xlim[0])
+    ax.set_xlim(xlim)
+    ylim = np.array(ax.get_ylim())
+    ylim[1] *= 10**pad
+    ax.set_ylim(ylim)
+
+    # Twin axis with absolute luminosity
+    luminosity_ax = ax.twinx()
+    ylim_flux = np.array(ax.get_ylim())
+    # Assume FUV for extinction; not that big a difference between the two
+    ylim_luminosity = flux2luminosity(ylim_flux, 0, sn.dist, sn.dist_err,
+            sn.z, sn.z_err, sn.a_v, 'FUV')[0].value
+    luminosity_ax.set_yscale('log')
+    luminosity_ax.set_ylim(ylim_luminosity)
+    
+    luminosity_ax.set_ylabel('UV Luminosity [erg s$^{-1}$ Å$^{-1}$]', 
+            rotation=270, labelpad=24)
+
+    plt.savefig(Path('out/%s.pdf' % sn.name), dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 class LightCurve:
@@ -287,6 +391,122 @@ def import_light_curve(lc_file, detrad_cut=0.55, manual_cuts=[]):
     return data
 
 
+################################################################################
+## Plotting
+################################################################################
+
+
+def plot_lc(ax, lc, tmax):
+
+    color = COLORS[lc.band]
+
+    # Data column labels
+    time_col = 't_delta_rest'
+    data_col = 'flux_bgsub'
+    err_col = 'flux_bgsub_err_total'
+
+    # Pre-SN obs.
+    before = lc.data[lc(time_col) <= DT_MIN]
+    pre_obs = len(before.index)
+
+    # Plot background average of epochs before discovery
+    plt.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 
+            linewidth=1, label='%s host (%s obs.)' % (lc.band, pre_obs))
+    # 1-sigma range
+    bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
+    plt.axhspan(ymin=(lc.bg - BG_SIGMA * bg_err), color=color,
+            ymax=(lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA,
+            label='%s host %sσ' %(lc.band, BG_SIGMA))
+
+    # Plot observed fluxes after discovery: detections
+    after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
+    detections = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
+    if len(detections.index) > 0:
+        ax.errorbar(detections[time_col], detections[data_col], 
+                yerr=detections[err_col], linestyle='none', 
+                marker='o', ms=5, elinewidth=1, c=color, 
+                label='%s det.' % lc.band
+        )
+
+    # Plot nondetection limits
+    nondetections = after.drop(lc.detections)
+    if len(nondetections.index > 0):
+        ax.scatter(nondetections[time_col], 
+                nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
+                marker='v', s=25, color=color, 
+                label='%s %sσ limit' % (lc.band, DET_SIGMA))
+
+    return ax
+
+
+def plot_external(ax, sn, lc, bands, marker='D'):
+    """Plot data from Swift or CfA."""
+
+    for band in bands:
+        data = lc[lc['Filter'] == band]
+        ax.errorbar(data['t_delta_rest'], data['flux'], linestyle='none',
+                yerr=data['flux_err'], marker=marker, ms=4, label=band,
+                elinewidth=1, markeredgecolor=COLORS[band], 
+                markerfacecolor='white', ecolor=COLORS[band])
+
+    return ax
+
+
+def import_swift(sn):
+    """Import Swift light curve data."""
+
+    # Read CSV
+    lc = pd.read_csv(Path('ref/%s_uvotB15.1.dat' % sn.name), sep='\s+',
+            names=['Filter', 'MJD', 'Mag', 'MagErr', '3SigMagLim', '0.98SatLim', 
+            'Rate', 'RateErr', 'Ap', 'Frametime', 'Exp', 'Telapse'], comment='#')
+    # Remove limits
+    lc = lc[pd.notna(lc['Mag'])]
+
+    # Add days relative to discovery date
+    lc['t_delta'] = lc['MJD'] - sn.disc_date.mjd
+    # Correct epoch for stretch factor
+    lc['t_delta_rest'] = 1 / (1 + sn.z) * lc['t_delta']
+
+    # Convert CPS to flux
+    flux_factor   = {'V': 2.614e-16, 'B': 1.472e-16, 'U': 1.63e-16, 
+                     'UVW1': 4.3e-16, 'UVM2': 7.5e-16, 'UVW2': 6.0e-16}
+    flux_error    = {'V': 8.7e-19, 'B': 5.7e-19, 'U': 2.5e-18,
+                     'UVW1': 2.1e-17, 'UVM2': 1.1e-16, 'UVW2': 6.4e-17}
+    c = np.vectorize(flux_factor.get)(lc['Filter'])
+    c_err = np.vectorize(flux_error.get)(lc['Filter'])
+    lc['flux'] = lc['Rate'] * c
+    lc['flux_err'] = lc['flux'] * np.sqrt((lc['RateErr']/lc['Rate'])**2+(c_err/c)**2)
+
+    return lc
+
+
+def import_cfa(sn):
+    """Import light curve data from CfA data release."""
+
+    lc = pd.read_csv(Path('ref/CfA4_lc.dat'), sep='\s+',
+            names=['SN', 'Filter', 'MJD', 'Num', 'sigPip', 'sigPhot', 'mag', 
+            'e_mag'], skiprows=30)
+    lc = lc[lc['SN'] == sn.name.replace('SN', '')]
+
+    # Add days relative to discovery date
+    lc['t_delta'] = lc['MJD'] - sn.disc_date.mjd
+    # Correct epoch for stretch factor
+    lc['t_delta_rest'] = 1 / (1 + sn.z) * lc['t_delta']
+
+    # Convert to fluxes
+    # lc['AbsMag'] = lc['mag'] - 5 * np.log10(sn.dist.value) + 5
+    zero_point = {'B': 6.32e-9, 'V': 3.63e-9, "r'": 2.83e-9, "i'": 1.85e-9}
+    lc['flux'] = np.vectorize(zero_point.get)(lc['Filter']) * 10 **(-2/5 * lc['mag'])
+    lc['flux_err'] = lc['flux'] * 2/5 * np.log(10) * lc['e_mag']
+
+    return lc
+
+
+################################################################################
+## Utilities
+################################################################################
+
+
 def fname2sn(fname):
     """Extract SN name and band from a file name."""
 
@@ -413,4 +633,36 @@ def wavelength2freq(flux, wavelength):
 
 
 if __name__=='__main__':
-    main('SN2007on', 'NUV', [5,3], [1,3])
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run CSM detection algorithm' +
+            ' and/or make plots for GALEX SN Ia light curves.')
+    parser.add_argument('sn', type=str, help='supernova name')
+
+    # Detection arguments
+    parser.add_argument('-d', '--detect', action='store_true',
+            help='Run CSM detection algorithm on GALEX light curves')
+    parser.add_argument('--sigma', type=int, nargs='+', default=SIGMA, 
+            help='Detection confidence level (multiple for tiered detections)')
+    parser.add_argument('--sigcount', type=int, nargs='+', default=SIGMA_COUNT,
+            help='Number of points at corresponding sigma to count as detection')
+
+    # Plotting arguments
+    parser.add_argument('-p', '--plot', action='store_true', 
+            help='generate publication-quality light curve plots')
+    parser.add_argument('--pad', type=float, default=0.,
+            help='extra padding for legend at the top-right')
+    parser.add_argument('--tmax', type=float, default=4000,
+            help='maximum number of days after discovery to plot')
+    parser.add_argument('--swift', action='store_true', 
+            help='plot Swift data if available')
+    parser.add_argument('--cfa', action='store_true', 
+            help='plot CfA4 data if available')
+    parser.add_argument('--lcol', type=int, default=3, 
+            help='number of columns in legend')
+
+    args = parser.parse_args()
+
+    main(args.sn, detect=args.detect, make_plot=args.plot, sigma=args.sigma, 
+            count=args.sigcount, tmax=args.tmax, pad=args.pad, swift=args.swift, 
+            cfa=args.cfa, legend_col=args.lcol)
