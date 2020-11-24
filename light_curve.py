@@ -47,9 +47,12 @@ def main(sn_name, detect=False, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
     if detect:
         for band in ['FUV', 'NUV']:
             print('\n%s DETECTIONS' % band)
-            lc = LightCurve.from_name(sn_name, band)
-            detections = lc.detect_csm(sigma, count=count)
-            print(detections)
+            try:
+                lc = LightCurve.from_name(sn_name, band)
+                detections = lc.detect_csm(sigma, count=count)
+                print(detections)
+            except:
+                print('No data available.')
 
     if make_plot:
         print('\nPlotting %s...' % sn.name)
