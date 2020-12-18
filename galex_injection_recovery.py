@@ -110,7 +110,7 @@ def run_trials(sn, lcs, iterations, tstart_lims, scale_lims, save=True,
             recovery_df.append(recovery)
 
     recovery_df = pd.DataFrame(recovery_df, 
-            columns=['tstart', 'scale', 'recovered_times', 'all_times'])
+            columns=['tstart', 'scale', 'recovered'])
 
     # Save CSV
     if save:
@@ -220,33 +220,37 @@ class Injection:
                     data_col=self.data_col, err_col=self.err_col)
 
         # Run detections on injected data
-        recovered = self.lc.detect_csm(sigma, count=count, dt_min=dt_min, 
+        recovery = self.lc.detect_csm(sigma, count=count, dt_min=dt_min, 
                 data_col='%s_injected' % self.data_col, err_col=self.err_col)
 
         # Remove points that would have been detected either way
-        self.recovered = recovered.drop(detections.index)
-        self.recovered_times = self.recovered[self.time_col].to_list()
+        self.recovery = recovery.drop(detections.index)
+        self.recovered = len(recovery.index) > 0
+        # self.recovered_times = self.recovered[self.time_col].to_list()
 
         # List of all times greater than dt_min
-        self.all_times = self.time[self.time > dt_min].to_list()
+        # self.all_times = self.time[self.time > dt_min].to_list()
 
         # Plot
         if plot:
-            self.plot(recovered=self.recovered, detections=detections)
+            self.plot(recovery=self.recovery, detections=detections)
 
         return self.recovered
 
 
-    def plot(self, recovered=[], detections=[]):
+    def plot(self, recovery=[], detections=[]):
         """Basic plot of original vs injected data."""
 
-        plt.errorbar(self.time, self.data, yerr=self.err, label='Original', 
+        data = self.lc.data[self.data_col].copy()
+        err = self.lc.data[self.err_col].copy()
+
+        plt.errorbar(self.time, data, yerr=err, label='Original', 
                 linestyle='none', marker='o')
-        plt.errorbar(self.time, self.injection, yerr=self.err, label='Injected',
+        plt.errorbar(self.time, self.injection, yerr=err, label='Injected',
                 linestyle='none', marker='o')
-        plt.scatter(self.time[recovered], self.injection[recovered], 
+        plt.scatter(self.time[recovery.index], self.injection[recovery.index], 
                 label='Newly recovered', marker='x', s=25, c='r', zorder=10)
-        plt.scatter(self.time[detections], self.data[detections], 
+        plt.scatter(self.time[detections.index], data[detections.index], 
                 label='Original detection', marker='D', s=9, c='g', zorder=5)
         plt.xlim((0, None))
         plt.xlabel('Time since discovery [rest frame days]')
