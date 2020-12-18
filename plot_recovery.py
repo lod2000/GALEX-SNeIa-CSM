@@ -17,14 +17,10 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
         show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, plot_rates=False):
-
-    # Scale to UV luminosity of SN 2015cp
-    reduced_scale = SN2015cp_scale(model)
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins) 
-    y_edges /= reduced_scale
+    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
@@ -38,8 +34,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Generate summed histogram
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
-        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file,
-                reduced_scale=reduced_scale)
+        hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
@@ -83,7 +78,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
-    ax.set_ylabel('Relative scale factor')
+    ax.set_ylabel('Scale factor')
 
     # Color bar
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
@@ -139,7 +134,7 @@ def get_hist(fname, x_edges, y_edges, **kwargs):
 
 
 class RecoveryData:
-    def __init__(self, fname, reduced_scale=1):
+    def __init__(self, fname):
         """Import recovery save data.
         Input:
             fname: path to CSV
@@ -149,8 +144,8 @@ class RecoveryData:
         # Import save file; convert columns from strings to lists
         data = pd.read_csv(fname)
 
-        self.recovered_scales = data[data['recovered']]['scale'].to_numpy() / reduced_scale
-        self.all_scales = data['scale'].to_numpy() / reduced_scale
+        self.recovered_scales = data[data['recovered']]['scale'].to_numpy()
+        self.all_scales = data['scale'].to_numpy()
         self.recovered_tstarts = data[data['recovered']]['tstart'].to_numpy()
         self.all_tstarts = data['tstart'].to_numpy()
 
