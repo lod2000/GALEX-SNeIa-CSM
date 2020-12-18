@@ -10,7 +10,7 @@ W1 = 3000. #model wavelength end
 DW = 0.1 #model wavelength step
 
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
-HST_AREA = (1.2e2)**2. * np.pi # cm2\
+HST_AREA = (1.2e2)**2. * np.pi # cm2
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
@@ -144,37 +144,32 @@ class CSMmodel:
 			plt.legend()
 			plt.show()
 
-		fluxes = {
-			'FUV':compute_fuv(wl_obs, init_spec)*tscale,
-			'NUV':compute_nuv(wl_obs, init_spec)*tscale,
-			'F275W': compute_f275w(wl_obs, init_spec)*tscale
-		}
+		filters = ['FUV', 'NUV', 'F275W']
+		fluxes = dict([(f, filter_flux(f, wl_obs, init_spec)*tscale) for f in filters])
 
 		return fluxes
 
 
-def compute_nuv(wl, flux):
-	# read resp table
-	det_wl, det_fl = np.genfromtxt(Path('ref/NUV.resp'), unpack=True, dtype=float)
-	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
+def filter_flux(band, wl, flux):
+	"""Scale fluxes at given wavelengths by filter response.
+	Inputs:
+		band: 'FUV', 'NUV', or 'F275W'
+		wl: array, wavelength
+		flux: array, flux (same length as wl)
+	Output:
+		filter_flux: array, scaled flux at given wavelength
+	"""
+
+	# Import filter response curve
+	det_wl, det_fl = np.genfromtxt(Path('ref/%s.resp' % band), unpack=True, 
+			dtype=float)
+	# Interpolate curve of filter throughput
+	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, 
+			fill_value=0.)
+	# Compute flux observed by filter
 	obs_fl = filt(wl) * flux # erg/s/A^2
-	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl)) # normalize by filter response -> erg/s/A
-	return filter_flux
-
-def compute_fuv(wl, flux):
-	#read resp table
-	det_wl, det_fl = np.genfromtxt(Path('ref/FUV.resp'), unpack=True, dtype=float)
-	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
-	obs_fl = filt(wl) * flux
-	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl))
-	return filter_flux
-
-def compute_f275w(wl, flux):
-	#read resp table, already in throughput so no need to scale
-	det_wl, det_fl = np.genfromtxt(Path('ref/F275W.resp'), unpack=True, dtype=float)
-	filt = interp1d(det_wl, det_fl, kind='slinear', bounds_error=False, fill_value=0.)
-	obs_fl = filt(wl) * flux
-	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl))
+	# Integrate total observed flux and normalize by filter response
+	filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl)) # erg/s/A
 	return filter_flux
 
 
