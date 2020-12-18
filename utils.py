@@ -8,7 +8,7 @@ from CSMmodel import CSMmodel
 # Default values
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 TSTART_MIN = 0
-TSTART_MAX = 1000
+TSTART_MAX = 2500
 SCALE_MIN = 1
 SCALE_MAX = 1000
 DECAY_RATE = 0.3 # CSM curve decay factor
