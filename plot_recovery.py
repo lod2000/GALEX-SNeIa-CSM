@@ -148,7 +148,6 @@ class RecoveryData:
         self.fname = fname
         # Import save file; convert columns from strings to lists
         data = pd.read_csv(fname)
-        data['recovered'] = data['recovered_times'].str.len() > 2
 
         self.recovered_scales = data[data['recovered']]['scale'].to_numpy() / reduced_scale
         self.all_scales = data['scale'].to_numpy() / reduced_scale

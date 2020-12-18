@@ -1,4 +1,4 @@
-from galex_injection_recovery import run_trials
+from injection_recovery import run_trials
 from supernova import Supernova
 from light_curve import LightCurve
 import numpy as np
