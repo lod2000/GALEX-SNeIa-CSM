@@ -12,6 +12,12 @@ DW = 0.1 #model wavelength step
 GALEX_EFF_AREA = np.pi*25.0**2. # cm2
 HST_AREA = (1.2e2)**2. * np.pi # cm2
 
+# Luminosity of SN 2015cp CSM interaction (Graham+ 2019)
+# Used as baseline, scale = 1
+F275W_LAMBDA_EFF = 2714.65
+L_2015cp = 7.6e25 # erg/s/Hz
+L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # erg/s/A
+
 T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
@@ -279,7 +285,7 @@ class LineModel:
 class FlatModel:
 	def __init__(self, scale=1.):
 		"""CSM model based on a flat spectrum."""
-		self.model_data = 1e36 * scale # erg/s/A
+		self.model_data = L_2015cp_cgs * scale # erg/s/A
 
 	def gen_model(self, t):
 		wl = np.arange(W0, W1, DW)
