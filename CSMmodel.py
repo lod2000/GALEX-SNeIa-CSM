@@ -17,6 +17,8 @@ HST_AREA = (1.2e2)**2. * np.pi # cm2
 F275W_LAMBDA_EFF = 2714.65
 L_2015cp = 7.6e25 # erg/s/Hz
 L_2015cp_cgs = L_2015cp * (3e18) / (F275W_LAMBDA_EFF**2) # erg/s/A
+Z_2015cp = 0.0413
+CHEV94_2015cp_SCALE = 52.035
 
 T0 = 0. #model time start
 T1 = 3000. #model time end
@@ -37,12 +39,12 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', plot_spectrum=False)
 	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model=model)
 	
 	test = np.arange(250., 2500., 20)
-	for z,m in zip([0.041, 0.25], ['.', 's']):
+	for z,m in zip([Z_2015cp, 0.25], ['.', 's']):
 		f = model1(test, z)
 		for name, fls in f.items():
 			plt.plot(test, fls, label=name+' - z=%.2f' % z, color=COLORS[name], marker=m)
 
-	plt.ylim(1e31, 1e37)
+	plt.ylim(1e32, 1e38)
 	plt.yscale('log')
 	plt.xlim(250, 1500)
 	plt.legend()
@@ -199,6 +201,7 @@ class Chev94Model:
 				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
 			linelum = np.array([float(fl) for fl in [fl1,fl2,fl5,fl10,fl17,fl30]])*coeffs
+			linelum *= CHEV94_2015cp_SCALE # scale so L(2015cp) = 1
 			model = LineModel(float(wl), self.times, linelum)
 			self.model_data[name] = model
 			self.line_wl[name] = wl
