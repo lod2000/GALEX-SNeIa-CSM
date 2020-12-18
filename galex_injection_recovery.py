@@ -224,8 +224,8 @@ class Injection:
                 data_col='%s_injected' % self.data_col, err_col=self.err_col)
 
         # Remove points that would have been detected either way
-        self.recovery = recovery.drop(detections.index)
-        self.recovered = len(recovery.index) > 0
+        recovery = recovery.drop(detections.index)
+        recovered = len(recovery.index) > 0
         # self.recovered_times = self.recovered[self.time_col].to_list()
 
         # List of all times greater than dt_min
@@ -233,9 +233,9 @@ class Injection:
 
         # Plot
         if plot:
-            self.plot(recovery=self.recovery, detections=detections)
+            self.plot(recovery=recovery, detections=detections)
 
-        return self.recovered
+        return recovered
 
 
     def plot(self, recovery=[], detections=[]):
