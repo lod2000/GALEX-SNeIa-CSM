@@ -132,26 +132,21 @@ def inject_recover(params, sn, lcs, sigma=SIGMA, count=SIGMA_COUNT, **kwargs):
         count: list, number of points at or above associated sigma to count
                 as a detection (same length as sigma)
     Output:
-        list with injection parameters, recovered times, and all times
+        list with injection parameters and recovery bool
     """
 
     # Unpack parameters
     tstart, scale = params
 
     # Inject all light curves
-    recovered_times = []
-    all_times = []
     for lc in lcs:
         inj = Injection(sn, lc, tstart, scale, **kwargs)
-        inj.recover(sigma, count=count)
-        recovered_times += inj.recovered_times
-        all_times += inj.all_times
+        recovered = inj.recover(sigma, count=count)
+        # If either band is recovered, SN is considered recovered overall
+        if recovered:
+            break
 
-    # Remove duplicates
-    recovered_times = sorted(list(dict.fromkeys(recovered_times)))
-    all_times = sorted(list(dict.fromkeys(all_times)))
-
-    return [tstart, scale, recovered_times, all_times]
+    return [tstart, scale, recovered]
 
 
 class Injection:
@@ -207,7 +202,7 @@ class Injection:
             detections: indices which were detected without injection; pass for
                     faster calcs
         Outputs:
-            recovered: indices of data recovered by detection algorithm
+            recovered: bool, whether injected light curve was recovered
         """
 
         # Convert count to list
@@ -226,10 +221,6 @@ class Injection:
         # Remove points that would have been detected either way
         recovery = recovery.drop(detections.index)
         recovered = len(recovery.index) > 0
-        # self.recovered_times = self.recovered[self.time_col].to_list()
-
-        # List of all times greater than dt_min
-        # self.all_times = self.time[self.time > dt_min].to_list()
 
         # Plot
         if plot:
@@ -252,6 +243,7 @@ class Injection:
                 label='Newly recovered', marker='x', s=25, c='r', zorder=10)
         plt.scatter(self.time[detections.index], data[detections.index], 
                 label='Original detection', marker='D', s=9, c='g', zorder=5)
+
         plt.xlim((0, None))
         plt.xlabel('Time since discovery [rest frame days]')
         plt.ylabel('Luminosity [erg s$^{-1}$ Å$^{-1}$]')
