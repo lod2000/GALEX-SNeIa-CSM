@@ -16,7 +16,8 @@ WIDTH = 250 # days, from PTF11kx
 ITERATIONS = 10000 # injection-recovery iterations per SN
 
 # Default directories
-SAVE_DIR = Path('save')
+SAVE_DIR = Path('/mnt/d/injection_recovery_runs')
+# SAVE_DIR = Path('save')
 DATA_DIR = Path('data')
 OUTPUT_DIR = Path('out')
 

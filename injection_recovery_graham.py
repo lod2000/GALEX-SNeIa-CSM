@@ -106,7 +106,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
             recovery_df.append(recovery)
 
     recovery_df = pd.DataFrame(recovery_df, 
-            columns=['tstart', 'scale', 'recovered_times', 'all_times'])
+            columns=['tstart', 'scale', 'recovered'])
 
     # Save CSV
     if save:
@@ -129,10 +129,8 @@ def inject_recover(params, nondetection, **kwargs):
     tstart, scale = params
     # Inject & recover
     recovered = nondetection.inject_recover(tstart, scale, **kwargs)
-    recovered_times = [nondetection.rest_phase] if recovered else []
-    all_times = [nondetection.rest_phase]
 
-    return [tstart, scale, recovered_times, all_times]
+    return [tstart, scale, recovered]
 
 
 class Nondetection:
@@ -155,10 +153,14 @@ class Nondetection:
     def inject_recover(self, tstart, scale, twidth=WIDTH, decay_rate=DECAY_RATE, 
             model='Chev94'):
         """
+        Inject CSM model light curve and recover detection
+        Inputs:
             tstart: CSM model start time, int
             scale: model scale factor, float
             twidth: model width, int
             decay_rate: model decay rate, float
+        Output:
+            recovered: bool
         """
 
         # Inject model
