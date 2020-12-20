@@ -37,7 +37,9 @@ def fname2sn(fname):
     """Extract SN name and band from a file name."""
 
     fname = Path(fname)
-    split = fname.stem.split('-')
+    # Remove extension(s)
+    suffixes = ''.join(fname.suffixes)
+    split = fname.name.replace(suffixes, '').split('-')
     sn_name = '-'.join(split[:-1])
     band = split[-1]
     # Windows replaces : with _ in some file names
