@@ -21,7 +21,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from supernova import Supernova
 from utils import *
 
 OUTPUT_FILE = Path('out/observations.csv')
@@ -67,8 +66,11 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
     plot(observations)
 
     # Select only those with before+after observations
+    print('\nSelecting SNe with before+after observations...')
     pre_post_obs = get_pre_post_obs(observations)
     pre_post_obs.to_csv('out/sample_obs.csv', index=False)
+    pre_post_sne = pre_post_obs['sn_name'].drop_duplicates()
+    print('Number of SNe with before+after obs: %s' % len(pre_post_sne))
 
     # final_sample = get_pre_post_obs(fits_info) 
     # output_csv(final_sample, 'ref/sample_fits_info.csv')

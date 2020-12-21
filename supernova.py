@@ -15,9 +15,17 @@ def main():
     osc = pd.read_csv(OSC_FILE, index_col='Name')
 
     # Remove SNe with disputed classifications
-    types = osc['Type']
-    type_cuts = '(\?|\/|Ib|Ic|II)'
-    osc_reduced = osc[~types.str.contains(type_cuts, regex=True)]
+    # types = osc['Type']
+    # type_cuts = '(\?|\/|Ib|Ic|II)'
+    # osc_reduced = osc[~types.str.contains(type_cuts, regex=True)]
+    # print(osc_reduced)
+
+    # Import GALEX observations with before+after epochs
+    sample_obs = pd.read_csv(Path('out/sample_obs.csv'))
+    sample_sne = sample_obs['sn_name'].drop_duplicates().to_list()
+    print(sample_sne[:10])
+    sample = osc.loc[sample_sne]
+    print(sample)
 
 
 class Supernova:
