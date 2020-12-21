@@ -6,6 +6,19 @@ from astropy.time import Time
 import astropy.units as u
 from utils import *
 
+TYPE_CATALOG_FILE = Path('ref/full_type_catalog.csv')
+
+
+def main():
+    """Import supernovae from OSC, then cut by redshift & classification."""
+
+    osc = pd.read_csv(OSC_FILE, index_col='Name')
+
+    # Remove SNe with disputed classifications
+    types = osc['Type']
+    type_cuts = '(\?|\/|Ib|Ic|II)'
+    osc_reduced = osc[~types.str.contains(type_cuts, regex=True)]
+
 
 class Supernova:
     def __init__(self, name, sn_info=[], ref_file='ref/sn_info.csv'):
@@ -47,3 +60,7 @@ class Supernova:
         """Return filename based on SN name and band."""
 
         return sn2fname(self.name, band, **kwargs)
+
+
+if __name__ == '__main__':
+    main()

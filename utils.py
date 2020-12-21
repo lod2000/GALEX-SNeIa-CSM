@@ -21,6 +21,9 @@ SAVE_DIR = Path('/mnt/d/injection_recovery_runs')
 DATA_DIR = Path('data')
 OUTPUT_DIR = Path('out')
 
+# Reference files
+OSC_FILE = Path('ref/osc.csv')
+
 # Plot color palette
 COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
           'UVW1': '#cb4', 'UVM2': '#283', 'UVW2': '#6ce', # Swift
@@ -44,8 +47,8 @@ def fname2sn(fname):
     band = split[-1]
     # Windows replaces : with _ in some file names
     if 'CSS' in sn_name or 'MLS' in sn_name:
-        sn_name.replace('_', ':', 1)
-    sn_name.replace('_', ' ')
+        sn_name = sn_name.replace('_', ':', 1)
+    sn_name = sn_name.replace('_', ' ')
     return sn_name, band
 
 

@@ -9,9 +9,9 @@ from tqdm import tqdm
 import warnings
 import platform
 
-from multiprocessing import Pool
-from itertools import repeat
-from functools import partial
+# from multiprocessing import Pool
+# from itertools import repeat
+# from functools import partial
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -25,7 +25,6 @@ from supernova import Supernova
 from utils import *
 
 OUTPUT_FILE = Path('out/observations.csv')
-OSC_FILE = Path('ref/osc.csv')
 DATA_DIR = Path('/mnt/d/GALEXdata_v10/fits/')
 # SN_INFO_FILE = Path('ref/sn_info.csv')
 # STATS_FILE = Path('out/quick_stats.txt')
@@ -69,7 +68,7 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
 
     # Select only those with before+after observations
     pre_post_obs = get_pre_post_obs(observations)
-    pre_post_obs.to_csv('out/sample_obs.csv')
+    pre_post_obs.to_csv('out/sample_obs.csv', index=False)
 
     # final_sample = get_pre_post_obs(fits_info) 
     # output_csv(final_sample, 'ref/sample_fits_info.csv')
