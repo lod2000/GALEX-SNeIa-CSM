@@ -24,11 +24,11 @@ import numpy as np
 from supernova import Supernova
 from utils import *
 
-FITS_INFO_FILE = Path('fits_info.csv')
-# SN_INFO_FILE = Path('ref/sn_info.csv')
-# STATS_FILE = Path('out/quick_stats.txt')
+OUTPUT_FILE = Path('out/observations.csv')
 OSC_FILE = Path('ref/osc.csv')
 DATA_DIR = Path('/mnt/d/GALEXdata_v10/fits/')
+# SN_INFO_FILE = Path('ref/sn_info.csv')
+# STATS_FILE = Path('out/quick_stats.txt')
 
 
 def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
@@ -38,25 +38,39 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
 
     # Read Open Supernova Catalog
     osc = pd.read_csv(osc_file, index_col='Name')
+    print('Number of SNe from OSC: %s' % len(osc.index))
 
-    obs = GalexObservation.from_sn_name('SN2007on', 'NUV')
-    obs_df = obs.get_DataFrame()
-    print(obs_df)
+    # Generate new list of FITS files
+    observations = []
+    if args.overwrite or not OUTPUT_FILE.is_file():
+        # Get all FITS file paths
+        fits_files = get_fits_files(data_dir, limit_to=osc.index)
 
-    # Generate new FITS list
-    # if args.overwrite or not FITS_INFO_FILE.is_file():
-    #     # Get all FITS file paths
-    #     fits_files = get_fits_files(data_dir, limit_to=osc.index)
-    #     # Get discovery dates
-    #     disc_dates = get_disc_dates(fits_files, osc)
-    #     # Import all FITS files
-    #     fits_info = compile_fits_info(fits_files, disc_dates)
-    #     fits_info.to_csv(FITS_INFO_FILE, index=False)
-    #     # output_csv(fits_info, FITS_INFO_FILE, index=False)
-    # else:
-    #     fits_info = pd.read_csv(FITS_INFO_FILE)
+        # Import FITS info and discovery dates
+        print('\nImporting GALEX observations...')
+        for f in tqdm(fits_files):
+            obs = GalexObservation(f)
+            disc_date = osc.loc[obs.sn_name, 'Disc. Date']
+            obs_df = obs.get_DataFrame(disc_date=disc_date, date_fmt='iso')
+            observations.append(obs_df)
+
+        # Concatenate and output CSV
+        observations = pd.concat(observations, ignore_index=True)
+        observations.to_csv(OUTPUT_FILE, index=False)
+    else:
+        print('\nFound %s' % OUTPUT_FILE)
+        observations = pd.read_csv(OUTPUT_FILE)
+
+    galex_sne = observations['sn_name'].drop_duplicates()
+    print('Number of SNe observed by GALEX: %s' % len(galex_sne))
+
+    # Plot histograms of observation epochs
+    plot(observations)
 
     # Select only those with before+after observations
+    pre_post_obs = get_pre_post_obs(observations)
+    pre_post_obs.to_csv('out/sample_obs.csv')
+
     # final_sample = get_pre_post_obs(fits_info) 
     # output_csv(final_sample, 'ref/sample_fits_info.csv')
 
@@ -69,6 +83,82 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
 
     # # Write a few statistics about FITS files
     # write_quick_stats(fits_info, final_sample, sn_info, osc, STATS_FILE)
+
+
+def get_fits_files(data_dir, limit_to=[]):
+    """
+    Return list of FITS files in given data directory; limits to SNe listed in
+    OSC reference table, if given
+    Inputs:
+        data_dir (Path or str): parent directory for FITS files
+        limit_to (list of str): list of SNe, e.g. OSC, to limit the selection
+    Output:
+        fits_list (list): list of full FITS file paths
+    """
+    
+    fits_list = [f for f in data_dir.glob('**/*.fits.gz')]
+    # Limit to only SNe included in OSC
+    if len(limit_to) > 0:
+        fits_list = [f for f in fits_list if fname2sn(f)[0] in limit_to]
+    return fits_list
+
+
+def get_pre_post_obs(observations):
+    """Limit sample to targets with observations before+after discovery."""
+
+    pre = observations['epochs_pre_disc']
+    post = observations['epochs_post_disc']
+    pre_post_obs = observations[(pre > 0) & (post > 0)]
+    return pre_post_obs
+
+
+def plot(observations, show=False):
+    """Plot histogram of the number of SNe with a given number of observations.
+    Inputs:
+        observations (DataFrame): all targets with GALEX observations
+    """
+
+    print('\nPlotting histogram of observation frequency...')
+    bands = ['FUV', 'NUV']
+
+    fig, axes = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(8,6.5),
+            gridspec_kw={'hspace': 0.05})
+
+    for ax, band in zip(axes, bands):
+        df = observations[observations['band'] == band]
+        all_epochs = df['total_epochs']
+        pre_post_epochs = get_pre_post_obs(df)['total_epochs']
+
+        bins = np.logspace(0, np.log10(np.max(all_epochs)), 11)
+        color = COLORS[band]
+
+        ax.hist(all_epochs, bins=bins, histtype='step', align='mid', lw=2, 
+                color=color, label='all SNe (%s)' % all_epochs.shape[0])
+        ax.hist(pre_post_epochs, bins=bins, histtype='bar', align='mid',
+                label='before+after (%s)' % pre_post_epochs.shape[0], 
+                rwidth=0.95, color=color)
+
+        ax.set_title(band, x=0.08, y=0.8)
+        ax.set_xscale('log')
+        ax.xaxis.set_major_formatter(tkr.ScalarFormatter())
+
+        ax.legend()
+        ax.label_outer()
+
+    # Outside axis labels only
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, 
+            right=False, which='both')
+    plt.xlabel('Total number of epochs', labelpad=12)
+    plt.ylabel('Number of SNe', labelpad=18)
+
+    plt.savefig(Path('out/observations.pdf'), bbox_inches='tight', dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+    print('Done!')
 
 
 # def get_post_obs(fits_info):
@@ -153,115 +243,6 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
 #         f.write('\tnumber of final SNe with NUV observations: %s\n' % len(nuv))
 
 
-# def plot_observations(fits_info, final_sample):
-#     """
-#     Plots histogram of the number of SNe with a given number of observations
-#     Inputs:
-#         fits_info (DataFrame): output from compile_fits
-#     """
-
-#     print('\nPlotting histogram of observation frequency...')
-#     bands = ['FUV', 'NUV']
-
-#     fig, axes = plt.subplots(2,1, sharex=True, sharey=True,
-#             gridspec_kw={'hspace': 0.05}, figsize=(8,6.5))
-
-#     for ax, band in zip(axes, bands):
-#         df = fits_info[fits_info['Band'] == band]
-#         epochs = df['Total Epochs']
-#         both = get_pre_post_obs(df)['Total Epochs']
-
-#         bins = np.logspace(0, np.log10(np.max(epochs)), 11)
-#         color = COLORS[band]
-#         ax.hist(epochs, bins=bins, histtype='step', align='mid', color=color,
-#                 label='all SNe (%s)' % epochs.shape[0], lw=2)
-#         ax.hist(both, bins=bins, histtype='bar', align='mid', color=color,
-#                 label='before+after (%s)' % both.shape[0], rwidth=0.95)
-
-#         ax.set_title(band, x=0.08, y=0.8)
-#         ax.set_xscale('log')
-#         ax.xaxis.set_major_formatter(tkr.ScalarFormatter())
-#         ax.legend()
-#         ax.label_outer()
-
-#     # Outside axis labels only
-#     fig.add_subplot(111, frameon=False)
-#     plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, 
-#             right=False, which='both')
-#     plt.xlabel('Total number of epochs', labelpad=12)
-#     plt.ylabel('Number of SNe', labelpad=18)
-#     plt.savefig(Path('figs/observations.png'), bbox_inches='tight', dpi=300)
-#     plt.close()
-
-
-def get_fits_files(fits_dir, limit_to=[]):
-    """
-    Returns list of FITS files in given data directory; limits to SNe listed in
-    OSC reference table, if given
-    Inputs:
-        fits_dir (Path or str): parent directory for FITS files
-        limit_to (list of str): list of SNe, e.g. from OSC, to limit the selection
-    Output:
-        fits_list (list): list of full FITS file paths
-    """
-    
-    fits_dir = Path(fits_dir) 
-    fits_list = [f for f in fits_dir.glob('**/*.fits.gz')]
-    if len(limit_to) > 0:
-        fits_list = [f for f in fits_list if fname2sn(f)[0] in limit_to]
-    return fits_list
-
-
-def get_disc_dates(fits_files, osc):
-    """Extract SN discovery dates corresponding to FITS files from OSC sheet."""
-
-    disc_dates = [osc.loc[fname2sn(f)[0], 'Disc. Date'] for f in fits_files]
-    return disc_dates
-
-
-def compile_fits_info(fits_files, disc_dates):
-    """Import all FITS files and compile info in single DataFrame.
-    Inputs:
-        fits_files (list of strings): list of FITS file names
-        disc_dates (list): list of SN discovery dates, same length as fits_files
-    Outputs:
-        fits_info (DataFrame): table of info about all FITS files in fits_dir
-    """
-
-    print('\nCompiling FITS info...')
-
-    params = list(zip(fits_files, disc_dates))
-    fits_info = []
-    with Pool() as pool:
-        for i in tqdm(pool.imap(import_fits, params, chunksize=10), total=len(fits_files)):
-            fits_info.append(i)
-        # fits_info = tqdm(pool.imap(import_fits, params, 
-        #         chunksize=10), total=len(fits_files))
-
-    # Remove empty entries
-    # stats = list(filter(None, stats))
-
-    fits_info = pd.concat(list(fits_info))
-
-    return fits_info
-
-
-def import_fits(params):
-    """Import FITS file.
-    Inputs:
-        fits_file (Path): full path of GALEX FITS file to import
-        disc_date (str or Time): date of SN discovery
-        date_fmt (str): date format of disc_date
-    Outputs:
-        single-row DataFrame of FITS file info
-    """
-
-    fits_file, disc_date = params
-    f = Fits(fits_file)
-    fits_df = f.get_DataFrame(disc_date=disc_date)
-    return fits_df
-
-
 class GalexObservation:
     def __init__(self, path):
         """Import FITS data and header info."""
@@ -320,13 +301,13 @@ class GalexObservation:
 
         # Info related to discovery date
         if disc_date != None:
-            self.compare_discovery(disc_date, date_fmt)
-            info['disc_date'] = self.disc_date.iso
+            self.compare_discovery(disc_date, date_fmt=date_fmt)
+            info['disc_date'] = self.disc_date.iso.split(' ')[0]
             info['epochs_pre_disc'] = self.count_pre_disc
             info['epochs_post_disc'] = self.count_post_disc
-            info['t_delta_first'] = np.min(self.t_delta)
-            info['t_delta_last'] = np.max(self.t_delta)
-            info['t_delta_next'] = self.min_post_disc
+            info['t_delta_first'] = np.round(np.min(self.t_delta))
+            info['t_delta_last'] = np.round(np.max(self.t_delta))
+            info['t_delta_next'] = np.round(self.min_post_disc)
 
         df = pd.DataFrame(info, index=[0])
         return df
@@ -339,7 +320,7 @@ class GalexObservation:
         if type(disc_date) == Time:
             self.disc_date = disc_date
         else:
-            self.disc_date = Time(disc_date, date_fmt=date_fmt)
+            self.disc_date = Time(disc_date, format=date_fmt)
 
         # Observation t_mean - disc_date
         self.t_delta = self.t_mean.mjd - self.disc_date.mjd
