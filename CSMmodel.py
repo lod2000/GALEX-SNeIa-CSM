@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
+from utils import *
 
 W0 = 1000. #model wwavelength start
 W1 = 3000. #model wavelength end
@@ -24,62 +25,35 @@ T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
 
-# Plot color palette
-COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
-          'F275W': '#e67' # Hubble
-          }
 
-def main(tstart, twidth, decay_rate, scale, model='Chev94', plot_spectrum=False):
+def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
-	# Plot Chev94 spectrum
-	if plot_spectrum:
-		chev_model = Chev94Model()
-		chev_model.plot(0, save=True, show=True)
+	# Plot Chev94 spectrum at original scale
+	chev_model = Chev94Model(scale=scale/CHEV94_2015cp_SCALE)
+	chev_model.plot(0, save=True, show=show)
 
-	model1 = CSMmodel(tstart = tstart, twidth=twidth, decay_rate=decay_rate, scale=scale, model=model)
+	# Plot Chev94 model vs redshift
+	csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
+	csm_model.plot_redshift(save=True, show=show)
 	
-	test = np.arange(250., 2500., 20)
-	for z,m in zip([Z_2015cp, 0.25], ['.', 's']):
-		f = model1(test, z)
-		for name, fls in f.items():
-			plt.plot(test, fls, label=name+' - z=%.2f' % z, color=COLORS[name], marker=m)
+	# test = np.arange(250., 2500., 20)
+	# for z,m in zip([Z_2015cp, 0.25], ['.', 's']):
+	# 	f = model1(test, z)
+	# 	for band, fls in f.items():
+	# 		plt.plot(test, fls, label=band+' - z=%.2f' % z, color=COLORS[band], marker=m)
 
-	plt.ylim(1e32, 1e38)
-	plt.yscale('log')
-	plt.xlim(250, 1500)
-	plt.legend()
-	plt.xlabel('time since max')
-	plt.ylabel('Filter Luminoisity [erg/s/A]')
-	plt.show()
-
-	zvals = np.arange(0.01, 0.5, 0.01)
-	vals = {
-		'FUV':[],
-		'NUV':[],
-		'F275W':[]
-	}
-
-	for z in zvals:
-		f = model1(400., z)
-		for name, fl in f.items(): vals[name].append(fl)
-
-	for name in ['F275W', 'NUV', 'FUV']:
-		plt.plot(zvals, vals[name], color=COLORS[name], ls=':', marker='.', label=name)
-
-
-	# plt.ylim(1e34, 5e36)
-	plt.yscale('log')
-	plt.legend()
-
-	plt.xlabel('Redshift')
-	plt.ylabel('Filter Luminosity')
-
-	plt.show()
+	# plt.ylim(1e32, 1e38)
+	# plt.yscale('log')
+	# plt.xlim(250, 1500)
+	# plt.legend()
+	# plt.xlabel('time since max')
+	# plt.ylabel('Filter Luminoisity [erg/s/A]')
+	# plt.show()
 
 
 
 class CSMmodel:
-	def __init__(self, tstart, twidth, decay_rate, scale=0.5, vwidth=2000,
+	def __init__(self, tstart, twidth, decay_rate, scale=1, vwidth=2000,
 			model='Chev94'):
 		"""
 		Initializes a CSM model with input variables:
@@ -98,9 +72,13 @@ class CSMmodel:
 
 		Methods (see indvidual methods for more info):
 			___call___: generates a model CSM profile at input redshift and time and compute the resulting filter luminosity
-
-
 		"""
+
+		# Parameters
+		self.tstart = tstart
+		self.twidth = twidth
+		self.decay_rate = decay_rate
+		self.scale = scale
 
 		self.wlarr = np.arange(W0, W1, DW)
 
@@ -120,7 +98,7 @@ class CSMmodel:
 
 
 
-	def __call__(self, t, z, plot_spec = False):
+	def __call__(self, t, z, plot_spec=False):
 		"""
 		Computes the filter luminosity for the CSMmodel at a given epoch and redshift
 		Arguments:
@@ -156,6 +134,40 @@ class CSMmodel:
 		fluxes = dict([(f, filter_flux(f, wl_obs, init_spec)*tscale) for f in filters])
 
 		return fluxes
+
+
+	def plot_redshift(self, show=False, save=True, fname='out/Chev94_redshift.pdf',
+			zmin=0., zmax=0.5, tstep=0.):
+		"""Plot filter luminosity vs redshift."""
+
+		# Set up range of redshifts
+		z_vals = np.arange(0., 0.5, 0.01)
+		luminosity = {
+			'FUV':[],
+			'NUV':[],
+			'F275W':[]
+		}
+		line_style = {'F275W': ':', 'NUV': '--', 'FUV': '-'}
+
+		for z in z_vals:
+			f = self(self.tstart + tstep, z)
+			for band, fl in f.items(): luminosity[band].append(fl)
+
+		for band in ['F275W', 'NUV', 'FUV']:
+			plt.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
+					lw=2, ls=line_style[band])
+
+		plt.yscale('log')
+		plt.legend()
+
+		plt.xlabel('Redshift')
+		plt.ylabel('Filter Luminosity [erg/s/Å]')
+		plt.tight_layout(True)
+		plt.savefig(Path('out/Chev94_redshift.pdf'))
+		if show:
+			plt.show()
+		else:
+			plt.close()
 
 
 def filter_flux(band, wl, flux):
@@ -196,7 +208,6 @@ class Chev94Model:
 		self.model_data = {}
 		self.line_wl = {}
 		for (name, wl, fl1, fl2, fl5, fl10, fl17, fl30) in [line.strip().split() for line in open(self.fname, 'r').readlines() if not line.startswith('#')]:
-			#print(name)
 			if name == 'Hbeta':
 				coeffs = np.array([float(fl)*1e36*scale for fl in [fl1, fl2, fl5, fl10, fl17, fl30]])
 				continue
@@ -215,13 +226,14 @@ class Chev94Model:
 		return fl
 
 
-	def plot(self, t, save=False, show=False, fname='out/Chev94_spectrum.pdf'):
+	def plot(self, t, save=True, show=False, fname='out/Chev94_spectrum.pdf'):
 		"""Plot spectral model."""
 
 		wl = np.arange(W0, W1, DW)
 		fl = self.gen_model(t)
 		plt.plot(wl, fl/1e37)
 		plt.ylim((0, 6))
+
 		# Label peaks
 		for name in self.line_wl.keys():
 			# Set label position
@@ -243,12 +255,13 @@ class Chev94Model:
 			text = text.replace('V I', 'VI')
 			text = text.replace('I V', 'IV')
 			# Custom adjustments
-			if text == 'C II]' or text == 'C I]':
+			if text == 'C II]' or text == 'C I]' or text == 'O VI':
 				x = peak_wl
 				ha = 'center'
 				va = 'bottom'
 				y = peak_fl/1e37 + 0.1
-			plt.text(x, y, text, size=14, va=va, ha=ha)
+			plt.text(x, y, text, size=16, va=va, ha=ha)
+
 		plt.xlabel('Wavelength [Å]')
 		plt.ylabel('Luminosity [$10^{37}$ erg/s]')
 		plt.tight_layout(True)
@@ -310,9 +323,8 @@ if __name__=='__main__':
 	parser.add_argument('--twidth', '-w', help='plateau width [days]', default=200., type=float)
 	parser.add_argument('--decay-rate', '-D', help='fractional decay rate per 100 days', default=0.3, type=float)
 	parser.add_argument('--scale', '-S', help='scale factor', default=1., type=float)
-	parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
-	parser.add_argument('--plot-spectrum', '-p', action='store_true', 
-			help='Plot Chev94 line emission model spectrum')
+	parser.add_argument('--model', '-m', type=str, default='Chev94', help='Spectral model (flat or Chev94)')
+	parser.add_argument('--show', action='store_true', help='Show plots')
 
 	args = parser.parse_args()
-	main(args.tstart, args.twidth, args.decay_rate, args.scale, args.model, args.plot_spectrum)
+	main(args.tstart, args.twidth, args.decay_rate, args.scale, args.model, args.show)

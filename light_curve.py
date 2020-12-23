@@ -95,7 +95,8 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
             continue
 
     # Add legend
-    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.5, handlelength=1.2)
+    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.5, 
+            handlelength=1.2, fontsize=11)
 
     # Adjust and label axes
     ax.set_xlabel('Rest frame time since discovery [days]')
