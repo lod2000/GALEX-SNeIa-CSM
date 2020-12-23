@@ -38,21 +38,39 @@ DT_MIN = -30 # Separation between background and SN data (days)
 DET_SIGMA = 3 # detection threshold & nondetection upper limit
 
 
-def main(sn_name, detect=False, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
+def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
         tmax=4000, pad=0, swift=False, cfa=False, legend_col=3):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     sn = Supernova(sn_name, sn_info=sn_info)
 
-    if detect:
-        for band in ['FUV', 'NUV']:
-            print('\n%s DETECTIONS' % band)
-            try:
-                lc = LightCurve.from_name(sn_name, band)
-                detections = lc.detect_csm(sigma, count=count)
-                print(detections)
-            except:
-                print('No data available.')
+    detect_cols = ['t_delta_rest', 'flux_hostsub', 'flux_hostsub_err', 
+        'luminosity_hostsub', 'luminosity_hostsub_err']
+    limit_cols = ['t_delta_rest', 'flux_limit', 'luminosity_limit']
+
+    for band in ['FUV', 'NUV']:
+        print('\n%s DATA' % band)
+        try:
+            lc = LightCurve.from_name(sn_name, band)
+            print('Background: %s +/- %s erg/s/cm^2/AA' % (lc.bg, lc.bg_err_tot))
+
+            # Display detections
+            print('Detections:')
+            detections = lc.detect_csm(sigma, count=count)
+            if len(detections.index) == 0:
+                print('None.')
+            else:
+                print(detections[detect_cols])
+
+            # Display upper limits
+            print('Upper limits:')
+            upper_lims = pd.DataFrame([])
+            upper_lims['t_delta_rest'] = lc('t_delta_rest')
+            upper_lims['flux_limit'] = lc('flux_hostsub_err') * DET_SIGMA
+            upper_lims['luminosity_limit'] = lc('luminosity_hostsub_err') * DET_SIGMA
+            print(upper_lims[upper_lims['t_delta_rest'] > 0][limit_cols])
+        except:
+            print('No data available.')
 
     if make_plot:
         print('\nPlotting %s...' % sn.name)
@@ -147,6 +165,7 @@ class LightCurve:
         
         # Background & systematic error
         self.bg, self.bg_err, self.sys_err = get_background(data, self.band)
+        self.bg_err_tot = np.sqrt(self.bg_err**2 + self.sys_err**2)
         self.background = self.bg
         self.background_err = self.bg_err
 
@@ -644,8 +663,6 @@ if __name__=='__main__':
     parser.add_argument('sn', type=str, help='supernova name')
 
     # Detection arguments
-    parser.add_argument('-d', '--detect', action='store_true',
-            help='Run CSM detection algorithm on GALEX light curves')
     parser.add_argument('--sigma', type=int, nargs='+', default=SIGMA, 
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--sigcount', type=int, nargs='+', default=SIGMA_COUNT,
@@ -667,6 +684,6 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    main(args.sn, detect=args.detect, make_plot=args.plot, sigma=args.sigma, 
+    main(args.sn, make_plot=args.plot, sigma=args.sigma, 
             count=args.sigcount, tmax=args.tmax, pad=args.pad, swift=args.swift, 
             cfa=args.cfa, legend_col=args.lcol)
