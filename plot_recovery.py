@@ -14,7 +14,7 @@ from CSMmodel import CSMmodel
 SIGMA = 3
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=50, y_bins=20, overwrite=False,
+        scale_max=SCALE_MAX, bin_width=100, y_bins=20, overwrite=False,
         show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, plot_rates=False):
     
@@ -73,18 +73,19 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
 
     # Plot
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm, vmin=0)
+    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm, vmin=0,
+            edgecolor='k', linewidth=0.3, antialiased=True)
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
-    ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
+    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
 
     # Color bar
     cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
     cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
 
-    fig.tight_layout()
+    plt.tight_layout()
     plt.savefig(output_file, dpi=300)
 
     if show:
@@ -186,7 +187,8 @@ if __name__ == '__main__':
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--max', type=float, help='Max colorbar value')
+    parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
     args = parser.parse_args()
 
-    main(args.iterations, t_min=0, overwrite=args.overwrite, model=args.model, 
+    main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
             study=args.study.lower(), sigma=args.sigma, cmax=args.max)
