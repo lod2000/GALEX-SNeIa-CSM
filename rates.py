@@ -7,10 +7,13 @@ from utils import *
 from plot_recovery import sum_hist
 
 # TSTART_BINS = [0, 20, 100, 500, 1000, 2500]
+# Defaults
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
 SCALE = 1 # default model scale
 SIGMA = 3 # default confidence for excluded SNe
+TSTART_MAX = 2000
+YMAX = 20
 
 # Plot settings
 COLORS = {  'GALEX': '#d81b60',
@@ -195,11 +198,13 @@ def plot(x, bci_lower, bci_upper, output_file='out/rates.pdf', show=True):
     ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
     ax.set_ylabel('Rate of CSM interaction [%]')
 
+    ax.set_ylim((0, YMAX))
+
     # Legend
     handles, labels = ax.get_legend_handles_labels()
     # remove errorbars
     # handles = [h[0] for h in handles]
-    plt.legend(handles, labels, loc='upper right')
+    plt.legend(handles, labels, loc='upper left')
 
     plt.tight_layout()
     # plt.savefig(output_file, dpi=300)
