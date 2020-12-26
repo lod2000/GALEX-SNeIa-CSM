@@ -14,9 +14,9 @@ from CSMmodel import CSMmodel
 SIGMA = 3
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=100, y_bins=20, overwrite=False,
+        scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
         show_plot=True, model='Chev94', study='galex', cmax=None,
-        sigma=SIGMA, plot_rates=False):
+        sigma=SIGMA, plot_rates=False, overwrite=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -26,7 +26,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     save_dir = run_dir(study, model, sigma)
     run_out_dir = save_dir / Path('out')
     if not run_out_dir.is_dir(): run_out_dir.mkdir()
-    hist_file = run_out_dir / Path('hist.csv')
+    hist_file = OUTPUT_DIR / Path('recovery_%s_%s.csv' % (study, model))
     plot_file = OUTPUT_DIR / Path('recovery_%s_%s.pdf' % (study, model))
 
     # List of files in save dir
@@ -94,7 +94,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv', **kwargs):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
@@ -109,7 +109,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv', **
 
     hist = []
     with Pool() as pool:
-        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges, **kwargs)
+        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges)
         imap = pool.imap(func, save_files, chunksize=10)
         for h in tqdm(imap, total=len(save_files)):
             hist.append(h)
@@ -123,14 +123,14 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='hist.csv', **
     return hist
 
 
-def get_hist(fname, x_edges, y_edges, **kwargs):
+def get_hist(fname, x_edges, y_edges):
     """Import recovery save data and return histogram. Also scale to SN 2015cp.
     Inputs:
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
     """
 
-    rd = RecoveryData(fname, **kwargs)
+    rd = RecoveryData(fname)
     return rd.hist(x_edges, y_edges)
 
 
@@ -188,7 +188,10 @@ if __name__ == '__main__':
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--max', type=float, help='Max colorbar value')
     parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
+    parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
+    parser.add_argument('--smax', default=SCALE_MAX, type=int, help='y-axis upper limit')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
-            study=args.study.lower(), sigma=args.sigma, cmax=args.max)
+            study=args.study.lower(), sigma=args.sigma, cmax=args.max, scale_max=args.smax,
+            bin_width=args.twidth)

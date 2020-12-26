@@ -14,6 +14,7 @@ SCALE_MAX = 100
 DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx
 ITERATIONS = 10000 # injection-recovery iterations per SN
+TSTART_BIN_WIDTH = 100 # horizontal bin width for recovery plot
 
 # Default directories
 SAVE_DIR = Path('/mnt/d/injection_recovery_runs')

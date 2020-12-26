@@ -6,46 +6,49 @@ from astropy.stats import binom_conf_interval
 from utils import *
 from plot import sum_hist
 
-TSTART_BINS = [0, 20, 100, 500, 1000]
-CONF = 0.9
-MODEL = 'Chev94'
-SCALE = 1
-SIGMA = 3
+# TSTART_BINS = [0, 20, 100, 500, 1000, 2500]
+CONF = 0.9 # binomial confidence level
+MODEL = 'Chev94' # default spectral model
+SCALE = 1 # default model scale
+SIGMA = 3 # default confidence for excluded SNe
 
-COLORS = {'GALEX': '#d81b60',
-          'G19': '#004d40',
-          'UV': 'k',
-          'ASAS-SN': '#ffc107',
-          'ZTF': '#1e88e5',
-          'All': 'k'}
-MARKERS = {'GALEX': 'o', 'G19': 'o', 'UV': 'o', 
-           'ASAS-SN': 's', 'ZTF': 's', 'All': '*'}
+# Plot settings
+COLORS = {  'GALEX': '#d81b60',
+            'G19': '#004d40',
+            'This study': 'k',
+            'ASAS-SN': '#ffc107',
+            'ZTF': '#1e88e5',
+            'All': 'k'
+}
+MARKERS = { 'GALEX': 'o', 
+            'G19': 'o', 
+            'This study': 'o', 
+            'ASAS-SN': 's', 
+            'ZTF': 's', 
+            'All': '*'
+}
 
 
-def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False, 
-        model=MODEL, sigma=SIGMA):
-
-    # Scale to UV luminosity of SN 2015cp
-    reduced_scale = SN2015cp_scale(model)
+def main(bin_width=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False, 
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX):
     
     # Bin edges
-    x_edges = np.array(tstart_bins)
-    y_edges = np.array([scale, 1000 / reduced_scale])
-    nbins = len(tstart_bins)-1
+    x_edges = np.arange(t_min, t_max+bin_width, bin_width)
+    y_edges = np.array([scale, SCALE_MAX])
+    nbins = len(x_edges)-1
 
     # Import non-detections and sum histograms for GALEX and G19
     histograms = []
     for study in ['galex', 'graham']:
         # File names
         save_dir = run_dir(study, model, sigma)
-        hist_file = save_dir / Path('out/rates_hist.csv')
         save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+        hist_file = Path('out/recovery_%s_%s.csv' % (study, model))
 
         # Generate summed histogram
         if overwrite or not hist_file.is_file():
             print('Importing and summing %s saves...' % study)
-            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file,
-                    reduced_scale=reduced_scale)
+            hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
         else:
             print('Importing %s histograms...' % study)
             hist = pd.read_csv(hist_file, index_col=0)
@@ -65,17 +68,17 @@ def main(tstart_bins=TSTART_BINS, scale=SCALE, iterations=10000, overwrite=False
     trials = pd.DataFrame([], index=index)
     trials['G19'] = (graham_hist + graham_det_hist).T.astype(int)
     trials['GALEX'] = galex_hist.T.astype(int)
-    trials['UV'] = trials['GALEX'] + trials['G19']
+    trials['This study'] = trials['GALEX'] + trials['G19']
     trials['ASAS-SN'] = np.array([464] + [0]*(nbins-1)).T
     trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
     trials['All'] = trials[sources].sum(axis=1)
-    trials.loc[trials['All'] == trials['UV'], 'All'] = 0
+    trials.loc[trials['All'] == trials['This study'], 'All'] = 0
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=index)
     detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
-    detections['UV'] = detections['GALEX'] + detections['G19']
+    detections['This study'] = detections['GALEX'] + detections['G19']
     detections['ASAS-SN'] = np.array([3] + [0]*(nbins-1)).T
     detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
     detections['All'] = detections[sources].sum(axis=1)
@@ -149,7 +152,7 @@ def source_fmt(source):
             'G19': '\citetalias{Graham2019-SN2015cp}',
             'ASAS-SN': '%s\\tablenotemark{a}' % source,
             'ZTF': '%s\\tablenotemark{b}' % source,
-            'UV': 'Both UV', 'All': 'All'}
+            'This study': 'This study', 'All': 'All'}
 
     return fmt[source]
 
@@ -172,7 +175,7 @@ def plot(bci_lower, bci_upper, tstart_bins=TSTART_BINS,
         midpoint = np.mean([bci_lower[col], bci_upper[col]], axis=0)
         err = bci_upper[col].to_numpy() - midpoint
         # line width
-        lw = 3.5 if col == 'UV' else 2
+        lw = 3.5 if col == 'This study' else 2
         # italicize GALEX
         label = '$\it{%s}$' % col if col == 'GALEX' else col
         # marker size
@@ -215,7 +218,9 @@ if __name__ == '__main__':
     parser.add_argument('--scale', '-S', type=float, default=SCALE)
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
+    parser.add_argument('--tmax', type=int, default=TSTART_MAX, 
+            help='Maximum CSM interaction start time')
     args = parser.parse_args()
 
     main(overwrite=args.overwrite, model=args.model, scale=args.scale, 
-            sigma=args.sigma)
+            sigma=args.sigma, t_max=args.tmax)
