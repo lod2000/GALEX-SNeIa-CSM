@@ -12,6 +12,7 @@ import astropy.units as u
 from utils import *
 from CSMmodel import CSMmodel
 from light_curve import flux2luminosity
+from light_curve import freq2wavelength
 
 # Default values & constants
 SIGMA = 3 # detection certainty
@@ -133,9 +134,9 @@ def inject_recover(params, nondetection, **kwargs):
     return [tstart, scale, recovered]
 
 
-class Nondetection:
+class Observation:
     def __init__(self, sn_name, data, sigma=3):
-        """Initialize model and inject into data.
+        """Initialize nondetection.
         Inputs:
             sn_name: supernova name
             data: DataFrame of Graham nondetection limits
@@ -143,11 +144,40 @@ class Nondetection:
 
         # Get data
         self.sn_name = sn_name
-        self.z = data.loc[sn_name, 'Redshift']
-        self.phase = data.loc[sn_name, 'Phase']
+        self.info = data.loc[sn_name]
+
+        self.z = self.info['Redshift']
+        self.dist = self.info['Distance [Mpc]'] * u.Mpc
+        self.phase = self.info['Phase']
         # Convert observed phase to rest-frame phase
         self.rest_phase = 1/(1+self.z) * self.phase
-        self.luminosity_limit = data.loc[sn_name, 'Luminosity Limit']
+        # 50% limiting mag
+        self.mag_lim = self.info['Limiting Magnitude']
+        self.mag_lim_err = self.info['Limiting Magnitude Error']
+        # Detection or nondetection
+        self.detection = self.info['Detection']
+
+        if self.detection:
+            # Detections
+            luminosity_hz = 10 ** self.info['Log Luminosity'] # erg/s/Hz
+            # luminosity (erg/s/AA)
+            self.luminosity = freq2wavelength(luminosity_hz, F275W_LAMBDA_EFF)
+            self.luminosity_err = self.get_luminosity_limit(1)
+            print(self.luminosity)
+        else:
+            # Nondetections
+            self.luminosity_limit = self.get_luminosity_limit(sigma)
+
+
+    def get_luminosity_limit(self, sigma, zero_point=F275W_ZERO_POINT):
+        """Calculate upper limit on luminosity based on limiting magnitude."""
+
+        # Calculate lower magnitude limit
+        sigma_lim = self.mag_lim - sigma * self.mag_lim_err
+        # Convert magnitude limit to flux limit
+        flux_lim = 10 ** (-2/5 * sigma_lim) * zero_point
+        # Convert flux limit to luminosity limit
+        return flux_lim * (4 * np.pi * self.dist.to('cm')**2) * (1 + self.z)**3
 
 
     def inject_recover(self, tstart, scale, twidth=WIDTH, decay_rate=DECAY_RATE, 
@@ -164,11 +194,18 @@ class Nondetection:
         """
 
         # Inject model
-        self.model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
-        self.injection = self.model(self.rest_phase, self.z)['F275W']
+        model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
+        # self.injection = self.model(self.rest_phase, self.z)['F275W']
+        model_lum = model(self.rest_phase, self.z)['F275W']
 
         # Recover
-        self.recovered = self.injection > self.luminosity_limit
+        if self.detection:
+            lower_lim = self.luminosity - self.luminosity_err
+            upper_lim = self.luminosity + self.luminosity_err
+            self.recovered = (model_lum > lower_lim) and (model_lum < upper_lim)
+        else:
+            self.recovered = model_lum > self.luminosity_limit
+
         return self.recovered
 
 
