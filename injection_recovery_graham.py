@@ -21,11 +21,24 @@ F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
 
 def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH, 
-        decay_rate=DECAY_RATE, overwrite=False, model='Chev94', sigma=SIGMA):
+        decay_rate=DECAY_RATE, overwrite=False, model='Chev94', sigma=SIGMA,
+        detections=False):
 
     # Import Graham data
-    data = import_graham_data(sigma=sigma)
+    data = pd.read_csv(Path('ref/Graham_observations.csv'), index_col=0)
+    # Remove detections and/or nondetections
+    if detections:
+        data = data[data['Detection']]
+    else:
+        data = data[~data['Detection']]
     supernovae = data.index
+
+    # Test
+    # obs = Observation('SN 2015cp', data)
+    # obs.inject_recover(500, 1.05)
+
+    # Import Graham data
+    # data = import_graham_data(sigma=sigma)
 
     # Record luminosities of CSM model for scale 1
     base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
@@ -41,22 +54,22 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
             decay_rate=decay_rate)
 
 
-def import_graham_data(path='ref/Graham_limiting_magnitudes.csv', sigma=SIGMA):
-    """Import data from Graham+ 2019 and convert 50% limiting magnitudes to
-    (3)-sigma luminosity limits."""
+# def import_graham_data(path='ref/Graham_limiting_magnitudes.csv', sigma=SIGMA):
+#     """Import data from Graham+ 2019 and convert 50% limiting magnitudes to
+#     (3)-sigma luminosity limits."""
 
-    # Import CSV
-    data = pd.read_csv(Path(path), index_col='Target')
-    # Convert limiting magnitude & error to n-sigma magnitude limit
-    data['Sigma Limit'] = data['Limiting Magnitude'] - sigma * data['Limiting Magnitude Error']
-    # Convert magnitude limit to flux limit
-    data['Flux Limit'] = 10**(-2/5 * data['Sigma Limit']) * F275W_ZERO_POINT
-    # Gather distance and redshift data for targets
-    dist = data['Distance [Mpc]'].to_numpy() * u.Mpc
-    z = data['Redshift']
-    # Convert flux limit to luminosity limit
-    data['Luminosity Limit'] = data['Flux Limit'] * (4*np.pi*dist.to('cm')**2) * (1+z)**3
-    return data
+#     # Import CSV
+#     data = pd.read_csv(Path(path), index_col='Target')
+#     # Convert limiting magnitude & error to n-sigma magnitude limit
+#     data['Sigma Limit'] = data['Limiting Magnitude'] - sigma * data['Limiting Magnitude Error']
+#     # Convert magnitude limit to flux limit
+#     data['Flux Limit'] = 10**(-2/5 * data['Sigma Limit']) * F275W_ZERO_POINT
+#     # Gather distance and redshift data for targets
+#     dist = data['Distance [Mpc]'].to_numpy() * u.Mpc
+#     z = data['Redshift']
+#     # Convert flux limit to luminosity limit
+#     data['Luminosity Limit'] = data['Flux Limit'] * (4*np.pi*dist.to('cm')**2) * (1+z)**3
+#     return data
 
 
 def run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
@@ -93,7 +106,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
-    nondetection = Nondetection(sn_name, data)
+    obs = Observation(sn_name, data)
 
     # Random injection parameter sample
     params = gen_params(iterations, tstart_lims, scale_lims, log=True)
@@ -101,7 +114,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
     # Run injection-recovery trials in parallel
     recovery_df = []
     with Pool() as pool:
-        func = partial(inject_recover, nondetection=nondetection, **kwargs)
+        func = partial(inject_recover, obs=obs, **kwargs)
         imap = pool.imap(func, params, chunksize=100)
         for recovery in tqdm(imap, total=iterations):
             recovery_df.append(recovery)
@@ -117,11 +130,11 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
     return recovery_df
 
 
-def inject_recover(params, nondetection, **kwargs):
+def inject_recover(params, obs, **kwargs):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         params: tuple of (tstart, scale) injection parameters
-        nondetection: Nondetection object
+        obs: Observation object
     Output:
         list with injection parameters and number of recoveries
     """
@@ -129,14 +142,14 @@ def inject_recover(params, nondetection, **kwargs):
     # Unpack parameters
     tstart, scale = params
     # Inject & recover
-    recovered = nondetection.inject_recover(tstart, scale, **kwargs)
+    recovered = obs.inject_recover(tstart, scale, **kwargs)
 
     return [tstart, scale, recovered]
 
 
 class Observation:
     def __init__(self, sn_name, data, sigma=3):
-        """Initialize nondetection.
+        """Initialize observation.
         Inputs:
             sn_name: supernova name
             data: DataFrame of Graham nondetection limits
@@ -159,11 +172,10 @@ class Observation:
 
         if self.detection:
             # Detections
-            luminosity_hz = 10 ** self.info['Log Luminosity'] # erg/s/Hz
+            luminosity_hz = 10 ** self.info['Log Luminosity'] * u.erg
             # luminosity (erg/s/AA)
-            self.luminosity = freq2wavelength(luminosity_hz, F275W_LAMBDA_EFF)
+            self.luminosity = freq2wavelength(luminosity_hz, F275W_LAMBDA_EFF * u.AA)
             self.luminosity_err = self.get_luminosity_limit(1)
-            print(self.luminosity)
         else:
             # Nondetections
             self.luminosity_limit = self.get_luminosity_limit(sigma)
@@ -175,7 +187,7 @@ class Observation:
         # Calculate lower magnitude limit
         sigma_lim = self.mag_lim - sigma * self.mag_lim_err
         # Convert magnitude limit to flux limit
-        flux_lim = 10 ** (-2/5 * sigma_lim) * zero_point
+        flux_lim = 10 ** (-2/5 * sigma_lim) * zero_point * u.erg/u.cm**2/u.s/u.AA
         # Convert flux limit to luminosity limit
         return flux_lim * (4 * np.pi * self.dist.to('cm')**2) * (1 + self.z)**3
 
@@ -200,8 +212,8 @@ class Observation:
 
         # Recover
         if self.detection:
-            lower_lim = self.luminosity - self.luminosity_err
-            upper_lim = self.luminosity + self.luminosity_err
+            lower_lim = (self.luminosity - self.luminosity_err).value
+            upper_lim = (self.luminosity + self.luminosity_err).value
             self.recovered = (model_lum > lower_lim) and (model_lum < upper_lim)
         else:
             self.recovered = model_lum > self.luminosity_limit
@@ -229,12 +241,18 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
             help='CSM spectrum model to use')
     parser.add_argument('--sigma', type=float, default=SIGMA, help='detection sigma level')
+    parser.add_argument('-d', '--detections', action='store_true', 
+            help='Recover models for G19 detections instead of nondetections')
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = run_dir('Graham', args.model, int(args.sigma))
+    study = 'Graham'
+    if args.detections:
+        study += '_det'
+    save_dir = run_dir(study, args.model, int(args.sigma))
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 
     main(args.iterations, args.tstart, args.scale, save_dir, args.twidth, 
-            args.decay_rate, args.overwrite, args.model, args.sigma)
+            args.decay_rate, args.overwrite, args.model, args.sigma,
+            args.detections)

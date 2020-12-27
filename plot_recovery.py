@@ -16,7 +16,7 @@ SIGMA = 3
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
         show_plot=True, model='Chev94', study='galex', cmax=None,
-        sigma=SIGMA, plot_rates=False, overwrite=False):
+        sigma=SIGMA, plot_rates=False, overwrite=False, detections=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -24,10 +24,13 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
-    run_out_dir = save_dir / Path('out')
-    if not run_out_dir.is_dir(): run_out_dir.mkdir()
-    hist_file = OUTPUT_DIR / Path('recovery_%s_%s.csv' % (study, model))
-    plot_file = OUTPUT_DIR / Path('recovery_%s_%s.pdf' % (study, model))
+    if detections:
+        save_dir = run_dir(study + '_det', model, sigma)
+    fname = 'recovery_%s_%s' % (study, model)
+    if detections:
+        fname = 'recovery_%s_det_%s' % (study, model)
+    hist_file = OUTPUT_DIR / Path(fname + '.csv')
+    plot_file = OUTPUT_DIR / Path(fname + '.pdf')
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
@@ -41,10 +44,12 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
+            detections=detections)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None,
+        detections=False):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -65,8 +70,13 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
     hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
     hist_max = hist_max if cmax == None else cmax
-    cbin_width = int(hist_max / 12)
-    cmap_bounds = np.arange(1, hist_max, cbin_width)
+    if hist_max > 12:
+        cbin_width = int(hist_max / 12)
+        cmap_bounds = np.arange(1, hist_max, cbin_width)
+    else:
+        hist_max = np.max(hist.to_numpy())
+        cbin_width = hist_max / 10
+        cmap_bounds = np.arange(0.01, hist_max, cbin_width)
     # include lower, uppper bounds
     cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
     norm = BoundaryNorm(cmap_bounds, cmap.N)
@@ -82,8 +92,13 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     ax.set_ylabel('Scale factor')
 
     # Color bar
-    cbar = plt.colorbar(pcm, label='No. of excluded SNe Ia', spacing='proportional')
-    cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
+    if detections:
+        cbar_label = 'Fraction of possible models'
+    else:
+        cbar_label = 'No. of excluded SNe Ia'
+    cbar = plt.colorbar(pcm, label=cbar_label, spacing='proportional')
+    if hist_max > 24:
+        cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -189,9 +204,11 @@ if __name__ == '__main__':
     parser.add_argument('--max', type=float, help='Max colorbar value')
     parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
     parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
+    parser.add_argument('-d', '--detections', action='store_true', 
+            help='Recover models for G19 detections instead of nondetections')
     parser.add_argument('--smax', default=SCALE_MAX, type=int, help='y-axis upper limit')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
             study=args.study.lower(), sigma=args.sigma, cmax=args.max, scale_max=args.smax,
-            bin_width=args.twidth)
+            bin_width=args.twidth, detections=args.detections)
