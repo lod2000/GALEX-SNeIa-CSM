@@ -109,7 +109,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv',
+        binary=False):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
@@ -124,7 +125,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'
 
     hist = []
     with Pool() as pool:
-        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges)
+        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges, binary=binary)
         imap = pool.imap(func, save_files, chunksize=10)
         for h in tqdm(imap, total=len(save_files)):
             hist.append(h)
@@ -138,15 +139,18 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'
     return hist
 
 
-def get_hist(fname, x_edges, y_edges):
-    """Import recovery save data and return histogram. Also scale to SN 2015cp.
+def get_hist(fname, x_edges, y_edges, binary=False):
+    """Import recovery save data and return histogram.
     Inputs:
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
     """
 
     rd = RecoveryData(fname)
-    return rd.hist(x_edges, y_edges)
+    hist = rd.hist(x_edges, y_edges)
+    if binary:
+        hist = np.ceil(hist)
+    return hist
 
 
 class RecoveryData:

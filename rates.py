@@ -13,11 +13,13 @@ MODEL = 'Chev94' # default spectral model
 SCALE = 1 # default model scale
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
-YMAX = 20
+YMAX = 15
 
 # Plot settings
-COLORS = {  'GALEX': '#d81b60',
-            'G19': '#004d40',
+COLORS = {  'GALEX': 'r',
+            # 'GALEX': '#d81b60',
+            # 'G19': '#004d40',
+            'G19': 'g',
             'This study': 'k',
             'ASAS-SN': '#ffc107',
             'ZTF': '#1e88e5',
@@ -30,6 +32,14 @@ MARKERS = { 'GALEX': 'o',
             'ZTF': 's', 
             'All': '*'
 }
+ALPHAS = {  'GALEX': 0.3,
+            'G19': 0.3,
+            'This study': 0.4
+}
+HATCHES = { 'GALEX': '|',
+            'G19': '-',
+            'This study': 'x'
+}
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, 
@@ -37,7 +47,6 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    x_midpoints = (x_edges[1:] + x_edges[:-1]) / 2
     y_edges = np.array([scale, SCALE_MAX])
     nbins = len(x_edges)-1
 
@@ -49,7 +58,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
         save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
         # Generate summed histogram
         print('Importing and summing %s saves...' % study)
-        hist = sum_hist(save_files, x_edges, y_edges, save=False)
+        hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=True)
         histograms.append(hist.iloc[0].to_numpy())
 
     [galex_hist, graham_hist] = histograms
@@ -60,7 +69,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
     print('Importing and summing G19 detections...')
-    hist = sum_hist(save_files, x_edges, y_edges, save=False)
+    hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=True)
     graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
     # graham_detections = pd.read_csv('ref/Graham_detections.csv')
     # graham_det_hist = np.histogram(graham_detections['Rest Phase'], x_edges)[0]
@@ -77,6 +86,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     # trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
     # trials['All'] = trials[sources].sum(axis=1)
     # trials.loc[trials['All'] == trials['This study'], 'All'] = 0
+    print(trials)
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=index)
@@ -86,6 +96,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     # detections['ASAS-SN'] = np.array([3] + [0]*(nbins-1)).T
     # detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
     # detections['All'] = detections[sources].sum(axis=1)
+    print(detections)
 
     bci_lower = pd.DataFrame([], index=index)
     bci_upper = pd.DataFrame([], index=index)
@@ -93,8 +104,8 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     # Calculate binomial confidence intervals
     for col in trials.columns:
         # separate bins with no trials
-        pos_index = trials[trials[col] > 0].index
-        zero_index = trials[trials[col] == 0].index
+        pos_index = trials[trials[col] >= 1].index
+        zero_index = trials[trials[col] < 1].index
 
         bci = 100 * binom_conf_interval(detections.loc[pos_index, col], 
                 trials.loc[pos_index, col], confidence_level=CONF, 
@@ -108,12 +119,13 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
         bci_upper.loc[pos_index, col] = bci[1].T
         bci_upper.loc[zero_index,col] = np.nan
 
+    print(bci_upper)
     print(bci_lower)
 
     # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
     #         output_file=Path('out/rates_%s.tex' % model))
 
-    plot(x_midpoints, bci_lower, bci_upper, show=True,)
+    plot(bci_lower, bci_upper, show=True,)
             # output_file=Path('out/rates_%s.pdf' % model))    
 
 
@@ -167,25 +179,30 @@ def source_fmt(source):
     return fmt[source]
 
 
-def plot(x, bci_lower, bci_upper, output_file='out/rates.pdf', show=True):
+def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX):
     """Plot binomial confidence limits for CSM interaction rate."""
 
     fig, ax = plt.subplots()
+
+    x = bci_lower.index.to_numpy()
+    x_end = x[-1] + (x[1] - x[0])
+    x = np.append(x, [x_end])
 
     for col in bci_lower.columns:
         # Find midpoint and errors for plotting
         y1 = bci_lower[col]
         y2 = bci_upper[col]
-        midpoint = np.mean([y1, y2], axis=0)
+        # Add endpoints
+        y1.loc[x_end] = y2.loc[x_end] = 0
+        # midpoint = np.mean([y1, y2], axis=0)
         color = COLORS[col]
+        alpha = ALPHAS[col]
+        hatch = HATCHES[col]
 
-        if col == 'This study':
-            ax.fill_between(x, y1, y2, color=color, alpha=0.1)
-        else:
-            ax.plot(x, y1, c=color, ls='--')
-            ax.plot(x, y2, c=color, ls='--')
+        ax.fill_between(x, y1, y2, color=color, alpha=alpha, hatch=hatch, lw=2,
+                label=col, step='post')
 
-        ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
+        # ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
         # err = bci_upper[col].to_numpy() - midpoint
         # line width
         # lw = 3.5 if col == 'This study' else 2
@@ -206,16 +223,18 @@ def plot(x, bci_lower, bci_upper, output_file='out/rates.pdf', show=True):
     ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
     ax.set_ylabel('Rate of CSM interaction [%]')
 
-    ax.set_ylim((0, YMAX))
+    ax.set_ylim((0, ymax))
 
     # Legend
-    handles, labels = ax.get_legend_handles_labels()
+    plt.legend(loc='upper right')
+    # handles, labels = ax.get_legend_handles_labels()
     # remove errorbars
     # handles = [h[0] for h in handles]
-    plt.legend(handles, labels, loc='upper left')
+    # plt.legend(handles, labels, loc='upper left')
 
     plt.tight_layout()
     # plt.savefig(output_file, dpi=300)
+    plt.savefig('out/rates_temp.pdf', dpi=300)
     if show:
         plt.show()
     else:
