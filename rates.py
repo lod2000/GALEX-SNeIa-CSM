@@ -41,36 +41,38 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     y_edges = np.array([scale, SCALE_MAX])
     nbins = len(x_edges)-1
 
-    # Import non-detections and sum histograms for GALEX
-    # histograms = []
-    # for study in ['galex', 'graham']:
-    study = 'galex'
+    # Import non-detections and sum histograms for GALEX and G19
+    histograms = []
+    for study in ['galex', 'graham']:
+        # File names
+        save_dir = run_dir(study, model, sigma)
+        save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+        # Generate summed histogram
+        print('Importing and summing %s saves...' % study)
+        hist = sum_hist(save_files, x_edges, y_edges, save=False)
+        histograms.append(hist.iloc[0].to_numpy())
 
-    # File names
-    save_dir = run_dir(study, model, sigma)
-    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-
-    # Generate summed histogram
-    print('Importing and summing %s saves...' % study)
-    hist = sum_hist(save_files, x_edges, y_edges, save=False)
-    # histograms.append(hist.iloc[0].to_numpy())
-    galex_hist = hist.iloc[0].to_numpy()
-
-    # [galex_hist, graham_hist] = histograms
-    # uv_hist = galex_hist + graham_hist
+    [galex_hist, graham_hist] = histograms
+    uv_hist = galex_hist + graham_hist
 
     # Import detections
+    save_dir = run_dir('graham_det', model, sigma)
+    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+    # Generate summed histogram
+    print('Importing and summing G19 detections...')
+    hist = sum_hist(save_files, x_edges, y_edges, save=False)
+    graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
     # graham_detections = pd.read_csv('ref/Graham_detections.csv')
     # graham_det_hist = np.histogram(graham_detections['Rest Phase'], x_edges)[0]
 
     # DataFrame for number of trials per tstart bin and data source
     # sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
-    sources = ['GALEX']
+    sources = ['G19', 'GALEX']
     index = pd.Series(x_edges[:-1])
     trials = pd.DataFrame([], index=index)
-    # trials['G19'] = (graham_hist + graham_det_hist).T.astype(int)
-    trials['GALEX'] = galex_hist.T.astype(int)
-    # trials['This study'] = trials['GALEX'] + trials['G19']
+    trials['G19'] = (graham_hist + graham_det_hist).T
+    trials['GALEX'] = galex_hist.T
+    trials['This study'] = trials['GALEX'] + trials['G19']
     # trials['ASAS-SN'] = np.array([464] + [0]*(nbins-1)).T
     # trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
     # trials['All'] = trials[sources].sum(axis=1)
@@ -78,16 +80,17 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=index)
-    # detections['G19'] = graham_det_hist.T
+    detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
-    # detections['This study'] = detections['GALEX'] + detections['G19']
+    detections['This study'] = detections['GALEX'] + detections['G19']
     # detections['ASAS-SN'] = np.array([3] + [0]*(nbins-1)).T
     # detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
     # detections['All'] = detections[sources].sum(axis=1)
 
-    # Calculate binomial confidence intervals
     bci_lower = pd.DataFrame([], index=index)
     bci_upper = pd.DataFrame([], index=index)
+
+    # Calculate binomial confidence intervals
     for col in trials.columns:
         # separate bins with no trials
         pos_index = trials[trials[col] > 0].index
@@ -96,12 +99,16 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
         bci = 100 * binom_conf_interval(detections.loc[pos_index, col], 
                 trials.loc[pos_index, col], confidence_level=CONF, 
                 interval='jeffreys')
+        print(col)
+        print(bci)
         
         # add to dataframes (nan for no trials)
         bci_lower.loc[pos_index, col] = bci[0].T
         bci_lower.loc[zero_index,col] = np.nan
         bci_upper.loc[pos_index, col] = bci[1].T
         bci_upper.loc[zero_index,col] = np.nan
+
+    print(bci_lower)
 
     # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
     #         output_file=Path('out/rates_%s.tex' % model))
@@ -123,7 +130,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
 #     df = df[pd.notna(df['Upper BCI'])].rename(columns={'index': 'Epoch'})
 #     # Replace index and sort
 #     df = df.sort_values('Epoch').set_index('Epoch')
-#     df = df.astype({'Detections': int, 'Trials': int})
+#     # df = df.astype({'Detections': int, 'Trials': int})
 #     # Rearrange columns
 #     df = df[['Detections', 'Trials', 'Upper BCI', 'Source']]
 
@@ -134,7 +141,8 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
 #     new_index = pd.Series(np.vectorize(rows.get)(df.index), name='Epoch')
 #     df.set_index(new_index, inplace=True)
 
-#     table = df.to_latex(formatters={'Source': source_fmt, 'Upper BCI': '{:.2f}'.format}, escape=False)
+#     table = df.to_latex(formatters={'Source': source_fmt, 'Upper BCI': '{:.1f}'.format,
+#               'Detections': '{:.1f}'.format, 'Trials': '{:.1f}'.format}, escape=False)
 #     # Replace table header and footer with template
 #     # Edit this file if you need to change the number of columns or description
 #     with open(Path('ref/deluxetable_template.tex'), 'r') as file:
@@ -172,7 +180,7 @@ def plot(x, bci_lower, bci_upper, output_file='out/rates.pdf', show=True):
         color = COLORS[col]
 
         if col == 'This study':
-            ax.fill_between(x, y1, y2, c=color, alpha=0.1)
+            ax.fill_between(x, y1, y2, color=color, alpha=0.1)
         else:
             ax.plot(x, y1, c=color, ls='--')
             ax.plot(x, y2, c=color, ls='--')
@@ -195,7 +203,7 @@ def plot(x, bci_lower, bci_upper, output_file='out/rates.pdf', show=True):
     # ax.set_xticks(np.append(x_pos, nbins)-0.5)
     # ax.set_xticklabels(tstart_bins)
     # ax.tick_params(axis='x', which='minor', bottom=False, top=False)
-    ax.set_xlabel('CSM interaction start time [rest frame days post-discovery]')
+    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
     ax.set_ylabel('Rate of CSM interaction [%]')
 
     ax.set_ylim((0, YMAX))
