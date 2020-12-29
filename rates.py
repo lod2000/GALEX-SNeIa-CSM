@@ -11,9 +11,10 @@ from plot_recovery import sum_hist
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
 SCALE = 1 # default model scale
+DS = 0.1 # range above and below scale to include
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
-YMAX = 15
+YMAX = None
 
 # Plot settings
 COLORS = {  'GALEX': 'r',
@@ -43,11 +44,11 @@ HATCHES = { 'GALEX': '|',
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, 
-        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX):
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, ds=DS):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.array([scale, SCALE_MAX])
+    y_edges = np.array([scale - ds, scale + ds])
     nbins = len(x_edges)-1
 
     # Import non-detections and sum histograms for GALEX and G19
@@ -71,8 +72,6 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     print('Importing and summing G19 detections...')
     hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=False)
     graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
-    # graham_detections = pd.read_csv('ref/Graham_detections.csv')
-    # graham_det_hist = np.histogram(graham_detections['Rest Phase'], x_edges)[0]
 
     # DataFrame for number of trials per tstart bin and data source
     # sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
@@ -251,7 +250,9 @@ if __name__ == '__main__':
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--tmax', type=int, default=TSTART_MAX, 
             help='Maximum CSM interaction start time')
+    parser.add_argument('--twidth', type=int, default=TSTART_BIN_WIDTH, 
+            help='t_start bin width')
     args = parser.parse_args()
 
-    main(model=args.model, scale=args.scale, 
+    main(model=args.model, scale=args.scale, bin_width=args.twidth,
             sigma=args.sigma, t_max=args.tmax)

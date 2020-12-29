@@ -180,15 +180,8 @@ class GrahamObservation:
 
         # Inject model
         model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model=model)
-        # self.injection = self.model(self.rest_phase, self.z)['F275W']
         model_lum = model(self.rest_phase, self.z)['F275W']
 
-        # Recover model
-        # if self.detection:
-        #     lower_lim = (self.luminosity - self.luminosity_err).value
-        #     upper_lim = (self.luminosity + self.luminosity_err).value
-        #     self.recovered = (model_lum > lower_lim) and (model_lum < upper_lim)
-        # else:
         self.recovered = model_lum > self.luminosity_limit.value
 
         return self.recovered
