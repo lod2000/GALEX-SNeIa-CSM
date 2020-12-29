@@ -64,18 +64,19 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     hist.sort_index(ascending=True, inplace=True)
 
     # Colormap
+    n_colors = 15
     cmap = plt.cm.jet # colormap of choice
     cmaplist = [cmap(i) for i in range(cmap.N)]
     cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
     cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
     hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
     hist_max = hist_max if cmax == None else cmax
-    if hist_max > 12:
-        cbin_width = int(hist_max / 12)
+    if hist_max > n_colors:
+        cbin_width = int(hist_max / n_colors)
         cmap_bounds = np.arange(1, hist_max, cbin_width)
     else:
         hist_max = np.max(hist.to_numpy())
-        cbin_width = hist_max / 10
+        cbin_width = hist_max / n_colors
         cmap_bounds = np.arange(0.01, hist_max, cbin_width)
     # include lower, uppper bounds
     cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
@@ -92,10 +93,10 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     ax.set_ylabel('Scale factor')
 
     # Color bar
-    if detections:
-        cbar_label = 'Fraction of possible models'
-    else:
-        cbar_label = 'No. of excluded SNe Ia'
+    # if detections:
+    #     cbar_label = 'Fraction of possible models'
+    # else:
+    cbar_label = 'No. of excluded SNe Ia'
     cbar = plt.colorbar(pcm, label=cbar_label, spacing='proportional')
     if hist_max > 24:
         cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
@@ -144,6 +145,7 @@ def get_hist(fname, x_edges, y_edges, binary=False):
     Inputs:
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
+        binary: if true, returns ceiling of recovery rate
     """
 
     rd = RecoveryData(fname)
@@ -205,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
-    parser.add_argument('--max', type=float, help='Max colorbar value')
+    parser.add_argument('--cmax', type=float, help='Max colorbar value')
     parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
     parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
     parser.add_argument('-d', '--detections', action='store_true', 
@@ -214,5 +216,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
-            study=args.study.lower(), sigma=args.sigma, cmax=args.max, scale_max=args.smax,
+            study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, scale_max=args.smax,
             bin_width=args.twidth, detections=args.detections)

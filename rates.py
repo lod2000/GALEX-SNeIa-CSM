@@ -58,7 +58,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
         save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
         # Generate summed histogram
         print('Importing and summing %s saves...' % study)
-        hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=True)
+        hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=False)
         histograms.append(hist.iloc[0].to_numpy())
 
     [galex_hist, graham_hist] = histograms
@@ -69,7 +69,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
     print('Importing and summing G19 detections...')
-    hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=True)
+    hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=False)
     graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
     # graham_detections = pd.read_csv('ref/Graham_detections.csv')
     # graham_det_hist = np.histogram(graham_detections['Rest Phase'], x_edges)[0]

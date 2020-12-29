@@ -11,7 +11,6 @@ import astropy.units as u
 
 from utils import *
 from CSMmodel import CSMmodel
-from light_curve import flux2luminosity
 from light_curve import freq2wavelength
 
 # Default values & constants
@@ -33,13 +32,6 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
         data = data[~data['Detection']]
     supernovae = data.index
 
-    # Test
-    # obs = Observation('SN 2015cp', data)
-    # obs.inject_recover(500, 1.05)
-
-    # Import Graham data
-    # data = import_graham_data(sigma=sigma)
-
     # Record luminosities of CSM model for scale 1
     base_model = CSMmodel(0, WIDTH, DECAY_RATE, scale=1, model=model)
     base_model_z = 0.04
@@ -52,24 +44,6 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
     run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
             overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
             decay_rate=decay_rate)
-
-
-# def import_graham_data(path='ref/Graham_limiting_magnitudes.csv', sigma=SIGMA):
-#     """Import data from Graham+ 2019 and convert 50% limiting magnitudes to
-#     (3)-sigma luminosity limits."""
-
-#     # Import CSV
-#     data = pd.read_csv(Path(path), index_col='Target')
-#     # Convert limiting magnitude & error to n-sigma magnitude limit
-#     data['Sigma Limit'] = data['Limiting Magnitude'] - sigma * data['Limiting Magnitude Error']
-#     # Convert magnitude limit to flux limit
-#     data['Flux Limit'] = 10**(-2/5 * data['Sigma Limit']) * F275W_ZERO_POINT
-#     # Gather distance and redshift data for targets
-#     dist = data['Distance [Mpc]'].to_numpy() * u.Mpc
-#     z = data['Redshift']
-#     # Convert flux limit to luminosity limit
-#     data['Luminosity Limit'] = data['Flux Limit'] * (4*np.pi*dist.to('cm')**2) * (1+z)**3
-#     return data
 
 
 def run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
@@ -106,7 +80,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
-    obs = Observation(sn_name, data)
+    obs = GrahamObservation(sn_name, data)
 
     # Random injection parameter sample
     params = gen_params(iterations, tstart_lims, scale_lims, log=True)
@@ -134,7 +108,7 @@ def inject_recover(params, obs, **kwargs):
     """Perform injection and recovery for given SN and model parameters.
     Inputs:
         params: tuple of (tstart, scale) injection parameters
-        obs: Observation object
+        obs: GrahamObservation object
     Output:
         list with injection parameters and number of recoveries
     """
@@ -147,7 +121,7 @@ def inject_recover(params, obs, **kwargs):
     return [tstart, scale, recovered]
 
 
-class Observation:
+class GrahamObservation:
     def __init__(self, sn_name, data, sigma=3):
         """Initialize observation.
         Inputs:
@@ -169,16 +143,15 @@ class Observation:
         self.mag_lim_err = self.info['Limiting Magnitude Error']
         # Detection or nondetection
         self.detection = self.info['Detection']
+        # Luminosity limit
+        self.luminosity_limit = self.get_luminosity_limit(sigma)
 
+        # Detections
         if self.detection:
-            # Detections
             luminosity_hz = 10 ** self.info['Log Luminosity'] * u.erg
             # luminosity (erg/s/AA)
             self.luminosity = freq2wavelength(luminosity_hz, F275W_LAMBDA_EFF * u.AA)
             self.luminosity_err = self.get_luminosity_limit(1)
-        else:
-            # Nondetections
-            self.luminosity_limit = self.get_luminosity_limit(sigma)
 
 
     def get_luminosity_limit(self, sigma, zero_point=F275W_ZERO_POINT):
@@ -210,13 +183,13 @@ class Observation:
         # self.injection = self.model(self.rest_phase, self.z)['F275W']
         model_lum = model(self.rest_phase, self.z)['F275W']
 
-        # Recover
-        if self.detection:
-            lower_lim = (self.luminosity - self.luminosity_err).value
-            upper_lim = (self.luminosity + self.luminosity_err).value
-            self.recovered = (model_lum > lower_lim) and (model_lum < upper_lim)
-        else:
-            self.recovered = model_lum > self.luminosity_limit
+        # Recover model
+        # if self.detection:
+        #     lower_lim = (self.luminosity - self.luminosity_err).value
+        #     upper_lim = (self.luminosity + self.luminosity_err).value
+        #     self.recovered = (model_lum > lower_lim) and (model_lum < upper_lim)
+        # else:
+        self.recovered = model_lum > self.luminosity_limit.value
 
         return self.recovered
 
