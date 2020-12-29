@@ -15,7 +15,6 @@ from light_curve import freq2wavelength
 
 # Default values & constants
 SIGMA = 3 # detection certainty
-# z_2015cp = 0.038 # redshift of SN 2015cp
 F275W_ZERO_POINT = 1.47713e-8 # erg/cm2/s/A; AB system
 
 
