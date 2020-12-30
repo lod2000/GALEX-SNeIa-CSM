@@ -44,7 +44,7 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
             overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
             decay_rate=decay_rate)
 
-    # obs = GrahamObservation('SN 2015bq', data, sigma=3)
+    # obs = GrahamObservation('iPTF14aqs', data, sigma=3)
     # print(obs.luminosity_limit)
 
 
