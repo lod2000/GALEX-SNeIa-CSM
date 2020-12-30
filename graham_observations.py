@@ -44,6 +44,9 @@ def main(iterations, tstart_lims, scale_lims, save_dir, twidth=WIDTH,
             overwrite=overwrite, model=model, save_dir=save_dir, twidth=twidth,
             decay_rate=decay_rate)
 
+    # obs = GrahamObservation('SN 2015bq', data, sigma=3)
+    # print(obs.luminosity_limit)
+
 
 def run_all(supernovae, data, iterations, tstart_lims, scale_lims, 
         overwrite=False, model='Chev94', save_dir=SAVE_DIR, **kwargs):
@@ -79,7 +82,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
-    obs = GrahamObservation(sn_name, data)
+    obs = GrahamObservation(sn_name, data, sigma=3)
 
     # Random injection parameter sample
     params = gen_params(iterations, tstart_lims, scale_lims, log=True)

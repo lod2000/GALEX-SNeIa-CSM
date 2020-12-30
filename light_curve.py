@@ -240,7 +240,7 @@ class LightCurve:
         time = all_time[all_time > dt_min]
         data = self.data[data_col][time.index]
         err = self.data[err_col][time.index]
-        # confidence level of data being away from 0
+        # confidence level of data
         conf = data / err
 
         if type(sigma) == int:
