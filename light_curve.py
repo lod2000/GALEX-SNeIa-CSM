@@ -15,7 +15,8 @@ from utils import *
 
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
-LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
+#LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
+LC_DIR = Path('data')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
@@ -70,7 +71,7 @@ def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
             upper_lims['flux_limit'] = lc('flux_hostsub_err') * DET_SIGMA
             upper_lims['luminosity_limit'] = lc('luminosity_hostsub_err') * DET_SIGMA
             print(upper_lims[upper_lims['t_delta_rest'] > 0][limit_cols])
-        except:
+        except FileNotFoundError:
             print('No data available.')
 
     if make_plot:
