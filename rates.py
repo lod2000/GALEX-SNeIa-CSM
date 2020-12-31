@@ -10,8 +10,8 @@ from plot_recovery import sum_hist
 # Defaults
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
-SCALE = 1 # default model scale
-DS = 0.1 # range above and below scale to include
+SCALE = [0.9, 1.1] # default model scale
+# DS = 0.1 # range above and below scale to include
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
 YMAX = None
@@ -44,11 +44,11 @@ HATCHES = { 'GALEX': '|',
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, 
-        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, ds=DS):
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.array([scale - ds, scale + ds])
+    y_edges = np.array(scale)
     nbins = len(x_edges)-1
 
     # Import non-detections and sum histograms for GALEX and G19
@@ -245,7 +245,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
             help='CSM spectrum model')
-    parser.add_argument('--scale', '-S', type=float, default=SCALE)
+    parser.add_argument('--scale', '-S', nargs=2, type=float, default=SCALE,
+            help='lower and upper scale factor bounds')
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--tmax', type=int, default=TSTART_MAX, 
