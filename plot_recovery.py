@@ -64,7 +64,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     hist.sort_index(ascending=True, inplace=True)
 
     # Colormap
-    n_colors = 15
+    n_colors = 12
     cmap = plt.cm.jet # colormap of choice
     cmaplist = [cmap(i) for i in range(cmap.N)]
     cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
@@ -92,10 +92,6 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
 
-    # Color bar
-    # if detections:
-    #     cbar_label = 'Fraction of possible models'
-    # else:
     cbar_label = 'No. of excluded SNe Ia'
     cbar = plt.colorbar(pcm, label=cbar_label, spacing='proportional')
     if hist_max > 24:
