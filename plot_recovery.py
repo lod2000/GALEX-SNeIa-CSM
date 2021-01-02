@@ -2,7 +2,7 @@ from functools import reduce
 from functools import partial
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator
-from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
+from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm, SymLogNorm
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -58,44 +58,44 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
         show: whether to display plot
         output_file: output png plot file
         cbin_width: width of colormap bins
+        cmax: optional manual maximum value of colorbar
     """
 
     # Flip y-axis
     hist.sort_index(ascending=True, inplace=True)
 
-    # Colormap
-    n_colors = 12
+    # Define colormap
+    n_colors = 10 # number of distinct colors
     cmap = plt.cm.jet # colormap of choice
-    cmaplist = [cmap(i) for i in range(cmap.N)]
-    cmaplist = [(0, 0, 0, 1)] + cmaplist # add black for 0-1
-    cmap = LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
-    hist_max = int(np.max(hist.to_numpy()))+1 # max value of histogram
-    hist_max = hist_max if cmax == None else cmax
-    if hist_max > n_colors:
-        cbin_width = int(hist_max / n_colors)
-        cmap_bounds = np.arange(1, hist_max, cbin_width)
+    cmap.set_under('k') # set color for values under minimum
+    # maximum value of colorbar: equal to max of hist or manual value
+    if cmax:
+        hist_max = cmax
     else:
-        hist_max = np.max(hist.to_numpy())
-        cbin_width = hist_max / n_colors
-        cmap_bounds = np.arange(0.01, hist_max, cbin_width)
-    # include lower, uppper bounds
-    cmap_bounds = np.concatenate(([0], cmap_bounds, [hist_max]))
-    norm = BoundaryNorm(cmap_bounds, cmap.N)
+        hist_max = int(np.max(hist.to_numpy())) + 1
+    # (rounded) logarithmic scale
+    cmap_bounds = np.logspace(0, np.log10(hist_max), num=n_colors, endpoint=True)
+    cmap_bounds = np.round(cmap_bounds)
+    norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
     # Plot
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm, vmin=0,
+    pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm,
             edgecolor='k', linewidth=0.3, antialiased=True)
+
+    # Format axes
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
     ax.set_ylabel('Scale factor')
 
+    # Adjust colorbar: add extension below lower limit
     cbar_label = 'No. of excluded SNe Ia'
-    cbar = plt.colorbar(pcm, label=cbar_label, spacing='proportional')
-    if hist_max > 24:
-        cbar.ax.yaxis.set_minor_locator(MultipleLocator(int(hist_max/24)))
+    bounds = list(cmap_bounds)
+    cbar = fig.colorbar(pcm, label=cbar_label, spacing='uniform', extend='min', 
+            boundaries=[0] + bounds, ticks=bounds, extendfrac='auto')
+    cbar.ax.minorticks_off()
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
