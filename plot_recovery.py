@@ -16,7 +16,8 @@ SIGMA = 3
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
         show_plot=True, model='Chev94', study='galex', cmax=None,
-        sigma=SIGMA, plot_rates=False, overwrite=False, detections=False):
+        sigma=SIGMA, plot_rates=False, overwrite=False, detections=False,
+        upper_lim=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -24,13 +25,19 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
+    det_save_dir = run_dir(study + '_det', model, sigma)
     if detections:
-        save_dir = run_dir(study + '_det', model, sigma)
+        save_dir = det_save_dir
     fname = 'recovery_%s_%s' % (study, model)
+    det_fname = 'recovery_%s_det_%s' % (study, model)
     if detections:
-        fname = 'recovery_%s_det_%s' % (study, model)
+        fname = det_fname
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
-    plot_file = OUTPUT_DIR / Path(fname + '.pdf')
+    det_hist_file = OUTPUT_DIR / Path(det_fname + '.csv')
+    if upper_lim:
+        plot_file = OUTPUT_DIR / Path(fname + '_upperlim.pdf')
+    else:
+        plot_file = OUTPUT_DIR / Path(fname + '.pdf')
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
@@ -38,18 +45,24 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+        if upper_lim and study == 'graham':
+            det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
+            det_hist = sum_hist(det_save_files, x_edges, y_edges, 
+                    output_file=det_hist_file)
+            hist = hist + det_hist
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
+        if upper_lim and study == 'graham':
+            det_hist = pd.read_csv(det_hist_file, index_col=0)
+            hist = hist + det_hist
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
-            detections=detections)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None,
-        detections=False):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -208,9 +221,11 @@ if __name__ == '__main__':
     parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
     parser.add_argument('-d', '--detections', action='store_true', 
             help='Recover models for G19 detections instead of nondetections')
+    parser.add_argument('-u', '--upperlim', action='store_true', 
+            help='plot upper limit of binomial conf intervals instead of excluded SNe')
     parser.add_argument('--smax', default=SCALE_MAX, type=int, help='y-axis upper limit')
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
             study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, scale_max=args.smax,
-            bin_width=args.twidth, detections=args.detections)
+            bin_width=args.twidth, detections=args.detections, upper_lim=args.upperlim)
