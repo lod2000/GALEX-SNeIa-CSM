@@ -18,7 +18,7 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
         show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, plot_rates=False, overwrite=False, detections=False,
-        upper_lim=False):
+        upper_lim=False, cmin=None):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -72,11 +72,11 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Plot histogram
     print('Plotting recovery histogram...')
     plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
-            upper_lim=upper_lim)
+            cmin=cmin, upper_lim=upper_lim)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None,
-        upper_lim=False):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
+        cmax=None, cmin=None, upper_lim=False):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -101,23 +101,20 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     cmap.set_over('k') # set color for values over maximum
 
     # colorbar limits
-    hist_min = 1
-    if cmax: # set to manual maximum value
-        hist_max = cmax
-    elif upper_lim: # set limit to highest value not at 100%
+    if upper_lim:
+        # set limit to highest value not at 100%
         hist_max = np.max(hist[hist < 100].to_numpy()) + 0.01
         hist_min = np.min(hist.to_numpy()) - 0.01
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
+        hist_min = 1
+    if not cmax:
+        cmax = hist_max
+    if not cmin:
+        cmin = hist_min
 
-    # colormap bounds
-    # if upper_lim:
-    #     cmap_bounds = np.linspace(0, hist_max, num=n_colors, endpoint=True)
-    #     print(cmap_bounds)
-    # else:
-    # (rounded) logarithmic scale
-    cmap_bounds = np.logspace(np.log10(hist_min), np.log10(hist_max), 
-            num=n_colors, endpoint=True)
+    # colormap bounds: (rounded) logarithmic scale
+    cmap_bounds = np.logspace(np.log10(cmin), np.log10(cmax), num=n_colors)
     if not upper_lim:
         cmap_bounds = np.round(cmap_bounds)
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
@@ -254,6 +251,7 @@ if __name__ == '__main__':
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--cmax', type=float, help='Max colorbar value')
+    parser.add_argument('--cmin', type=float, help='Minimum colorbar value')
     parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
     parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
     parser.add_argument('-d', '--detections', action='store_true', 
@@ -264,5 +262,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
-            study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, scale_max=args.smax,
-            bin_width=args.twidth, detections=args.detections, upper_lim=args.upperlim)
+            study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, 
+            cmin=args.cmin, scale_max=args.smax, bin_width=args.twidth, 
+            detections=args.detections, upper_lim=args.upperlim)
