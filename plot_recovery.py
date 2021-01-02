@@ -67,7 +67,6 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
         # Binomial confidence interval
         hist = 100 * bci_nan(det_hist, hist)[1]
-        print(hist)
 
     # Plot histogram
     print('Plotting recovery histogram...')
@@ -85,6 +84,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         show: whether to display plot
         output_file: output png plot file
         cmax: optional manual maximum value of colorbar
+        cmin: optional manual minimum value of colorbar (must be >0)
         upper_lim: if True, plot upper 90% C.I. instead of number of excluded SNe
     """
 
@@ -101,10 +101,12 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     cmap.set_over('k') # set color for values over maximum
 
     # colorbar limits
+    if cmin <= 0:
+        raise ValueError('cmin must be positive')
     if upper_lim:
         # set limit to highest value not at 100%
-        hist_max = np.max(hist[hist < 100].to_numpy()) + 0.01
-        hist_min = np.min(hist.to_numpy()) - 0.01
+        hist_max = int(np.max(hist[hist < 100].to_numpy())) + 1
+        hist_min = int(np.min(hist.to_numpy()))
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
         hist_min = 1
@@ -115,8 +117,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
 
     # colormap bounds: (rounded) logarithmic scale
     cmap_bounds = np.logspace(np.log10(cmin), np.log10(cmax), num=n_colors)
-    if not upper_lim:
-        cmap_bounds = np.round(cmap_bounds)
+    cmap_bounds[0] = int(cmap_bounds[0]) # first bound must round down
+    cmap_bounds = np.round(cmap_bounds)
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
     # Plot
