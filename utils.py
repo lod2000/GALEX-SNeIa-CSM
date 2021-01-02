@@ -109,3 +109,42 @@ def SN2015cp_scale(model):
     scale_2015cp = L_2015cp_cgs / model_2015cp['F275W'][0]
 
     return scale_2015cp
+
+
+def bci_nan(detections, trials, conf=0.9, interval='jeffreys'):
+    """Find binomial confidence interval for DataFrame with NaN values.
+    Inputs:
+        detections: DataFrame of detections
+        trials: DataFrame of trials (incl. detections), same shape as detections
+    Returns:
+        bci_lower: DataFrame, same shape as trials, with lower BCI limits
+        bci_upper: DataFrame, same shape as trials, with upper BCI limits
+    """
+    from astropy.stats import binom_conf_interval
+
+    if detections.shape != trials.shape:
+        raise ValueError('detections and trials must have the same shape.')
+
+    bci_lower = pd.DataFrame([], index=trials.index, columns=trials.columns)
+    bci_upper = pd.DataFrame([], index=trials.index, columns=trials.columns)
+
+    # Calculate binomial confidence intervals
+    for col in trials.columns:
+        # separate bins with no trials
+        pos_index = trials[trials[col] >= 1].index
+        zero_index = trials[trials[col] < 1].index
+
+        # calculate BCI for cells with positive trials
+        bci = binom_conf_interval(detections.loc[pos_index, col], 
+                trials.loc[pos_index, col], confidence_level=conf, 
+                interval=interval)
+        
+        # add to dataframes
+        bci_lower.loc[pos_index, col] = bci[0].T
+        bci_upper.loc[pos_index, col] = bci[1].T
+
+        # in cases with no trials, lower limit 0. and upper limit 1.
+        bci_lower.loc[zero_index,col] = 0.
+        bci_upper.loc[zero_index,col] = 1.
+
+    return bci_lower, bci_upper

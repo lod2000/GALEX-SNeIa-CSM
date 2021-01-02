@@ -12,6 +12,7 @@ from utils import *
 from CSMmodel import CSMmodel
 
 SIGMA = 3
+CONF = 0.9
 
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
@@ -57,12 +58,26 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
             det_hist = pd.read_csv(det_hist_file, index_col=0)
             hist = hist + det_hist
 
+    # Calculate 90% binom conf interval upper limits
+    if upper_lim:
+        # Zero detections for GALEX
+        if study == 'galex':
+            zeros = np.zeros(hist.shape)
+            det_hist = pd.DataFrame(zeros, index=hist.index, columns=hist.columns)
+
+        # Binomial confidence interval
+        print(hist)
+        bci_upper = bci_nan(det_hist, hist)[1]
+        print(bci_upper)
+
     # Plot histogram
     print('Plotting recovery histogram...')
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax)
+    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
+            upper_lim=upper_lim)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None):
+def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=None,
+        upper_lim=False):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -70,8 +85,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
         hist: 2D histogram
         show: whether to display plot
         output_file: output png plot file
-        cbin_width: width of colormap bins
         cmax: optional manual maximum value of colorbar
+        upper_lim: if True, plot upper 90% C.I. instead of number of excluded SNe
     """
 
     # Flip y-axis
@@ -105,6 +120,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
 
     # Adjust colorbar: add extension below lower limit
     cbar_label = 'No. of excluded SNe Ia'
+    if upper_lim:
+        cbar_label = 'Upper 90\% confidence [%]'
     bounds = list(cmap_bounds)
     cbar = fig.colorbar(pcm, label=cbar_label, spacing='uniform', extend='min', 
             boundaries=[0] + bounds, ticks=bounds, extendfrac='auto')
