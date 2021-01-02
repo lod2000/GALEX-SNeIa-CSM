@@ -66,9 +66,8 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
             det_hist = pd.DataFrame(zeros, index=hist.index, columns=hist.columns)
 
         # Binomial confidence interval
+        hist = 100 * bci_nan(det_hist, hist)[1]
         print(hist)
-        bci_upper = bci_nan(det_hist, hist)[1]
-        print(bci_upper)
 
     # Plot histogram
     print('Plotting recovery histogram...')
@@ -94,16 +93,33 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
 
     # Define colormap
     n_colors = 10 # number of distinct colors
-    cmap = plt.cm.jet # colormap of choice
+    cmap_name = 'jet'
+    if upper_lim:
+        cmap_name += '_r' # reversed
+    cmap = plt.cm.get_cmap(cmap_name)
     cmap.set_under('k') # set color for values under minimum
-    # maximum value of colorbar: equal to max of hist or manual value
-    if cmax:
+    cmap.set_over('k') # set color for values over maximum
+
+    # colorbar limits
+    hist_min = 1
+    if cmax: # set to manual maximum value
         hist_max = cmax
+    elif upper_lim: # set limit to highest value not at 100%
+        hist_max = np.max(hist[hist < 100].to_numpy()) + 0.01
+        hist_min = np.min(hist.to_numpy()) - 0.01
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
+
+    # colormap bounds
+    # if upper_lim:
+    #     cmap_bounds = np.linspace(0, hist_max, num=n_colors, endpoint=True)
+    #     print(cmap_bounds)
+    # else:
     # (rounded) logarithmic scale
-    cmap_bounds = np.logspace(0, np.log10(hist_max), num=n_colors, endpoint=True)
-    cmap_bounds = np.round(cmap_bounds)
+    cmap_bounds = np.logspace(np.log10(hist_min), np.log10(hist_max), 
+            num=n_colors, endpoint=True)
+    if not upper_lim:
+        cmap_bounds = np.round(cmap_bounds)
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
     # Plot
@@ -119,12 +135,16 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', cmax=Non
     ax.set_ylabel('Scale factor')
 
     # Adjust colorbar: add extension below lower limit
-    cbar_label = 'No. of excluded SNe Ia'
     if upper_lim:
         cbar_label = 'Upper 90\% confidence [%]'
-    bounds = list(cmap_bounds)
-    cbar = fig.colorbar(pcm, label=cbar_label, spacing='uniform', extend='min', 
-            boundaries=[0] + bounds, ticks=bounds, extendfrac='auto')
+        bounds = list(cmap_bounds) + [100]
+        extend = 'max'
+    else:
+        cbar_label = 'No. of excluded SNe Ia'
+        bounds = [0] + list(cmap_bounds)
+        extend = 'min'
+    cbar = fig.colorbar(pcm, label=cbar_label, spacing='uniform', extend=extend, 
+            boundaries=bounds, ticks=cmap_bounds, extendfrac='auto')
     cbar.ax.minorticks_off()
 
     plt.tight_layout()
