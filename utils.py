@@ -88,11 +88,13 @@ def gen_params(iterations, tstart_lims, scale_lims, log=True):
 
     return params
 
-def run_dir(study, model, sigma):
+def run_dir(study, model, sigma, detections=False):
     """Generate run save directory."""
 
     if type(sigma) == list:
         sigma = ''.join([str(s) for s in sigma])
+    if detections:
+        study = study + '_det'
     run_name = '%s_%s_%ssigma' % (study, model, sigma)
     run = SAVE_DIR / Path(run_name)
     if not run.is_dir(): run.mkdir()
@@ -128,8 +130,8 @@ def bci_nan(detections, trials, conf=0.9, interval='jeffreys'):
     if detections.shape != trials.shape:
         raise ValueError('detections and trials must have the same shape.')
 
-    bci_lower = pd.DataFrame([], index=trials.index, columns=trials.columns)
-    bci_upper = pd.DataFrame([], index=trials.index, columns=trials.columns)
+    bci_lower = pd.DataFrame([], index=trials.index)
+    bci_upper = pd.DataFrame([], index=trials.index)
 
     # Calculate binomial confidence intervals
     for col in trials.columns:

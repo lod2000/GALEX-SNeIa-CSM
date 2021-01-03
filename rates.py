@@ -24,18 +24,18 @@ COLORS = {  'GALEX': '#47a',
             'This study': 'k',
             'ASAS-SN': '#ffc107',
             'ZTF': '#1e88e5',
-            'All': 'k'
+            # 'All': 'k'
 }
-MARKERS = { 'GALEX': 'o', 
-            'G19': 'o', 
-            'This study': 'o', 
-            'ASAS-SN': 's', 
+MARKERS = { #'GALEX': 'o', 
+            # 'G19': 'o', 
+            # 'This study': 'o', 
+            'ASAS-SN': '*', 
             'ZTF': 's', 
-            'All': '*'
+            # 'All': '*'
 }
 ALPHAS = {  'GALEX': 0.3,
             'G19': 0.3,
-            'This study': 0.4
+            'This study': 0.5
 }
 HATCHES = { 'GALEX': '|',
             'G19': '-',
@@ -51,33 +51,16 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     y_edges = np.array(scale)
     nbins = len(x_edges)-1
 
-    # Import non-detections and sum histograms for GALEX and G19
-    histograms = []
-    for study in ['galex', 'graham']:
-        # File names
-        save_dir = run_dir(study, model, sigma)
-        save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-        # Generate summed histogram
-        print('Importing and summing %s saves...' % study)
-        hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=False)
-        histograms.append(hist.iloc[0].to_numpy())
-
-    [galex_hist, graham_hist] = histograms
-    total_hist = galex_hist + graham_hist
-
-    # Import G19 detections
-    save_dir = run_dir('graham_det', model, sigma)
-    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-    # Generate summed histogram
-    print('Importing and summing graham detections...')
-    hist = sum_hist(save_files, x_edges, y_edges, save=False)
-    graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
+    # Import sum histograms for GALEX and G19 non-detections
+    galex_hist = import_recovery('galex', model, sigma, x_edges, y_edges)
+    graham_hist = import_recovery('graham', model, sigma, x_edges, y_edges)
+    # and G19 detections
+    graham_det_hist = import_recovery('graham', model, sigma, x_edges, y_edges,
+            detections=True)
 
     # DataFrame for number of trials per tstart bin and data source
-    # sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
-    # sources = ['G19', 'GALEX']
-    index = pd.Series(x_edges[:-1])
-    trials = pd.DataFrame([], index=index)
+    tstart_bins = pd.Series(x_edges[:-1])
+    trials = pd.DataFrame([], index=tstart_bins)
     trials['G19'] = (graham_hist + graham_det_hist).T
     trials['GALEX'] = galex_hist.T
     trials['This study'] = trials['GALEX'] + trials['G19']
@@ -85,25 +68,44 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     # trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
     # trials['All'] = trials[sources].sum(axis=1)
     # trials.loc[trials['All'] == trials['This study'], 'All'] = 0
-    print(trials)
+    # print(trials)
 
     # DataFrame for number of detections per tstart bin and data source
-    detections = pd.DataFrame([], index=index)
+    detections = pd.DataFrame([], index=tstart_bins)
     detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
     detections['This study'] = detections['GALEX'] + detections['G19']
     # detections['ASAS-SN'] = np.array([3] + [0]*(nbins-1)).T
     # detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
     # detections['All'] = detections[sources].sum(axis=1)
-    print(detections)
+    # print(detections)
 
+    # Calculate binomial confidence intervals
     bci_lower, bci_upper = bci_nan(detections, trials, conf=CONF)
+    # Convert to percentages
+    bci_lower *= 100
+    bci_upper *= 100
 
     # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
     #         output_file=Path('out/rates_%s.tex' % model))
 
     plot(bci_lower, bci_upper, show=True,)
-            # output_file=Path('out/rates_%s.pdf' % model))    
+            # output_file=Path('out/rates_%s.pdf' % model)) 
+
+
+def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
+        iterations=ITERATIONS):
+    """Import recovery save files and sum histograms with given bounds."""
+
+    # File names
+    save_dir = run_dir(study, model, sigma, detections)
+    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+    # Generate summed histogram
+    print('Importing and summing %s saves from %s' % (study, save_dir))
+    hist = sum_hist(save_files, x_edges, y_edges, save=False)
+    count = np.nan_to_num(hist.iloc[0].to_numpy())
+
+    return count
 
 
 # def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
@@ -165,18 +167,20 @@ def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX
     x_end = x[-1] + (x[1] - x[0])
     x = np.append(x, [x_end])
 
+    # Plot confidence intervals
     for col in bci_lower.columns:
         # Find midpoint and errors for plotting
-        y1 = bci_lower[col]
-        y2 = bci_upper[col]
+        y1 = bci_lower[col].to_numpy()
+        y2 = bci_upper[col].to_numpy()
         # Add endpoints
-        y1.loc[x_end] = y2.loc[x_end] = 0
-        # midpoint = np.mean([y1, y2], axis=0)
+        y1 = np.append(y1, 0.)
+        y2 = np.append(y2, 0.)
+        
         color = COLORS[col]
         alpha = ALPHAS[col]
         hatch = HATCHES[col]
 
-        ax.fill_between(x, y1, y2, color=color, alpha=alpha, hatch=hatch, lw=2,
+        ax.fill_between(x, y1, y2, color=color, alpha=alpha, hatch=hatch, lw=2, 
                 label=col, step='post')
 
         # ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
