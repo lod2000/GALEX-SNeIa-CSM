@@ -1,0 +1,180 @@
+Title: ZTF Early Observations of Type Ia Supernovae I: Properties 
+       of the 2018 Sample 
+Authors: Yao Y., Miller A.A., Kulkarni S.R., Bulla M., Masci F.J., 
+    Goldstein D.A., Goobar A., Nugent P., Dugas A., Blagorodnova N., 
+    Neill J.D., Rigault M., Sollerman J., Nordin J., Bellm E.C., Cenko S.B., 
+    De K., Dhawan S., Feindt U., Fremling C., Gatkine P., Graham M.J., 
+    Graham M.L., Ho A.Y.Q., Hung T., Kasliwal M.M., Kupfer T., Laher R.R., 
+    Perley D.A., Rusholme B., Shupe D.L., Soumagnac M.T., Taggart K., 
+    Walters R., Yan L.
+Table: General information and Photometric properties of 127 SNe Ia
+================================================================================
+Byte-by-byte Description of file: apjab4cf5t2_mrt.txt
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label      Explanations
+--------------------------------------------------------------------------------
+   1- 12 A12    ---     ZTF        ZTF Name
+  14- 24 F11.7  deg     RAdeg      Right Ascension, decimal degrees (J2000)
+  26- 35 F10.7  deg     DEdeg      Declination, decimal degrees (J2000)
+  37- 45 A9     ---     IAU        SN IAU name from TNS
+  47- 58 A12    ---     TNS        TNS Internal Name, indicating the discovery group
+  60- 81 A22    ---     Tel        Followup Telescope(s) (1)
+  83-109 A27    ---     Phase      Spectroscopic Phase(s) at Followup (1)
+ 111-120 A10    ---     Subtype    Ia Subtype (2)
+ 122-127 F6.4   ---     z          Redshift (3)
+ 129-134 F6.4   mag     E(B-V)     Forground Galactic extinction from Schlafly & Finkbeiner (2011ApJ...737..103S)
+ 136-143 F8.2   d       tgmax      epoch of g-band maximum light, Modified Julian Date (4)
+ 145-148 F4.2   d     e_tgmax      Uncertainty in tgmax
+ 150-153 F4.2   mag     deltam15g  ?="" decline within 15d from maximum in g band (4)
+ 155-158 F4.2   mag   e_deltam15g  ?="" Uncertainty in deltam15g
+ 160-164 F5.2   ---     salt2x1    light curve shape parameter, x1, from SALT2 fitting
+ 166-169 F4.2   ---   e_salt2x1    Uncertainty in salt2x1
+ 171-175 F5.2   ---     salt2c     light curve color, c, from SALT2 fitting
+ 177-180 F4.2   ---   e_salt2c     Uncertainty in salt2c
+--------------------------------------------------------------------------------
+Note (1): Follow-up telescope and epoch of the spectrum with respect to tgmax 
+    used to determine the spectral subtype. If multiple observations were used
+    then the values are given as a comma delimited string.
+Note (2): If classification can not be reliably determined from spectroscopy
+    alone, the subtype ends with an asterisk. See Section 4.2 for details.
+Note (3): The host galaxy redshift (z) is shown with 4 decimals if: (i) z is
+    taken from NED, (ii) z is measured from the galaxy spectrum obtained by
+    us, (iii) z is measured from a SN spectrrum where the host H{alpha} line
+    can be identified. Redshifts inferred from SNID fit on SN spectra are
+    shown with 3 decimals. Redshift of ZTF18abptsco was reported by ATel
+    12052 (Gomez et al. 2018ATel12052....1G) and was shown with 2 decimals. 
+Note (4):  Values of tgmax and deltam15g for peculiar events (classified as
+    ''02cx-like'', ''Ia-CSM'', ''SC'' or ''SC*'') were obtained from
+    polynomial fits to the g-band light curve. For other objects, both tgmax
+    and deltam15g were from SALT2 estimates. If a target does not have any
+    g-band observations in the time range [tgmax+10, tgmax+20] deltam15g
+    cannot be securely estimated and is thus shown in blank (e.g.,
+    ZTF18abuqugw).
+--------------------------------------------------------------------------------
+ZTF18aailmnv 214.2020797 58.4854086 SN2018ebo ZTF18aailmnv P60                     -6.0                       normal     0.08   0.0083 58326.57 0.1  0.77 0.05  0.4  0.42 -0.06 0.05 
+ZTF18aansqun 251.2920505 42.7178671 SN2018dyp ZTF18aansqun P60                     -1.0                       normal     0.0597 0.0127 58313.56 0.18 0.99 0.08 -1.72 0.61  0.2  0.1  
+ZTF18aaoxryq 248.8438805 22.4684347 SN2018ert ZTF18aaoxryq P60                     -4.0                       normal*    0.094  0.0455 58341.43 0.07 0.83 0.06 -0.24 0.49  0.02 0.06 
+ZTF18aapqwyv 251.6054101 25.4214872 SN2018bhc Gaia18bek    DCT                      0.0                       normal*    0.056  0.039  58243.79 0.18 0.99 0.04 -1.72 0.18  0.17 0.04 
+ZTF18aapsedq 215.3960102 49.5472065 SN2018bgs Gaia18bed    P60                      7.0                       normal*    0.072  0.0188 58246.91 0.03 0.82 0.03 -0.09 0.18 -0.09 0.03 
+ZTF18aaqcozd 190.563055  42.2717146 SN2018bjc ATLAS18odd   NOT                     -4.0                       normal     0.0732 0.0203 58253.02 0.06 0.96 0.01 -1.23 0.07 -0.1  0.01 
+ZTF18aaqcqkv 196.5102607 48.2773525 SN2018lpc ZTF18aaqcqkv P200                     9.0                       normal     0.1174 0.0086 58246.74 0.14 0.97 0.06 -1.33 0.68 -0.04 0.06 
+ZTF18aaqcqvr 193.852761  45.5783931 SN2018bvg PS18sk       P60                     -8.0                       normal     0.0716 0.0284 58255.83 0.09 0.79 0.03  0.2  0.2  -0.02 0.03 
+ZTF18aaqcugm 202.0530199 53.9160331 SN2018bhi ATLAS18nwv   P60                     -7.0                       normal     0.0619 0.008  58254.63 0.04 0.95 0.02 -1.12 0.12 -0.09 0.03 
+ZTF18aaqffyp 231.9450112 34.9482174 SN2018bhr ATLAS18oar   P60                     -6.0                       normal     0.064  0.0188 58253.56 0.0  0.70 0.01  0.9  0.04  0.06 0.0  
+ZTF18aaqnrum 248.5657089 26.8896357 SN2018bhs ATLAS18oat   P60                     -7.0                       normal     0.069  0.066  58254.85 0.06 0.80 0.03  0.08 0.21 -0.03 0.03 
+ZTF18aaqqoqs 207.9703694 47.2569926 SN2018cbh ZTF18aaqqoqs P200                    -6.0                       99aa-like  0.08   0.0137 58261.24 0.03 0.68 0.03  1.23 0.27 -0.01 0.03 
+ZTF18aarldnh 195.6554127 55.9257118 SN2018lpd ZTF18aarldnh P200                    -1.0                       normal     0.1077 0.0124 58256.67 0.23 0.92 0.07 -1.05 0.38  0.07 0.07 
+ZTF18aarqnje 251.3533408 35.9560194 SN2018bvd ATLAS18pnx   P200                    -4.0                       normal     0.115  0.0201 58259.19 0.05 0.81 0.04  0.16 0.35 -0.18 0.04 
+ZTF18aasdted 261.4131491 59.4467749 SN2018big ATLAS18ofk   P60                     -9.0                       normal     0.0182 0.0257 58264.93 0.02 0.70 0.01  0.85 0.05  0.16 0.01 
+ZTF18aasesgl 208.6126361 39.7227567 SN2018lpw ZTF18aasesgl P200                    -2.0                       normal     0.0859 0.0115 58257.63 0.09 0.86 0.07 -0.79 0.47  0.32 0.09 
+ZTF18aaslhxt 276.1079418 44.1303976 SN2018btk ATLAS18pjg   LT                      -2.0                       normal     0.055  0.048  58263.08 0.0  0.78 0.00  0.29 0.02 -0.11 0.0  
+ZTF18aatzygk 251.3842075 59.9186171 SN2018bsu ZTF18aatzygk DCT                     -3.0                       normal     0.074  0.0335 58262.45 0.04 0.80 0.03  0.02 0.25  0.05 0.03 
+ZTF18aauhxce 177.5687254 51.4534264 SN2018cec ATLAS18qee   NOT                      4.0                       normal*    0.0831 0.0167 58269.74 0.05 0.66 0.04  1.3  0.41  0.12 0.04 
+ZTF18aaumeys 214.3129358 59.2763734 SN2018bpd ATLAS18oqb   DCT                     -7.0                       99aa-like  0.0365 0.0082 58266.68 0.04 0.73 0.02  0.72 0.1  -0.02 0.01 
+ZTF18aaumlfl 244.2707135 50.7924589 SN2018btg ATLAS18pix   P60                     -2.0                       normal     0.0874 0.02   58265.16 0.11 0.95 0.04 -1.13 0.26 -0.09 0.03 
+ZTF18aaunfqq 238.5799814 39.4539556 SN2018lpb ZTF18aaunfqq P60                     -5.0                       normal*    0.0711 0.0086 58267.08 0.0  0.95 0.01 -1.25 0.03  0.01 0.01 
+ZTF18aauocnw 271.1651445 41.549485  SN2018cae PS18vs       P60                      0.0                       normal     0.1    0.0315 58268.84 0.16 0.80 0.04  0.12 0.27 -0.04 0.03 
+ZTF18aavrwhu 206.7352136 43.1372885 SN2018bxo PS18ty       P60                     -6.0                       normal     0.062  0.0106 58274.99 0.1  0.68 0.03  1.2  0.27 -0.02 0.02 
+ZTF18aavrzxp 215.4493577 48.166605  SN2018cdu ZTF18aavrzxp P60                      4.0                       normal     0.07   0.0232 58269.99 0.25 0.98 0.04 -1.39 0.21 -0.08 0.03 
+ZTF18aawjywv 268.7502341 42.8983364 SN2018ccj ZTF18aawjywv P60                      0.0                       normal*    0.0509 0.0228 58270.78 0.24 0.98 0.05 -1.48 0.3  -0.01 0.05 
+ZTF18aawpcel 195.3210357 59.8100342 SN2018cir ZTF18aawpcel P60                      0.0                       SC*        0.15   0.0108 58279.48 1.43 0.53 0.09  3.24 0.78  0.12 0.06 
+ZTF18aawurud 280.730097  50.659344  SN2018eaz ZTF18aawurud P60                     -1.0                       normal     0.0531 0.0481 58326.25 0.27 0.76 0.07  0.33 0.22  0.14 0.05 
+ZTF18aaxakhh 278.5608703 32.919328  SN2018cvb PS18aca      P60                     29.0                       91T-like*  0.12   0.0586 58266.65 0.09 0.75 0.03  0.54 0.22 -0.08 0.02 
+ZTF18aaxcntm 247.0463868 39.820112  SN2018ccl ZTF18aaxcntm APO                      3.0                       normal     0.0269 0.0081 58279.02 0.01 0.97 0.01 -1.52 0.06  0.1  0.02 
+ZTF18aaxdrjn 185.0068641 56.1588698 SN2018cdt ZTF18aaxdrjn LT                      -7.0                       normal     0.034  0.0179 58279.05 0.02 1.05 0.03 -1.92 0.09 -0.08 0.03 
+ZTF18aaxqyki 232.5761592 57.6584886 SN2018cnz ZTF18aaxqyki P200                    -8.0                       normal     0.1003 0.0155 58285.16 0.07 0.71 0.02  0.94 0.27 -0.05 0.03 
+ZTF18aaxrvzj 241.7398043 59.015235  SN2018lpe ZTF18aaxrvzj APO                      5.0                       normal     0.11   0.0113 58284.02 0.09 0.66 0.03  1.36 0.3  -0.01 0.03 
+ZTF18aaxsioa 252.4129468 45.4922889 SN2018cfa              P200                    -9.0                       normal*    0.0315 0.0171 58285.95 0.01 0.98 0.01 -1.51 0.06  0.05 0.02 
+ZTF18aaxvpsw 224.976663  39.0788005 SN2018cof ZTF18aaxvpsw P60                     -4.0                       normal     0.0916 0.0109 58286.49 0.11 0.80 0.04  0.04 0.35 -0.01 0.05 
+ZTF18aaxwjmp 252.9056982 61.5453683 SN2018coe ZTF18aaxwjmp P60                      2.0                       normal     0.08   0.0304 58287.71 0.04 0.76 0.02  0.43 0.15 -0.01 0.02 
+ZTF18aaydmkh 260.1610906 52.0419426 SN2018coh ZTF18aaydmkh P200                   -10.0                       normal*    0.08   0.0249 58287.67 0.12 0.75 0.03  0.33 0.26  0.19 0.03 
+ZTF18aayjvve 226.069173  35.8150335 SN2018cny ZTF18aayjvve P60                    -10.0                       normal     0.0474 0.0126 58291.67 0.02 0.81 0.02 -0.09 0.1   0.06 0.02 
+ZTF18aaykjei 244.9123513 49.1851778 SN2018crl ZTF18aaykjei "P60,P60,APO,P60,P200" " 3.0,-4.0,-10.0,14.0,81.0" Ia-CSM     0.097  0.0137 58291.72 0.35 0.44 0.03  4.14 0.21  0.5  0.02 
+ZTF18aaytovs 266.4724817 31.7105165 SN2018crk ZTF18aaytovs P200                    14.0                       99aa-like  0.0746 0.0523 58293.58 0.03 0.59 0.03  2.03 0.37  0.12 0.04 
+ZTF18aazabmh 254.9051284 59.0732872 SN2018crr ZTF18aazabmh P200                    -9.0                       normal     0.07   0.0128 58289.9  0.06 0.82 0.02 -0.23 0.18  0.11 0.02 
+ZTF18aazblzy 242.8394794 36.9943003 SN2018cri ZTF18aazblzy P200                   -10.0                       normal     0.0653 0.0116 58291.47 0.02 1.02 0.02 -1.68 0.09 -0.07 0.02 
+ZTF18aazcoob 269.511136  69.0727657 SN2018crj ZTF18aazcoob P60                      0.0                       normal*    0.0845 0.0311 58294.4  0.05 0.72 0.03  0.73 0.3   0.06 0.03 
+ZTF18aazixbw 244.7415874 56.7168873 SN2018coi ZTF18aazixbw NOT                    -11.0                       normal     0.0594 0.0091 58291.46 0.03 0.99 0.02 -1.58 0.13  0.05 0.03 
+ZTF18aazjztm 260.1016409 55.214633  SN2018crs ZTF18aazjztm P60                     -2.0                       normal     0.0721 0.036  58290.74 0.08 0.99 0.04 -1.66 0.25  0.09 0.05 
+ZTF18aazsabq 283.840993  56.588405  SN2018crn ZTF18aazsabq P60                     -3.0                       normal     0.05   0.0506 58293.51 0.02 0.94 0.02 -1.22 0.12  0.04 0.02 
+ZTF18abatffv 208.6391294 40.1699596 SN2018lpf ZTF18abatffv Keck1                   -8.0                       normal     0.14   0.0094 58293.98 0.38 0.70 0.09  0.96 0.56 -0.01 0.08 
+ZTF18abauprj 254.7709972 47.236439  SN2018cnw ZTF18abauprj NOT                     -6.0                       99aa-like  0.0242 0.023  58301.59 0.02 0.67 0.01  1.34 0.04 -0.01 0.01 
+ZTF18abaxlpi 276.5590427 45.0101999 SN2018ctm ZTF18abaxlpi P60                     -4.0                       normal     0.0642 0.0438 58297.84 0.03 0.78 0.02  0.14 0.2   0.06 0.03 
+ZTF18abbpeqo 238.2268969 50.6194001 SN2018cvq ZTF18abbpeqo P60                     -4.0                       normal*    0.0667 0.0173 58300.14 0.05 0.81 0.02 -0.08 0.17  0.02 0.02 
+ZTF18abbvsiv 261.133477  70.372432  SN2018cto ZTF18abbvsiv P60                     -3.0                       normal     0.051  0.0272 58296.56 0.02 1.00 0.03 -1.66 0.19  0.01 0.03 
+ZTF18abcecfi 230.351382  69.6062472 SN2018dbc ZTF18abcecfi P60                      1.0                       normal     0.08   0.0197 58300.66 0.2  0.79 0.07  0.08 0.38  0.09 0.05 
+ZTF18abcflnz 281.5598276 35.968699  SN2018cuw ATLAS18rqk   P60                    -14.0                       normal     0.0273 0.0765 58305.76 0.01 0.80 0.01  0.11 0.02 -0.03 0.01 
+ZTF18abckujg 222.9735212 46.6457682 SN2018cvt ZTF18abckujg P60                     -6.0                       normal     0.074  0.0153 58302.58 0.07 0.75 0.03  0.51 0.3   0.03 0.04 
+ZTF18abckujq 181.6692618 59.5133689 SN2018cvf ZTF18abckujq P60                     -4.0                       normal     0.0638 0.0167 58304.16 0.09 0.75 0.07  0.51 0.39 -0.02 0.07 
+ZTF18abclalx 248.860124  62.5343711 SN2018lpg ZTF18abclalx P60                      4.0                       normal     0.1    0.0227 58299.96 0.09 0.98 0.04 -1.41 0.3  -0.07 0.04 
+ZTF18abclfee 258.5925379 48.2643039 SN2018cxk ZTF18abclfee "P60,LT,P200,P60,P200" " 2.0    ,4.0,8.0,8.0,35.0" 02cx-like  0.029  0.0127 58299.13 0.16 1.67 0.04 -2.53 0.09  0.19 0.02 
+ZTF18abcrxoj 239.2596064 37.4171183 SN2018cvw ZTF18abcrxoj P60                    -13.0                       normal     0.0309 0.0191 58306.01 0.02 0.95 0.02 -1.29 0.06  0.04 0.02 
+ZTF18abcsgvj 266.10265   55.1754354 SN2018cxl ZTF18abcsgvj P60                     -4.0                       normal     0.06   0.0491 58302.8  0.0  1.00 0.01 -1.67 0.08  0.04 0.02 
+ZTF18abcysdx 272.9889001 30.0454047 SN2018deq ZTF18abcysdx P60                      1.0                       normal*    0.067  0.0639 58306.72 0.19 0.73 0.03  0.59 0.3   0.15 0.02 
+ZTF18abdbuty 253.1972377 51.563477  SN2018dbd ZTF18abdbuty P60                     -6.0                       normal     0.06   0.0344 58307.5  0.03 0.89 0.04 -0.77 0.31  0.01 0.04 
+ZTF18abddmrf 226.967302  38.0484486 SN2018dsx ATLAS18sdi   P200                    37.0                       SC*        0.164  0.0119 58307.57 1.02 0.48 0.10  2.53 0.94  0.08 0.05 
+ZTF18abdefet 266.0754862 68.0291291 SN2018dds ZTF18abdefet P60                     -3.0                       normal     0.07   0.0383 58307.23 0.0  0.80 0.01 -0.07 0.05  0.15 0.0  
+ZTF18abdfazk 216.980085  40.9743605 SN2018dbe ZTF18abdfazk P60                      0.0                       normal     0.08   0.0091 58306.78 0.09 0.84 0.04 -0.24 0.39 -0.06 0.06 
+ZTF18abdfwur 245.1798221 65.6391117 SN2018eps ZTF18abdfwur P60                     -6.0                       normal     0.07   0.0226 58309.61 0.07 0.85 0.03 -0.47 0.39  0.04 0.04 
+ZTF18abdfydj 255.5940493 57.7514312 SN2018dzr Gaia18buu    P60                     -6.0                       normal     0.08   0.0178 58310.84 0.05 0.79 0.03  0.22 0.27 -0.05 0.03 
+ZTF18abdkimx 247.7958408 60.5977302 SN2018dyq ZTF18abdkimx P60                     -1.0                       normal     0.08   0.0133 58313.52 0.0  0.83 0.01 -0.17 0.05 -0.04 0.01 
+ZTF18abdmgab 250.9022676 33.533616  SN2018lph ZTF18abdmgab Keck1                    1.0                       86G-like   0.0803 0.0186 58310.98 0.18 1.08 0.04 -2.31 0.33  0.12 0.05 
+ZTF18abdpvnd 348.5225939 29.6333864 SN2018dvf ZTF18abdpvnd "P60,P60,NOT"          "-7.0           ,31.0,59.0" SC         0.05   0.0907 58319.07 0.28 0.59 0.03  3.06 0.1   0.15 0.01 
+ZTF18abealop 240.9350775 54.3040404 SN2018lpi ZTF18abealop P60                     19.0                       normal*    0.0666 0.0067 58315.42 0.0  0.77 0.01  0.05 0.08  0.31 0.01 
+ZTF18abeecwe 268.2106644 21.3826573 SN2018dje ATLAS18sbi   P60                     -7.0                       normal     0.0393 0.0711 58319.11 0.02 0.87 0.03 -0.56 0.11  0.02 0.03 
+ZTF18abeegsl 284.3179885 46.4990888 SN2018eag ZTF18abeegsl P60                      6.0                       normal     0.07   0.0398 58313.92 0.06 1.05 0.03 -2.17 0.19  0.17 0.02 
+ZTF18abetehf 233.4871306 31.1698144 SN2018dvb ZTF18abetehf P60                     -5.0                       normal     0.0649 0.0229 58317.64 0.06 0.99 0.04 -1.37 0.23 -0.14 0.06 
+ZTF18abetewu 217.3090346 46.0508542 SN2018dye ZTF18abetewu P60                     -3.0                       normal     0.074  0.0125 58317.7  0.2  0.76 0.08  0.29 0.43  0.11 0.09 
+ZTF18abfgygp 274.3394505 54.5374382 SN2018ead ZTF18abfgygp P60                     -6.0                       normal     0.07   0.0351 58321.12 0.0  0.83 0.00 -0.16 0.02 -0.07 0.0  
+ZTF18abfhaji 263.8092747 54.2469114 SN2018dsw ATLAS18sdh   P60                      0.0                       normal     0.09   0.0386 58320.32 0.05 0.84 0.02 -0.24 0.18 -0.05 0.03 
+ZTF18abfhryc 284.9898083 72.2673016 SN2018dhw ATLAS18sak   P200                   -16.0                       normal     0.0323 0.0769 58323.36 0.02 0.75 0.01  0.47 0.04  0.01 0.01 
+ZTF18abfwuwn 251.428241  37.8904376 SN2018ecq ZTF18abfwuwn P60                      0.0                       99aa-like* 0.105  0.0223 58323.34 0.05 0.75 0.03  0.56 0.3  -0.03 0.03 
+ZTF18abfzkno 258.1288971 26.0186209 SN2018ean ATLAS18sis   P60                     -5.0                       normal     0.09   0.0324 58321.53 0.14 0.88 0.06 -0.61 0.44 -0.05 0.06 
+ZTF18abgmcmv 274.0545029 55.5908773 SN2018eay ZTF18abgmcmv Keck1                  -16.0                       91T-like   0.0185 0.0397 58328.52 0.01 0.68 0.01  0.69 0.05  0.63 0.01 
+ZTF18abgxvra 266.1845567 38.1640598 SN2018efb ATLAS18ssg   P60                      3.0                       normal     0.106  0.0324 58327.91 0.05 0.72 0.03  0.83 0.25 -0.04 0.03 
+ZTF18abhpgje 277.6781453 54.6344776 SN2018eul ATLAS18tje   "P60,P200"             "12.0                ,67.0" SC         0.1342 0.0319 58333.86 0.74 0.50 0.04  3.48 0.34 -0.01 0.03 
+ZTF18abimsyv 274.7990629 54.0886913 SN2018eni ZTF18abimsyv P60                     -8.0                       normal*    0.084  0.0332 58333.52 0.02 0.70 0.02  1.02 0.15 -0.02 0.02 
+ZTF18abixjey 227.6330675 45.2272749 SN2018lpj ZTF18abixjey P200                    44.0                       91T-like*  0.1218 0.0243 58330.02 0.1  0.72 0.08  0.84 0.9  -0.07 0.07 
+ZTF18abjdjge 224.6936787 44.6706967 SN2018ety ZTF18abjdjge P60                      5.0                       99aa-like  0.133  0.0216 58333.12 0.06 0.70 0.06  0.98 0.7   0.07 0.06 
+ZTF18abjstcm 284.7187802 69.0135614 SN2018ezy ZTF18abjstcm P60                      8.0                       normal     0.079  0.0526 58335.73 0.0  0.92 0.07 -0.94 0.39  0.0  0.07 
+ZTF18abjtgdo 226.0983709 61.6214644 SN2018epj ZTF18abjtgdo P60                      4.0                       normal     0.0741 0.0111 58336.41 0.09 0.90 0.05 -0.79 0.45  0.0  0.06 
+ZTF18abjtger 234.2213713 66.0581453 SN2018err ZTF18abjtger P60                      2.0                       normal     0.106  0.0206 58335.14 0.24 0.72 0.07  0.77 0.66 -0.01 0.06 
+ZTF18abjvhec 226.3768326 30.910248  SN2018emv ZTF18abjvhec P60                     -7.0                       normal     0.057  0.0207 58339.72 0.06 0.77 0.05  0.37 0.41 -0.04 0.05 
+ZTF18abkhcrj 256.651339  24.5453282 SN2018emi ZTF18abkhcrj P60                    -12.0                       normal     0.0383 0.045  58342.53 0.06 0.69 0.03  0.85 0.16  0.24 0.02 
+ZTF18abkhcwl 236.529608  29.7334866 SN2018eml ZTF18abkhcwl P60                    -14.0                       normal     0.0317 0.0275 58343.95 0.04 0.80 0.02  0.08 0.09 -0.08 0.02 
+ZTF18abkhdxe 277.8432669 63.74151   SN2018ffg ATLAS18twu   P60                      2.0                       normal     0.105  0.0386 58336.55 0.08 0.71 0.05  0.75 0.43  0.12 0.04 
+ZTF18abkifng 242.4700818 65.9384758 SN2018ers ZTF18abkifng P200                     8.0                       normal     0.088  0.0301 58343.16 0.42 0.78 0.09  0.25 0.7  -0.04 0.08 
+ZTF18abkigee 245.8716929 28.8330363 SN2018eqa ATLAS18tbc   P60                     13.0                       normal*    0.0936 0.0295 58341.1  0.05 0.70 0.05  1.05 0.43 -0.03 0.05 
+ZTF18abklljv 226.9155938 38.4626308 SN2018lpk ZTF18abklljv P60                     -5.0                       99aa-like  0.141  0.0116 58338.31 0.11 0.69 0.09  1.15 1.06 -0.1  0.08 
+ZTF18abkudjo 227.0606219 34.8683337 SN2018eqg ATLAS18tbo   P60                    -10.0                       normal*    0.0921 0.0129 58344.47 0.17 0.70 0.09  0.95 0.71  0.02 0.1  
+ZTF18abmmkaz 273.8272359 29.9107392 SN2018fdz ZTF18abmmkaz P60                     -7.0                       99aa-like* 0.065  0.0943 58354.08 0.1  0.73 0.02  0.74 0.15 -0.07 0.02 
+ZTF18abmxdhb 251.3742976 65.2389881 SN2018fjv ZTF18abmxdhb P60                    -11.0                       normal     0.07   0.0195 58361.32 0.1  0.67 0.02  1.27 0.22  0.01 0.02 
+ZTF18abnvoel 260.8138913 77.8448726 SN2018lpl ZTF18abnvoel P60                     -8.0                       normal     0.065  0.0387 58360.92 0.1  0.72 0.02  0.77 0.22  0.02 0.02 
+ZTF18aboaeqy 242.6767718 42.594043  SN2018lpx ZTF18aboaeqy P60                      6.0                       normal*    0.115  0.0163 58356.82 0.17 0.77 0.07  0.3  0.68 -0.02 0.05 
+ZTF18abokpvh 274.0309097 70.0179172 SN2018fnc ZTF18abokpvh P60                     -5.0                       normal*    0.08   0.0531 58364.72 0.13 0.72 0.02  0.78 0.22 -0.04 0.02 
+ZTF18abpamut 234.5125155 51.3603736 SN2018fqe ZTF18abpamut P60                     -3.0                       normal*    0.072  0.0126 58367.57 0.04 0.72 0.03  0.71 0.29  0.09 0.03 
+ZTF18abpaywm 277.8893626 49.816112  SN2018fne ZTF18abpaywm P60                     -7.0                       normal     0.045  0.0656 58367.66 0.05 0.72 0.01  0.61 0.15  0.22 0.02 
+ZTF18abpmmpo 251.977466  42.9688021 SN2018fnd ZTF18abpmmpo P60                     -8.0                       99aa-like  0.08   0.0155 58367.77 0.05 0.66 0.02  1.45 0.27 -0.02 0.02 
+ZTF18abptsco 261.7142166 34.2465793 AT2018lpm ZTF18abptsco from Atel 12052        ?                           normal*    0.12   0.0269 58363.13 0.37 0.84 0.10 -0.4  0.83  0.07 0.07 
+ZTF18abpttky 258.560392  36.4588844 SN2018fse ZTF18abpttky P60                      7.0                       normal     0.086  0.0319 58365.09 0.19 0.96 0.06 -1.33 0.4   0.01 0.04 
+ZTF18abqbavl 255.8739011 41.6452218 SN2018lpy ZTF18abqbavl P60                     18.0                       normal*    0.1392 0.0198 58360.84 0.33 0.73 0.06  0.71 0.51 -0.03 0.04 
+ZTF18abqjvyl 225.2653306 44.156587  SN2018fpe ZTF18abqjvyl P200                     8.0                       normal     0.0835 0.0157 58365.83 0.2  0.78 0.09  0.3  0.41 -0.06 0.1  
+ZTF18abrzeym 264.1127448 22.4905809 SN2018ftt ZTF18abrzeym P60                      1.0                       normal*    0.06   0.0685 58373.24 0.06 0.75 0.03  0.36 0.23  0.22 0.03 
+ZTF18abrzrnb 222.2357873 52.593445  SN2018gem ATLAS18vap   P60                     -3.0                       99aa-like* 0.12   0.0125 58372.55 0.52 0.76 0.07  0.44 0.58 -0.02 0.06 
+ZTF18absdgon 260.9575053 46.3015047 SN2018frx ATLAS18ueh   P60                     -7.0                       normal*    0.062  0.023  58375.24 0.04 0.82 0.02 -0.26 0.18  0.17 0.03 
+ZTF18abslxhz 286.7175917 34.3483821 SN2018lpn ZTF18abslxhz P60                     10.0                       normal     0.13   0.0744 58374.37 0.0  0.73 0.00  0.73 0.0  -0.08 0.0  
+ZTF18abssdpi 280.8350645 58.8054728 SN2018lpo ZTF18abssdpi P60                     -3.0                       normal     0.1    0.0359 58374.9  0.22 0.81 0.04 -0.27 0.43  0.21 0.05 
+ZTF18abssuxz 244.4515423 41.4695415 SN2018gfe ZTF18abssuxz P60                     -4.0                       normal     0.0649 0.0073 58377.23 0.26           -1.14 0.17  0.02 0.05 
+ZTF18abtcdfv  12.5268629 39.9569198 SN2018lpp ZTF18abtcdfv P60                     10.0                       normal     0.14   0.0491 58376.5  0.21 0.70 0.03  1.06 0.41 -0.05 0.03 
+ZTF18abtnlik 279.321588  49.1483836 SN2018ggq ATLAS18vdz   P60                      2.0                       normal     0.09   0.0517 58378.74 0.1  0.94 0.03 -1.22 0.21  0.05 0.04 
+ZTF18abtogdl 267.7970504 53.3144634 SN2018gqa ZTF18abtogdl P60                      8.0                       normal     0.105  0.0308 58380.22 0.12 0.78 0.03  0.3  0.27 -0.07 0.04 
+ZTF18abucvbf 277.0636963 46.353432  SN2018ggw ZTF18abucvbf P60                     -1.0                       normal     0.0549 0.0421 58384.55 0.02 0.82 0.02 -0.04 0.1  -0.07 0.02 
+ZTF18abukmty 321.5265118 24.0458051 SN2018lpz ZTF18abukmty P60                      2.0                       normal*    0.102  0.1146 58381.95 0.21 0.75 0.05  0.51 0.32  0.01 0.04 
+ZTF18abuqugw 244.5576659 39.1238139 SN2018geo ATLAS18vca   P60                     -9.0                       normal     0.0313 0.0064 58384.85 0.04           -1.35 0.03 -0.12 0.01 
+ZTF18abvbayb 262.8011274 79.0542548 SN2018lpq ZTF18abvbayb P60                      2.0                       normal     0.13   0.054  58383.27 0.24 0.83 0.05 -0.18 0.31 -0.05 0.05 
+ZTF18abwdcdv 270.8646135 60.6773549 SN2018gre ATLAS18vnk   P60                     -6.0                       normal     0.0538 0.0332 58388.92 0.11 0.82 0.04 -0.46 0.12  0.33 0.03 
+ZTF18abwmuua 249.6433823 31.8731326 SN2018gvb ZTF18abwmuua P60                      1.0                       normal*    0.0643 0.0205 58387.04 0.43           -1.16 0.4  -0.01 0.17 
+ZTF18abwnsoc 280.8567188 72.1238747 SN2018lpr ZTF18abwnsoc P60                     -1.0                       normal     0.1    0.0489 58389.7  0.19            0.35 0.34  0.01 0.06 
+ZTF18abwtops 281.4867236 36.4026955 SN2018lqa ZTF18abwtops P60                      2.0                       normal     0.104  0.0789 58387.03 0.24 0.98 0.06 -1.39 0.29 -0.05 0.07 
+ZTF18abxxssh 268.3955545 43.2161123 SN2018gvj ZTF18abxxssh P60                     -7.0                       normal     0.064  0.0255 58396.52 0.15            1.59 0.23 -0.01 0.03 
+ZTF18abxygvv 293.8460903 64.7584122 SN2018gwb ZTF18abxygvv P60                     -4.0                       normal*    0.08   0.0938 58394.03 0.12           -0.11 0.22 -0.04 0.04 

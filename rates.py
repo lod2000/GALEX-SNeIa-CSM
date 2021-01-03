@@ -64,21 +64,18 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     trials['G19'] = (graham_hist + graham_det_hist).T
     trials['GALEX'] = galex_hist.T
     trials['This study'] = trials['GALEX'] + trials['G19']
-    # trials['ASAS-SN'] = np.array([464] + [0]*(nbins-1)).T
     # trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
-    # trials['All'] = trials[sources].sum(axis=1)
-    # trials.loc[trials['All'] == trials['This study'], 'All'] = 0
-    # print(trials)
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=tstart_bins)
     detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
     detections['This study'] = detections['GALEX'] + detections['G19']
-    # detections['ASAS-SN'] = np.array([3] + [0]*(nbins-1)).T
     # detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
-    # detections['All'] = detections[sources].sum(axis=1)
-    # print(detections)
+
+    # Import ASAS-SN and ZTF SNe
+    asassn_det, asassn_all = count_asassn_sne()
+    ztf_det, ztf_all = count_ztf_sne()
 
     # Calculate binomial confidence intervals
     bci_lower, bci_upper = bci_nan(detections, trials, conf=CONF)
@@ -91,33 +88,6 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
 
     plot(bci_lower, bci_upper, show=True,)
             # output_file=Path('out/rates_%s.pdf' % model)) 
-
-
-def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
-        iterations=ITERATIONS):
-    """Import recovery save files and sum histograms with given bounds."""
-
-    # File names
-    save_dir = run_dir(study, model, sigma, detections)
-    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-    # Generate summed histogram
-    print('Importing and summing %s saves from %s' % (study, save_dir))
-    hist = sum_hist(save_files, x_edges, y_edges, save=False)
-    count = np.nan_to_num(hist.iloc[0].to_numpy())
-
-    return count
-
-
-def source_fmt(source):
-    """Format source string in LATEX table."""
-
-    fmt = { 'GALEX': '$\it{%s}$' % source, 
-            'G19': '\citetalias{Graham2019-SN2015cp}',
-            'ASAS-SN': '%s\\tablenotemark{a}' % source,
-            'ZTF': '%s\\tablenotemark{b}' % source,
-            'This study': 'This study', 'All': 'All'}
-
-    return fmt[source]
 
 
 def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX):
@@ -186,6 +156,101 @@ def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX
         plt.show()
     else:
         plt.close()
+
+
+def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
+        iterations=ITERATIONS):
+    """Import recovery save files and sum histograms with given bounds."""
+
+    # File names
+    save_dir = run_dir(study, model, sigma, detections)
+    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+    # Generate summed histogram
+    print('Importing and summing %s saves from %s' % (study, save_dir))
+    hist = sum_hist(save_files, x_edges, y_edges, save=False)
+    count = np.nan_to_num(hist.iloc[0].to_numpy())
+
+    return count
+
+
+def count_asassn_sne():
+    """Count SNe Ia-CSM in four ASAS-SN data sets.
+    Returns:
+        number of Ia-CSM, total number of Ia
+    """
+
+    data = []
+    col_names = ['sn_name', 'iau_name', 'disc_date', 'z', 'type', 'disc_age']
+    files = ['ASASSN_I.txt', 'ASASSN_II.txt', 'ASASSN_III.txt', 'ASASSN_IV.txt']
+    skip_rows = [31, 29, 28, 30]
+    for file, skip_row in zip(files, skip_rows):
+        if file == 'ASASSN_IV.txt':
+            cols = [0, 1, 2, 5, 10, 11]
+        else:
+            cols = [0, 1, 2, 5, 9, 10]
+        file_path = Path('ref/%s' % file)
+        df = read_pub_data(file_path, cols, col_names, skip_row)
+        # df = pd.read_csv(file_path, sep='\s+', index_col=0, na_values='---', 
+        #         skiprows=skip_row, usecols=cols, names=)
+        df['disc_age'] = df['disc_age'].astype(float)
+        data.append(df)
+
+    data = pd.concat(data)
+    # print(data)
+    # print(np.min(data['disc_age']))
+    # print(np.mean(data['disc_age']))
+    # print(np.max(data['disc_age']))
+
+    all_Ia = data[data['type'].str.contains('Ia')]
+    Ia_CSM = data[data['type'] == 'Ia+CSM']
+
+    return len(Ia_CSM.index), len(all_Ia.index)
+
+
+def count_ztf_sne():
+    """Count SNe Ia-CSM in ZTF I data set.
+    Returns:
+        number of Ia-CSM, total number of Ia
+    """
+
+    cols = [0, 3, 7, 8]
+    col_names = ['sn_name', 'iau_name', 'subtype', 'z']
+    file_path = Path('ref/ZTF_I.txt')
+    data = read_pub_data(file_path, cols, col_names, 53)
+    print(data)
+    # print(np.min(data['disc_age']))
+    # print(np.mean(data['disc_age']))
+    # print(np.max(data['disc_age']))
+
+    Ia_CSM = data[data['subtype'] == 'Ia-CSM']
+
+    return len(Ia_CSM.index), len(data.index)
+
+
+def read_pub_data(path, cols, col_names, skip_rows):
+    """Import astronomical data tables for, e.g., ZTF or ASAS-SN.
+    Inputs:
+        path: file path
+        cols: list of column indices to import
+        col_names: list of column names, same length as cols
+        skip_rows: number of rows to skip at beginning of file
+    """
+
+    df = pd.read_csv(path, sep='\s+', index_col=0, na_values='---', 
+            skiprows=skip_rows, usecols=cols, names=col_names)
+    return df
+
+
+def source_fmt(source):
+    """Format source string in LATEX table."""
+
+    fmt = { 'GALEX': '$\it{%s}$' % source, 
+            'G19': '\citetalias{Graham2019-SN2015cp}',
+            'ASAS-SN': '%s\\tablenotemark{a}' % source,
+            'ZTF': '%s\\tablenotemark{b}' % source,
+            'This study': 'This study', 'All': 'All'}
+
+    return fmt[source]
 
 
 # def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
