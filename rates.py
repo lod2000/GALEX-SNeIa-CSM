@@ -108,6 +108,86 @@ def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
     return count
 
 
+def source_fmt(source):
+    """Format source string in LATEX table."""
+
+    fmt = { 'GALEX': '$\it{%s}$' % source, 
+            'G19': '\citetalias{Graham2019-SN2015cp}',
+            'ASAS-SN': '%s\\tablenotemark{a}' % source,
+            'ZTF': '%s\\tablenotemark{b}' % source,
+            'This study': 'This study', 'All': 'All'}
+
+    return fmt[source]
+
+
+def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX):
+    """Plot binomial confidence limits for CSM interaction rate."""
+
+    fig, ax = plt.subplots()
+
+    x = bci_lower.index.to_numpy()
+    x_end = x[-1] + (x[1] - x[0])
+    x = np.append(x, [x_end])
+
+    # Plot confidence intervals
+    for col in bci_lower.columns:
+        # Find midpoint and errors for plotting
+        y1 = bci_lower[col].to_numpy()
+        y2 = bci_upper[col].to_numpy()
+        # Add endpoints
+        y1 = np.append(y1, 0.)
+        y2 = np.append(y2, 0.)
+        
+        color = COLORS[col]
+        alpha = ALPHAS[col]
+        hatch = HATCHES[col]
+
+        ax.fill_between(x, y1, y2, facecolor=color, edgecolor='None', alpha=alpha, 
+                step='post', label=col)
+        # Plot hatches separately to work around matplotlib bug
+        ax.fill_between(x, y1, y2, facecolor='None', edgecolor=color, alpha=1, 
+                hatch=hatch, step='post', lw=2, label=col)
+
+        # ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
+        # err = bci_upper[col].to_numpy() - midpoint
+        # line width
+        # lw = 3.5 if col == 'This study' else 2
+        # italicize GALEX
+        # label = '$\it{%s}$' % col if col == 'GALEX' else col
+        # marker size
+        # ms = 16 if col == 'All' else 10
+        # plot
+        # ax.errorbar(x_pos + x_adjust, midpoint, yerr=err, label=label, 
+        #         marker=MARKERS[col], c=COLORS[col], mec=COLORS[col], mfc='w', 
+        #         ms=ms, linestyle='none', elinewidth=lw, mew=lw, capsize=6)
+
+    # Format axis
+    # ax.set_xlim((x_pos[0]-0.7, x_pos[-1]+1.8))
+    # ax.set_xticks(np.append(x_pos, nbins)-0.5)
+    # ax.set_xticklabels(tstart_bins)
+    # ax.tick_params(axis='x', which='minor', bottom=False, top=False)
+    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
+    ax.set_ylabel('Rate of CSM interaction [%]')
+
+    ax.set_ylim((0, ymax))
+
+    # Legend
+    handles, labels = ax.get_legend_handles_labels()
+    # re-combine transparent patches with hatch patches
+    indices = [0, 2, 4]
+    handles = [(handles[i], handles[i+1]) for i in indices]
+    labels = [labels[i] for i in indices]
+    plt.legend(handles, labels, loc='upper left')
+
+    plt.tight_layout()
+    # plt.savefig(output_file, dpi=300)
+    plt.savefig('out/rates_temp.pdf', dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 # def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
 #         output_file='out/rates.tex'):
 #     """Generate LATEX table to go along with plot."""
@@ -144,82 +224,6 @@ def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
 #     # Write table
 #     with open(Path(output_file), 'w') as file:
 #         file.write(table)
-
-
-def source_fmt(source):
-    """Format source string in LATEX table."""
-
-    fmt = { 'GALEX': '$\it{%s}$' % source, 
-            'G19': '\citetalias{Graham2019-SN2015cp}',
-            'ASAS-SN': '%s\\tablenotemark{a}' % source,
-            'ZTF': '%s\\tablenotemark{b}' % source,
-            'This study': 'This study', 'All': 'All'}
-
-    return fmt[source]
-
-
-def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX):
-    """Plot binomial confidence limits for CSM interaction rate."""
-
-    fig, ax = plt.subplots()
-
-    x = bci_lower.index.to_numpy()
-    x_end = x[-1] + (x[1] - x[0])
-    x = np.append(x, [x_end])
-
-    # Plot confidence intervals
-    for col in bci_lower.columns:
-        # Find midpoint and errors for plotting
-        y1 = bci_lower[col].to_numpy()
-        y2 = bci_upper[col].to_numpy()
-        # Add endpoints
-        y1 = np.append(y1, 0.)
-        y2 = np.append(y2, 0.)
-        
-        color = COLORS[col]
-        alpha = ALPHAS[col]
-        hatch = HATCHES[col]
-
-        ax.fill_between(x, y1, y2, color=color, alpha=alpha, hatch=hatch, lw=2, 
-                label=col, step='post')
-
-        # ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
-        # err = bci_upper[col].to_numpy() - midpoint
-        # line width
-        # lw = 3.5 if col == 'This study' else 2
-        # italicize GALEX
-        # label = '$\it{%s}$' % col if col == 'GALEX' else col
-        # marker size
-        # ms = 16 if col == 'All' else 10
-        # plot
-        # ax.errorbar(x_pos + x_adjust, midpoint, yerr=err, label=label, 
-        #         marker=MARKERS[col], c=COLORS[col], mec=COLORS[col], mfc='w', 
-        #         ms=ms, linestyle='none', elinewidth=lw, mew=lw, capsize=6)
-
-    # Format axis
-    # ax.set_xlim((x_pos[0]-0.7, x_pos[-1]+1.8))
-    # ax.set_xticks(np.append(x_pos, nbins)-0.5)
-    # ax.set_xticklabels(tstart_bins)
-    # ax.tick_params(axis='x', which='minor', bottom=False, top=False)
-    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
-    ax.set_ylabel('Rate of CSM interaction [%]')
-
-    ax.set_ylim((0, ymax))
-
-    # Legend
-    plt.legend(loc='upper right')
-    # handles, labels = ax.get_legend_handles_labels()
-    # remove errorbars
-    # handles = [h[0] for h in handles]
-    # plt.legend(handles, labels, loc='upper left')
-
-    plt.tight_layout()
-    # plt.savefig(output_file, dpi=300)
-    plt.savefig('out/rates_temp.pdf', dpi=300)
-    if show:
-        plt.show()
-    else:
-        plt.close()
 
 
 if __name__ == '__main__':
