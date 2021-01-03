@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from astropy.stats import binom_conf_interval
+# from astropy.stats import binom_conf_interval
 from utils import *
 from plot_recovery import sum_hist
 
@@ -17,10 +17,10 @@ TSTART_MAX = 2000
 YMAX = None
 
 # Plot settings
-COLORS = {  'GALEX': 'r',
+COLORS = {  'GALEX': '#47a',
             # 'GALEX': '#d81b60',
             # 'G19': '#004d40',
-            'G19': 'g',
+            'G19': '#e67',
             'This study': 'k',
             'ASAS-SN': '#ffc107',
             'ZTF': '#1e88e5',
@@ -63,19 +63,19 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
         histograms.append(hist.iloc[0].to_numpy())
 
     [galex_hist, graham_hist] = histograms
-    uv_hist = galex_hist + graham_hist
+    total_hist = galex_hist + graham_hist
 
-    # Import detections
+    # Import G19 detections
     save_dir = run_dir('graham_det', model, sigma)
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
     # Generate summed histogram
-    print('Importing and summing G19 detections...')
-    hist = sum_hist(save_files, x_edges, y_edges, save=False, binary=False)
+    print('Importing and summing graham detections...')
+    hist = sum_hist(save_files, x_edges, y_edges, save=False)
     graham_det_hist = np.nan_to_num(hist.iloc[0].to_numpy())
 
     # DataFrame for number of trials per tstart bin and data source
     # sources = ['G19', 'GALEX', 'ASAS-SN', 'ZTF']
-    sources = ['G19', 'GALEX']
+    # sources = ['G19', 'GALEX']
     index = pd.Series(x_edges[:-1])
     trials = pd.DataFrame([], index=index)
     trials['G19'] = (graham_hist + graham_det_hist).T
@@ -97,29 +97,7 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     # detections['All'] = detections[sources].sum(axis=1)
     print(detections)
 
-    bci_lower = pd.DataFrame([], index=index)
-    bci_upper = pd.DataFrame([], index=index)
-
-    # Calculate binomial confidence intervals
-    for col in trials.columns:
-        # separate bins with no trials
-        pos_index = trials[trials[col] >= 1].index
-        zero_index = trials[trials[col] < 1].index
-
-        bci = 100 * binom_conf_interval(detections.loc[pos_index, col], 
-                trials.loc[pos_index, col], confidence_level=CONF, 
-                interval='jeffreys')
-        print(col)
-        print(bci)
-        
-        # add to dataframes (nan for no trials)
-        bci_lower.loc[pos_index, col] = bci[0].T
-        bci_lower.loc[zero_index,col] = np.nan
-        bci_upper.loc[pos_index, col] = bci[1].T
-        bci_upper.loc[zero_index,col] = np.nan
-
-    print(bci_upper)
-    print(bci_lower)
+    bci_lower, bci_upper = bci_nan(detections, trials, conf=CONF)
 
     # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
     #         output_file=Path('out/rates_%s.tex' % model))

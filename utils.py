@@ -2,8 +2,6 @@ from pathlib import Path
 import platform
 import pandas as pd
 import numpy as np
-from numpy.random import default_rng
-from CSMmodel import CSMmodel
 
 # Default values
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
@@ -77,6 +75,8 @@ def check_save(sn_name, iterations, save_dir=SAVE_DIR):
 def gen_params(iterations, tstart_lims, scale_lims, log=True):
     """Generate random injection-recovery parameters."""
 
+    from numpy.random import default_rng
+
     rng = default_rng()
     tstart = rng.integers(tstart_lims[0], tstart_lims[1], iterations, endpoint=True)
     if log:
@@ -103,6 +103,8 @@ def run_dir(study, model, sigma):
 def SN2015cp_scale(model):
     """Get scale factor corresponding to UV luminosity of SN 2015cp (Graham+ 2019)."""
 
+    from CSMmodel import CSMmodel
+
     # Corrective scale factor: S=1 corresponds to 2015cp
     csm_model = CSMmodel(tstart=0, twidth=100, decay_rate=0.3, scale=1., model=model)
     model_2015cp = csm_model([0], Z_2015cp)
@@ -120,6 +122,7 @@ def bci_nan(detections, trials, conf=0.9, interval='jeffreys'):
         bci_lower: DataFrame, same shape as trials, with lower BCI limits
         bci_upper: DataFrame, same shape as trials, with upper BCI limits
     """
+
     from astropy.stats import binom_conf_interval
 
     if detections.shape != trials.shape:

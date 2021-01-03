@@ -101,8 +101,6 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     cmap.set_over('k') # set color for values over maximum
 
     # colorbar limits
-    if cmin <= 0:
-        raise ValueError('cmin must be positive')
     if upper_lim:
         # set limit to highest value not at 100%
         hist_max = int(np.max(hist[hist < 100].to_numpy())) + 1
@@ -155,8 +153,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         plt.close()
 
 
-def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv',
-        binary=False):
+def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
     """Generate histograms for each save file and sum together.
     Inputs:
         save_files: list of recovery output CSVs
@@ -171,7 +168,7 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'
 
     hist = []
     with Pool() as pool:
-        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges, binary=binary)
+        func = partial(get_hist, x_edges=x_edges, y_edges=y_edges)
         imap = pool.imap(func, save_files, chunksize=10)
         for h in tqdm(imap, total=len(save_files)):
             hist.append(h)
@@ -185,18 +182,15 @@ def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'
     return hist
 
 
-def get_hist(fname, x_edges, y_edges, binary=False):
+def get_hist(fname, x_edges, y_edges):
     """Import recovery save data and return histogram.
     Inputs:
         x_edges: list of x-axis bin edges
         y_edges: list of y-axis bin edges
-        binary: if true, returns ceiling of recovery rate
     """
 
     rd = RecoveryData(fname)
     hist = rd.hist(x_edges, y_edges)
-    if binary:
-        hist = np.ceil(hist)
     return hist
 
 
