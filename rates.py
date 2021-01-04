@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-# from astropy.stats import binom_conf_interval
+from astropy.stats import binom_conf_interval
 from utils import *
 from plot_recovery import sum_hist
 
@@ -29,7 +29,7 @@ COLORS = {  'GALEX': '#47a',
 MARKERS = { #'GALEX': 'o', 
             # 'G19': 'o', 
             # 'This study': 'o', 
-            'ASAS-SN': '*', 
+            'ASAS-SN': 'o', 
             'ZTF': 's', 
             # 'All': '*'
 }
@@ -43,7 +43,7 @@ HATCHES = { 'GALEX': '|',
 }
 
 
-def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, 
+def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
         model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX):
     
     # Bin edges
@@ -83,27 +83,41 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000,
     bci_lower *= 100
     bci_upper *= 100
 
+    # Calculate binomial confidence intervals for external data
+    asassn_bci = 100 * binom_conf_interval(asassn_det, asassn_all, 
+            confidence_level=CONF, interval='jeffreys')
+    ztf_bci = 100 * binom_conf_interval(ztf_det, ztf_all, confidence_level=CONF, 
+            interval='jeffreys')
+    external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
+            columns=['bci_lower', 'bci_upper'])
+
     # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
     #         output_file=Path('out/rates_%s.tex' % model))
 
-    plot(bci_lower, bci_upper, show=True,)
-            # output_file=Path('out/rates_%s.pdf' % model)) 
+    scale_mean = int(np.mean(y_edges))
+    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max,
+            output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
 
 
-def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX):
-    """Plot binomial confidence limits for CSM interaction rate."""
+def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=YMAX):
+    """Plot binomial confidence limits for CSM interaction rate.
+    Inputs:
+        lower: DataFrame of lower 90% CI for GALEX, G19 data
+        upper: DataFrame of upper 90% CI for GALEX, G19 data
+        external: DataFrame of BCI for ASAS-SN and ZTF data
+    """
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(tight_layout=True)
 
-    x = bci_lower.index.to_numpy()
+    x = lower.index.to_numpy()
     x_end = x[-1] + (x[1] - x[0])
     x = np.append(x, [x_end])
 
     # Plot confidence intervals
-    for col in bci_lower.columns:
+    for col in lower.columns:
         # Find midpoint and errors for plotting
-        y1 = bci_lower[col].to_numpy()
-        y2 = bci_upper[col].to_numpy()
+        y1 = lower[col].to_numpy()
+        y2 = upper[col].to_numpy()
         # Add endpoints
         y1 = np.append(y1, 0.)
         y2 = np.append(y2, 0.)
@@ -118,40 +132,36 @@ def plot(bci_lower, bci_upper, output_file='out/rates.pdf', show=True, ymax=YMAX
         ax.fill_between(x, y1, y2, facecolor='None', edgecolor=color, alpha=1, 
                 hatch=hatch, step='post', lw=2, label=col)
 
-        # ax.plot(x, midpoint, color=COLORS[col], lw=2, label=col)
-        # err = bci_upper[col].to_numpy() - midpoint
-        # line width
-        # lw = 3.5 if col == 'This study' else 2
-        # italicize GALEX
-        # label = '$\it{%s}$' % col if col == 'GALEX' else col
-        # marker size
-        # ms = 16 if col == 'All' else 10
-        # plot
-        # ax.errorbar(x_pos + x_adjust, midpoint, yerr=err, label=label, 
-        #         marker=MARKERS[col], c=COLORS[col], mec=COLORS[col], mfc='w', 
-        #         ms=ms, linestyle='none', elinewidth=lw, mew=lw, capsize=6)
-
-    # Format axis
-    # ax.set_xlim((x_pos[0]-0.7, x_pos[-1]+1.8))
-    # ax.set_xticks(np.append(x_pos, nbins)-0.5)
-    # ax.set_xticklabels(tstart_bins)
-    # ax.tick_params(axis='x', which='minor', bottom=False, top=False)
-    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
-    ax.set_ylabel('Rate of CSM interaction [%]')
-
-    ax.set_ylim((0, ymax))
-
-    # Legend
+    # Re-combine transparent patches with hatch patches
     handles, labels = ax.get_legend_handles_labels()
-    # re-combine transparent patches with hatch patches
     indices = [0, 2, 4]
     handles = [(handles[i], handles[i+1]) for i in indices]
     labels = [labels[i] for i in indices]
-    plt.legend(handles, labels, loc='upper left')
 
-    plt.tight_layout()
-    # plt.savefig(output_file, dpi=300)
-    plt.savefig('out/rates_temp.pdf', dpi=300)
+    # Plot external study estimates as points
+    x = 0
+    for study in external.index:
+        row = external.loc[study]
+        midpoint = row.mean()
+        err = row['bci_upper'] - midpoint
+        ebar = ax.errorbar(x, midpoint, yerr=err, label=study, 
+                marker=MARKERS[study], c=COLORS[study], mec=COLORS[study], mfc='w', 
+                ms=10, linestyle='none', elinewidth=2, mew=2, capsize=6)
+        print(ebar)
+        handles.append(ebar.lines[0])
+        labels.append(study)
+        x += 30
+
+    # Format axes
+    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
+    ax.set_ylabel('Rate of CSM interaction [%]')
+    ax.set_ylim((0, y_max))
+
+    # Legend
+    plt.legend(handles, labels, loc='upper right')
+
+    # plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
     if show:
         plt.show()
     else:
@@ -217,11 +227,8 @@ def count_ztf_sne():
     col_names = ['sn_name', 'iau_name', 'subtype', 'z']
     file_path = Path('ref/ZTF_I.txt')
     data = read_pub_data(file_path, cols, col_names, 53)
-    print(data)
-    # print(np.min(data['disc_age']))
-    # print(np.mean(data['disc_age']))
-    # print(np.max(data['disc_age']))
 
+    # Count number of Ia-CSM
     Ia_CSM = data[data['subtype'] == 'Ia-CSM']
 
     return len(Ia_CSM.index), len(data.index)
@@ -304,7 +311,9 @@ if __name__ == '__main__':
             help='Maximum CSM interaction start time')
     parser.add_argument('--twidth', type=int, default=TSTART_BIN_WIDTH, 
             help='t_start bin width')
+    parser.add_argument('--ymax', type=float, default=YMAX, 
+            help='y-axis upper limit')
     args = parser.parse_args()
 
     main(model=args.model, scale=args.scale, bin_width=args.twidth,
-            sigma=args.sigma, t_max=args.tmax)
+            sigma=args.sigma, t_max=args.tmax, y_max=args.ymax)

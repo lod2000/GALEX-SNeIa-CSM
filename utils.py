@@ -88,6 +88,7 @@ def gen_params(iterations, tstart_lims, scale_lims, log=True):
 
     return params
 
+
 def run_dir(study, model, sigma, detections=False):
     """Generate run save directory."""
 
