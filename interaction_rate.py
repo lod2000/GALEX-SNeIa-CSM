@@ -10,9 +10,10 @@ from utils import *
 TSTART = [100, 1000]
 SCALE = [0.9, 1.1]
 CONF = 0.9
+ITER = 10000 # injection iterations
 
 
-def main(tstart, scale, model='Chev94', sigma=3, iterations=ITERATIONS):
+def main(tstart, scale, model='Chev94', sigma=3, iterations=ITER, conf=CONF):
     """Print binomial confidence interval for CSM interaction rate within
     given parameter bounds.
     Inputs:
@@ -44,14 +45,15 @@ def main(tstart, scale, model='Chev94', sigma=3, iterations=ITERATIONS):
 
     # Calculate binomial confidence interval
     bci = 100 * binom_conf_interval(rate_df['Detections'], rate_df['Trials'], 
-            confidence_level=CONF, interval='jeffreys')
+            confidence_level=conf, interval='jeffreys')
     rate_df[['Lower Limit [%]', 'Upper Limit [%]']] = bci.T
 
-    print('\nConfidence intervals for %s < tstart < %s, %s < S < %s:' % (tstart+scale))
+    print('\nConfidence intervals for %s < tstart < %s, ' % tstart + 
+            '%s < S < %s using the %s model' % (scale + (model,)))
     print(rate_df)
 
 
-def count_recovered_sne(save_dir, tstart, scale, iterations=ITERATIONS):
+def count_recovered_sne(save_dir, tstart, scale, iterations=ITER):
     """Count recovered SNe from injection-recovery run within given bounds.
     Inputs:
         save_dir: Path, directory containing recovery save files
@@ -68,7 +70,7 @@ def count_recovered_sne(save_dir, tstart, scale, iterations=ITERATIONS):
         func = partial(get_recovery_rate, tstart=tstart, scale=scale)
         imap = pool.imap(func, save_files, chunksize=10)
         for r in tqdm(imap, total=len(save_files)):
-            recovered_sne += r
+            recovered_sne = np.nansum([r, recovered_sne])
 
     return recovered_sne
 
@@ -92,7 +94,8 @@ def get_recovery_rate(save_file, tstart, scale):
     df = df[(df['scale'] >= scale_min) & (df['scale'] < scale_max)]
     # Calculate recovery rate
     recovered = df[df['recovered']]
-    recovery_rate = recovered.shape[0] / df.shape[0]
+    # Allow NaN in case no samples are present in bin
+    recovery_rate = np.divide(recovered.shape[0], df.shape[0])
 
     return recovery_rate
 
@@ -108,7 +111,10 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
             help='spectral model type ("Chev94" or "flat")')
     parser.add_argument('--conf', '-c', type=float, default=CONF,
-            help='confidence level of binomial confidence interval')
+            help='Confidence level of binomial confidence interval')
+    parser.add_argument('--iterations', '-i', type=int, default=ITER,
+            help='Number of injection iterations in save files')
     args = parser.parse_args()
 
-    main(tuple(args.tstart), tuple(args.scale), model=args.model)
+    main(tuple(args.tstart), tuple(args.scale), model=args.model, 
+            iterations=args.iterations, conf=args.conf)
