@@ -194,6 +194,19 @@ def get_hist(fname, x_edges, y_edges):
     return hist
 
 
+class RecoveryHistogram:
+    def __init__(self, save_dir, iterations=ITERATIONS):
+        """Import recovery save data for all targets sampled.
+        Input:
+            save_dir: directory of injection-recovery save files
+            iterations: number of iterations of injection per SN Ia
+        """
+
+        self.save_dir = Path(save_dir)
+        # Find save files
+        save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+
+
 class RecoveryData:
     def __init__(self, fname):
         """Import recovery save data.
