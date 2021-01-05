@@ -18,20 +18,13 @@ YMAX = None
 
 # Plot settings
 COLORS = {  'GALEX': '#47a',
-            # 'GALEX': '#d81b60',
-            # 'G19': '#004d40',
             'G19': '#e67',
             'This study': 'k',
             'ASAS-SN': '#ffc107',
-            'ZTF': '#1e88e5',
-            # 'All': 'k'
+            'ZTF': '#1e88e5'
 }
-MARKERS = { #'GALEX': 'o', 
-            # 'G19': 'o', 
-            # 'This study': 'o', 
-            'ASAS-SN': 'o', 
-            'ZTF': 's', 
-            # 'All': '*'
+MARKERS = { 'ASAS-SN': 'o', 
+            'ZTF': 's'
 }
 ALPHAS = {  'GALEX': 0.3,
             'G19': 0.3,
@@ -64,14 +57,12 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     trials['G19'] = (graham_hist + graham_det_hist).T
     trials['GALEX'] = galex_hist.T
     trials['This study'] = trials['GALEX'] + trials['G19']
-    # trials['ZTF'] = np.array([127] + [0]*(nbins-1)).T
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=tstart_bins)
     detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
     detections['This study'] = detections['GALEX'] + detections['G19']
-    # detections['ZTF'] = np.array([1] + [0]*(nbins-1)).T
 
     # Import ASAS-SN and ZTF SNe
     asassn_det, asassn_all = count_asassn_sne()
@@ -248,18 +239,6 @@ def read_pub_data(path, cols, col_names, skip_rows):
     return df
 
 
-def source_fmt(source):
-    """Format source string in LATEX table."""
-
-    fmt = { 'GALEX': '$\it{%s}$' % source, 
-            'G19': '\citetalias{Graham2019-SN2015cp}',
-            'ASAS-SN': '%s\\tablenotemark{a}' % source,
-            'ZTF': '%s\\tablenotemark{b}' % source,
-            'This study': 'This study', 'All': 'All'}
-
-    return fmt[source]
-
-
 # def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
 #         output_file='out/rates.tex'):
 #     """Generate LATEX table to go along with plot."""
@@ -296,6 +275,18 @@ def source_fmt(source):
 #     # Write table
 #     with open(Path(output_file), 'w') as file:
 #         file.write(table)
+
+
+# def source_fmt(source):
+#     """Format source string in LATEX table."""
+
+#     fmt = { 'GALEX': '$\it{%s}$' % source, 
+#             'G19': '\citetalias{Graham2019-SN2015cp}',
+#             'ASAS-SN': '%s\\tablenotemark{a}' % source,
+#             'ZTF': '%s\\tablenotemark{b}' % source,
+#             'This study': 'This study', 'All': 'All'}
+
+#     return fmt[source]
 
 
 if __name__ == '__main__':
