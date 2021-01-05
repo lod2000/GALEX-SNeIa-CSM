@@ -1,72 +1,94 @@
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+from multiprocessing import Pool
+from functools import partial
+from astropy.stats import binom_conf_interval
+from utils import *
+
+# Defaults
+TSTART = [100, 1000]
+SCALE = [0.9, 1.1]
+CONF = 0.9
 
 
-def main(tstart_min, tstart_max, scale_min, scale_max, model='Chev94', 
-        sigma=SIGMA, iterations=ITERATIONS):
-    
-    # Bin edges
-    x_edges = np.array([tstart_min, tstart_max])
-    y_edges = np.array([scale_min, scale_max])
+def main(tstart, scale, model='Chev94', sigma=3, iterations=ITERATIONS):
+    """Print binomial confidence interval for CSM interaction rate within
+    given parameter bounds.
+    Inputs:
+        tstart: tuple, CSM model interaction start time bounds
+        scale: tuple, CSM model scale factor bounds
+        model: 'Chev94' or 'flat', spectral model
+    """
 
-    # Import sum histograms for GALEX and G19 non-detections
-    galex_hist = import_recovery('galex', model, sigma, x_edges, y_edges)
-    graham_hist = import_recovery('graham', model, sigma, x_edges, y_edges)
-    # and G19 detections
-    graham_det_hist = import_recovery('graham', model, sigma, x_edges, y_edges,
-            detections=True)
-
-    # DataFrame for number of trials per tstart bin and data source
-    tstart_bins = pd.Series(x_edges[:-1])
-    trials = pd.DataFrame([], index=tstart_bins)
-    trials['G19'] = (graham_hist + graham_det_hist).T
-    trials['GALEX'] = galex_hist.T
-    trials['This study'] = trials['GALEX'] + trials['G19']
-
-    # DataFrame for number of detections per tstart bin and data source
-    detections = pd.DataFrame([], index=tstart_bins)
-    detections['G19'] = graham_det_hist.T
-    detections['GALEX'] = np.zeros((nbins, 1))
-    detections['This study'] = detections['GALEX'] + detections['G19']
-
-    # Import ASAS-SN and ZTF SNe
-    asassn_det, asassn_all = count_asassn_sne()
-    ztf_det, ztf_all = count_ztf_sne()
-
-    # Calculate binomial confidence intervals
-    bci_lower, bci_upper = bci_nan(detections, trials, conf=CONF)
-    # Convert to percentages
-    bci_lower *= 100
-    bci_upper *= 100
-
-    # Calculate binomial confidence intervals for external data
-    asassn_bci = 100 * binom_conf_interval(asassn_det, asassn_all, 
+    study = 'galex'
+    save_dir = run_dir(study, model, sigma, detections=False)
+    recovered_sne = count_recovered_sne(save_dir, tstart, scale, iterations)
+    detections = 0
+    bci = 100 * binom_conf_interval(detections, recovered_sne, 
             confidence_level=CONF, interval='jeffreys')
-    ztf_bci = 100 * binom_conf_interval(ztf_det, ztf_all, confidence_level=CONF, 
-            interval='jeffreys')
-    external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
-            columns=['bci_lower', 'bci_upper'])
 
-    # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
-    #         output_file=Path('out/rates_%s.tex' % model))
-
-    scale_mean = int(np.mean(y_edges))
-    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max,
-            output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
+    print(bci)
 
 
-def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
-        iterations=ITERATIONS):
-    """Import recovery save files and sum histograms with given bounds."""
+def count_recovered_sne(save_dir, tstart, scale, iterations=ITERATIONS):
+    """Count recovered SNe from injection-recovery run within given bounds.
+    Inputs:
+        save_dir: Path, directory containing recovery save files
+        tstart: tuple, CSM model interaction start time bounds
+        scale: tuple, CSM model scale factor bounds
+    Outputs:
+        recovered_sne: float, sum of recovery rates
+    """
 
-    # File names
-    save_dir = run_dir(study, model, sigma, detections)
+    print('Importing recovery save files from %s' % save_dir)
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-    # Generate summed histogram
-    print('Importing and summing %s saves from %s' % (study, save_dir))
-    hist = sum_hist(save_files, x_edges, y_edges, save=False)
-    count = np.nan_to_num(hist.iloc[0].to_numpy())
+    recovered_sne = 0
+    with Pool() as pool:
+        func = partial(get_recovery_rate, tstart=tstart, scale=scale)
+        imap = pool.imap(func, save_files, chunksize=10)
+        for r in tqdm(imap, total=len(save_files)):
+            recovered_sne += r
 
-    return count
+    return recovered_sne
+
+
+def get_recovery_rate(save_file, tstart, scale):
+    """Import injection-recovery save file and calculate recovery rate.
+    Inputs:
+        tstart: tuple, CSM model interaction start time bounds
+        scale: tuple, CSM model scale factor bounds
+    Output:
+        recovery_rate: ratio of N(recoveries) / N(injections)
+    """
+
+    # Separate parameter bounds
+    tstart_min, tstart_max = tstart
+    scale_min, scale_max = scale
+    # Import save file
+    df = pd.read_csv(save_file)
+    # Exclude data outside range
+    df = df[(df['tstart'] >= tstart_min) & (df['tstart'] < tstart_max)]
+    df = df[(df['scale'] >= scale_min) & (df['scale'] < scale_max)]
+    # Calculate recovery rate
+    recovered = df[df['recovered']]
+    recovery_rate = recovered.shape[0] / df.shape[0]
+
+    return recovery_rate
 
 
 if __name__ == '__main__':
-    main()
+    
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tstart', '-t', type=int, nargs=2, default=TSTART, 
+            help='Range of CSM model interaction start times')
+    parser.add_argument('--scale', '-S', type=float, nargs=2, default=SCALE, 
+            help='Range of CSM model scale factors')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', 
+            help='spectral model type ("Chev94" or "flat")')
+    parser.add_argument('--conf', '-c', type=float, default=CONF,
+            help='confidence level of binomial confidence interval')
+    args = parser.parse_args()
+
+    main(tuple(args.tstart), tuple(args.scale), model=args.model)
