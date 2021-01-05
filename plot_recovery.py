@@ -17,7 +17,7 @@ CONF = 0.9
 def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
         show_plot=True, model='Chev94', study='galex', cmax=None,
-        sigma=SIGMA, plot_rates=False, overwrite=False, detections=False,
+        sigma=SIGMA, overwrite=False, detections=False,
         upper_lim=False, cmin=None):
     
     # Bin edges
