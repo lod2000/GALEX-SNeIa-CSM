@@ -54,14 +54,14 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     # DataFrame for number of trials per tstart bin and data source
     tstart_bins = pd.Series(x_edges[:-1])
     trials = pd.DataFrame([], index=tstart_bins)
-    trials['G19'] = (graham_hist + graham_det_hist).T
     trials['GALEX'] = galex_hist.T
+    trials['G19'] = (graham_hist + graham_det_hist).T
     trials['This study'] = trials['GALEX'] + trials['G19']
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=tstart_bins)
-    detections['G19'] = graham_det_hist.T
     detections['GALEX'] = np.zeros((nbins, 1))
+    detections['G19'] = graham_det_hist.T
     detections['This study'] = detections['GALEX'] + detections['G19']
 
     # Import ASAS-SN and ZTF SNe

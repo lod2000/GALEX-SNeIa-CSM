@@ -21,14 +21,34 @@ def main(tstart, scale, model='Chev94', sigma=3, iterations=ITERATIONS):
         model: 'Chev94' or 'flat', spectral model
     """
 
-    study = 'galex'
-    save_dir = run_dir(study, model, sigma, detections=False)
-    recovered_sne = count_recovered_sne(save_dir, tstart, scale, iterations)
-    detections = 0
-    bci = 100 * binom_conf_interval(detections, recovered_sne, 
-            confidence_level=CONF, interval='jeffreys')
+    # Initialize DataFrame
+    rate_df = pd.DataFrame([], index=['GALEX', 'G19', 'This study'], 
+            columns=['Detections', 'Trials', 'Lower Limit [%]', 'Upper Limit [%]'])
 
-    print(bci)
+    # Get save directories
+    galex_save_dir = run_dir('galex', model, sigma, detections=False)
+    graham_save_dir = run_dir('graham', model, sigma, detections=False)
+    graham_det_dir = run_dir('graham', model, sigma, detections=True)
+
+    # Successes and trials
+    rate_df.loc['GALEX', 'Trials'] = count_recovered_sne(galex_save_dir, tstart, 
+            scale, iterations)
+    rate_df.loc['GALEX', 'Detections'] = 0
+    graham_detections = count_recovered_sne(graham_det_dir, tstart, scale, 
+            iterations)
+    graham_nondetections = count_recovered_sne(graham_save_dir, tstart, scale, 
+            iterations)
+    rate_df.loc['G19', 'Detections'] = graham_detections
+    rate_df.loc['G19', 'Trials'] = graham_detections + graham_nondetections
+    rate_df.loc['This study'] = np.sum(rate_df.loc[['GALEX', 'G19']])
+
+    # Calculate binomial confidence interval
+    bci = 100 * binom_conf_interval(rate_df['Detections'], rate_df['Trials'], 
+            confidence_level=CONF, interval='jeffreys')
+    rate_df[['Lower Limit [%]', 'Upper Limit [%]']] = bci.T
+
+    print('\nConfidence intervals for %s < tstart < %s, %s < S < %s:' % (tstart+scale))
+    print(rate_df)
 
 
 def count_recovered_sne(save_dir, tstart, scale, iterations=ITERATIONS):
