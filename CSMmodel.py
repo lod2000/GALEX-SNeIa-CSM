@@ -35,21 +35,6 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
     csm_model.plot_redshift(save=True, show=show)
-    
-    # test = np.arange(250., 2500., 20)
-    # for z,m in zip([Z_2015cp, 0.25], ['.', 's']):
-    #   f = model1(test, z)
-    #   for band, fls in f.items():
-    #       plt.plot(test, fls, label=band+' - z=%.2f' % z, color=COLORS[band], marker=m)
-
-    # plt.ylim(1e32, 1e38)
-    # plt.yscale('log')
-    # plt.xlim(250, 1500)
-    # plt.legend()
-    # plt.xlabel('time since max')
-    # plt.ylabel('Filter Luminoisity [erg/s/A]')
-    # plt.show()
-
 
 
 class CSMmodel:
