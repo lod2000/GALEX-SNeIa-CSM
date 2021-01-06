@@ -140,10 +140,12 @@ class CSMmodel:
             zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
+        import matplotlib.ticker as ticker
+
         fig, ax = plt.subplots(tight_layout=True)
 
         # Set up range of redshifts
-        z_vals = np.arange(0., 0.5, 0.01)
+        z_vals = np.arange(0., 0.51, 0.01)
         luminosity = {
             'FUV':[],
             'NUV':[],
@@ -155,18 +157,34 @@ class CSMmodel:
             f = self(self.tstart + tstep, z)
             for band, fl in f.items(): luminosity[band].append(fl)
 
+        L_min = 1e39
+        L_max = 0
         for band in ['F275W', 'NUV', 'FUV']:
-            plt.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
+            ax.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
                     lw=2, ls=line_style[band])
-            plt.text(z_vals[0] - 0.01, luminosity[band][0], band, 
-                    color=COLORS[band], ha='right', size=16, va='center')
+            ax.text(z_vals[0], luminosity[band][0], band, 
+                    color=COLORS[band], ha='left', size=16, va='bottom')
+            L_min = min(L_min, np.min(luminosity[band]))
+            L_max = max(L_max, np.max(luminosity[band]))
 
-        plt.xlim((-0.08, 0.52))
-        plt.yscale('log')
-        #plt.legend()
+        ax.set_xlim((-0.02, 0.5))
+        ax.set_yscale('log')
+        ax.set_ylim((L_min - 1.4e36, None))
 
-        plt.xlabel('Redshift')
-        plt.ylabel('Filter Luminosity [erg/s/Å]')
+        # Set spine extent
+        ax.spines['bottom'].set_bounds(0, 0.5)
+        ax.spines['left'].set_bounds(np.round(L_min, -36), np.round(L_max, -38))
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Set ticks
+        x_minor_ticks = np.arange(0, 0.5, 0.02)
+        ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+        ax.tick_params(which='both', top=False, right=False)
+
+        ax.set_xlabel('Redshift')
+        ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
+                ha='left', va='top', y=1.1, labelpad=-5)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
         if show:
