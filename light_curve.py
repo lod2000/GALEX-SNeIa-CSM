@@ -95,7 +95,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
 
     # Plot Swift data data
     if swift:
-        lc = import_swift(sn)
+        lc = import_swift(sn.name, sn.disc_date.mjd, sn.z)
         ax = plot_external(ax, sn, lc, ['UVW1', 'UVM2', 'UVW2'])
 
     # Plot CfA data
@@ -493,20 +493,20 @@ def plot_external(ax, sn, lc, bands, marker='D'):
     return ax
 
 
-def import_swift(sn):
+def import_swift(sn_name, disc_date_mjd, z):
     """Import Swift light curve data."""
 
     # Read CSV
-    lc = pd.read_csv(Path('ref/%s_uvotB15.1.dat' % sn.name), sep='\s+',
+    lc = pd.read_csv(Path('ref/%s_uvotB15.1.dat' % sn_name), sep='\s+',
             names=['Filter', 'MJD', 'Mag', 'MagErr', '3SigMagLim', '0.98SatLim', 
             'Rate', 'RateErr', 'Ap', 'Frametime', 'Exp', 'Telapse'], comment='#')
     # Remove limits
     lc = lc[pd.notna(lc['Mag'])]
 
     # Add days relative to discovery date
-    lc['t_delta'] = lc['MJD'] - sn.disc_date.mjd
+    lc['t_delta'] = lc['MJD'] - disc_date_mjd
     # Correct epoch for stretch factor
-    lc['t_delta_rest'] = 1 / (1 + sn.z) * lc['t_delta']
+    lc['t_delta_rest'] = 1 / (1 + z) * lc['t_delta']
 
     # Convert CPS to flux
     flux_factor   = {'V': 2.614e-16, 'B': 1.472e-16, 'U': 1.63e-16, 

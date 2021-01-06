@@ -150,9 +150,10 @@ class GrahamObservation:
 
         # Detections
         if self.detection:
-            luminosity_hz = 10 ** self.info['Log Luminosity'] * u.erg
+            self.luminosity_hz = 10 ** self.info['Log Luminosity'] * u.erg
             # luminosity (erg/s/AA)
-            self.luminosity = freq2wavelength(luminosity_hz, F275W_LAMBDA_EFF * u.AA)
+            self.luminosity = freq2wavelength(self.luminosity_hz, 
+                    F275W_LAMBDA_EFF * u.AA)
             self.luminosity_err = self.get_luminosity_limit(1)
 
 
