@@ -29,11 +29,11 @@ for name, f in ref.iterrows():
 
     # Add in-plot labeling
     text_x = {'mean': np.mean(array.index), 'max': array.idxmax()}
-    text_y = {'above': array.max() + 1., 'below': -0.5, 'middle': array.max()/2}
+    text_y = {'above': array.max() + 0.7, 'below': -0.5, 'middle': array.max()/2}
     if f.instrument == 'GALEX':
-        text_size = 18
+        text_size = 20
     else:
-        text_size = 14
+        text_size = 16
     ax.text(text_x[f.label_x], text_y[f.label_y], name, ha='center', va='center', 
             size=text_size, c=f.color)
 
