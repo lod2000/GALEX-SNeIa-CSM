@@ -18,7 +18,6 @@ plt.hist(z, bins=bins, range=(z_min, z_max), histtype='bar', color='#e67', rwidt
 fig.set_tight_layout(True)
 plt.xlabel('Redshift')
 plt.ylabel('Number of SNe Ia')
-plt.xlim((z_min, z_max))
 
 plt.grid(b=True, which='major', axis='x', color='w', lw=2)
 plt.grid(b=True, which='minor', axis='x', color='w', lw=1)
