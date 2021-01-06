@@ -7,6 +7,8 @@ from pathlib import Path
 bin_width = 0.02
 z_min = 0.
 z_max = 0.5
+# color = '#e67'
+color = 'gray'
 
 sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
 z = sn_info['z']
@@ -15,7 +17,7 @@ bins = int((z_max - z_min) / bin_width)
 
 fig, ax = plt.subplots(tight_layout=True)
 
-ax.hist(z, bins=bins, range=(z_min, z_max), histtype='bar', color='#e67')
+hist = ax.hist(z, bins=bins, range=(z_min, z_max), histtype='bar', color=color)
 
 ax.set_xlabel('Redshift')
 ax.set_ylabel('Number of SNe Ia')
@@ -29,12 +31,14 @@ plt.savefig(Path('out/redshifts.pdf'), bbox_inches='tight', dpi=300)
 # Alternate: no ticks or frame, tick labels every 10
 plt.box(False)
 ax.set_xlim((z_min, z_max))
-hist = np.histogram(z, bins=bins, range=(z_min, z_max))
-yticks = np.arange(0, np.max(hist[0]), 20)
+
+hist_arr = np.histogram(z, bins=bins, range=(z_min, z_max))
+yticks = np.arange(0, np.max(hist_arr[0]), 20)
 ax.set_yticks(yticks)
 ax.tick_params(axis='both', which='both', bottom=False, top=False, left=False, 
         right=False)
 ax.tick_params(axis='x', pad=8)
+
 ax.set_ylabel('Number of SNe Ia', rotation='horizontal', ha='left', va='top', y=1.)
 
 plt.savefig(Path('out/redshifts_alt.pdf'), bbox_inches='tight', dpi=300)
