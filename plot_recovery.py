@@ -27,16 +27,18 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     # Define folder structure
     save_dir = run_dir(study, model, sigma)
     det_save_dir = run_dir(study + '_det', model, sigma)
-    if detections:
-        save_dir = det_save_dir
+    # if detections:
+    #     save_dir = det_save_dir
     fname = 'recovery_%s_%s' % (study, model)
     det_fname = 'recovery_%s_det_%s' % (study, model)
-    if detections:
-        fname = det_fname
+    # if detections:
+    #     fname = det_fname
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
     det_hist_file = OUTPUT_DIR / Path(det_fname + '.csv')
     if upper_lim:
         plot_file = OUTPUT_DIR / Path(fname + '_upperlim.pdf')
+    elif detections:
+        plot_file = OUTPUT_DIR / Path(fname + '_det.pdf')        
     else:
         plot_file = OUTPUT_DIR / Path(fname + '.pdf')
 
@@ -46,16 +48,18 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
-        if upper_lim and study == 'graham':
+        if (detections or upper_lim) and study == 'graham':
             det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
             det_hist = sum_hist(det_save_files, x_edges, y_edges, 
                     output_file=det_hist_file)
+        if upper_lim and study == 'graham':
             hist = hist + det_hist
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
-        if upper_lim and study == 'graham':
+        if (detections or upper_lim) and study == 'graham':
             det_hist = pd.read_csv(det_hist_file, index_col=0)
+        if upper_lim and study == 'graham':
             hist = hist + det_hist
 
     # Calculate 90% binom conf interval upper limits
@@ -70,12 +74,14 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
     # Plot histogram
     print('Plotting recovery histogram...')
+    if not detections:
+        det_hist = []
     plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
-            cmin=cmin, upper_lim=upper_lim)
+            cmin=cmin, upper_lim=upper_lim, det_hist=det_hist)
 
 
 def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
-        cmax=None, cmin=None, upper_lim=False):
+        cmax=None, cmin=None, upper_lim=False, det_hist=[]):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
         x_edges: x-axis bin edges
@@ -86,6 +92,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         cmax: optional manual maximum value of colorbar
         cmin: optional manual minimum value of colorbar (must be >0)
         upper_lim: if True, plot upper 90% C.I. instead of number of excluded SNe
+        det_hist: histogram of detections
     """
 
     # Flip y-axis
@@ -123,6 +130,48 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     fig, ax = plt.subplots()
     pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm,
             edgecolor='k', linewidth=0.3, antialiased=True)
+
+    # Hatch detections
+    if len(det_hist) > 0:
+        
+        # Hatch and outline detections
+        h = ['//', '\\\\']
+        ls = ['--', '-']
+        lw = [2, 3]
+        for n in range(int(det_hist.max().max())):
+            # Hatch
+            det_mask = det_hist[det_hist >= n+1]
+            det_mask[pd.notna(det_mask)] = -1
+            cm = ax.pcolor(x_edges, y_edges, det_mask, hatch=h[n], alpha=0)
+
+            # Outline area
+            det_mask.reset_index(inplace=True, drop=True)
+            x_lower = []
+            x_upper = []
+            y_lower = []
+            y_upper = []
+            for i, x_edge in enumerate(x_edges):
+                col = det_mask[str(x_edge)]
+                # Continuous range of values above limit
+                cont = col[pd.notna(col)]
+                if len(cont) == 0:
+                    x_upper.insert(0, x_lower[0])
+                    y_upper.insert(0, y_lower[0])
+                    break
+
+                x_lower += [x_edge, x_edges[i+1]]
+                x_upper += [x_edge, x_edges[i+1]]
+
+                y_lower += [y_edges[cont.index[0]]] * 2
+                y_upper += [y_edges[cont.index[-1]+1]] * 2
+
+            x_upper.reverse()
+            x = x_lower + x_upper
+
+            y_upper.reverse()
+            y = y_lower + y_upper
+
+            ax.plot(x, y, color='r', linestyle=ls[n], linewidth=lw[n])
 
     # Format axes
     ax.set_yscale('log')
@@ -264,7 +313,7 @@ if __name__ == '__main__':
     parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
     parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
     parser.add_argument('-d', '--detections', action='store_true', 
-            help='Recover models for G19 detections instead of nondetections')
+            help='Include recovery of G19 detections as hatch overlay')
     parser.add_argument('-u', '--upperlim', action='store_true', 
             help='plot upper limit of binomial conf intervals instead of excluded SNe')
     parser.add_argument('--smax', default=SCALE_MAX, type=int, help='y-axis upper limit')
