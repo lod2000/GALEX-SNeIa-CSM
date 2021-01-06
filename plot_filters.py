@@ -11,11 +11,8 @@ ref = pd.read_csv(Path('ref/filters.csv'), index_col='name')
 for name, f in ref.iterrows():
     label = ' '.join([f.display_name, name])
     # Import response file
-    # array = np.loadtxt(Path('ref/%s.resp' % name), delimiter=' ')
     array = pd.read_csv(Path('ref/%s.resp' % name), names=['freq', 'resp'],
             sep=' ', index_col=0)
-    # freq = array[:,0]
-    # y = array[:,1]
 
     # convert effective area to throughput
     if f.type == 'effective area':
