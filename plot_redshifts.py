@@ -35,6 +35,7 @@ ax.set_yticks(yticks)
 ax.tick_params(axis='both', which='both', bottom=False, top=False, left=False, 
         right=False)
 ax.tick_params(axis='x', pad=8)
+ax.set_ylabel('Number of SNe Ia', rotation='horizontal', ha='left', va='top', y=1.)
 
 plt.savefig(Path('out/redshifts_alt.pdf'), bbox_inches='tight', dpi=300)
 
