@@ -184,8 +184,23 @@ class LightCurve:
         self.data = data
 
 
-    def __call__(self, col):
-        return self.data[col]
+    def __call__(self, col='', tmin=-4000, tmax=4000):
+        """Return data column.
+        Inputs:
+            col: column label
+            tmin: minimum t_delta_rest value
+            tmax: maximum t_delta_rest value
+        """
+
+        data_slice = self.data.copy()
+        # Limit to tmin, tmax bounds
+        data_slice = data_slice[data_slice['t_delta_rest'] >= tmin]
+        data_slice = data_slice[data_slice['t_delta_rest'] < tmax]
+
+        if len(col) > 0:
+            data_slice = data_slice[col]
+
+        return data_slice
 
 
     @classmethod
@@ -213,6 +228,7 @@ class LightCurve:
         for col in convert_cols:
             hz_col = col+'_hz'
             data[hz_col] = wavelength2freq(data[col], effective_wavelength(self.band))
+        self.data = data
         return data
 
 
