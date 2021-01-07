@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 from astropy.stats import binom_conf_interval
 from utils import *
 from plot_recovery import sum_hist
@@ -17,23 +18,27 @@ TSTART_MAX = 2000
 YMAX = None
 
 # Plot settings
+TEXT_SIZE = 16
 COLORS = {  'GALEX': '#47a',
-            'G19': '#e67',
+            'HST': '#e67',
             'This study': 'k',
             'ASAS-SN': '#ffc107',
-            'ZTF': '#1e88e5'
+            'ZTF': '#283'
 }
 MARKERS = { 'ASAS-SN': 'o', 
             'ZTF': 's'
 }
 ALPHAS = {  'GALEX': 0.3,
-            'G19': 0.3,
-            'This study': 0.5
+            'HST': 0.3,
+            'This study': 0.3
 }
 HATCHES = { 'GALEX': '|',
-            'G19': '-',
+            'HST': '-',
             'This study': 'x'
 }
+STYLE = {   'GALEX': '--',
+            'HST': ':',
+            'This study': '-'}
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
@@ -44,10 +49,10 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     y_edges = np.array(scale)
     nbins = len(x_edges)-1
 
-    # Import sum histograms for GALEX and G19 non-detections
+    # Import sum histograms for GALEX and HST non-detections
     galex_hist = import_recovery('galex', model, sigma, x_edges, y_edges)
     graham_hist = import_recovery('graham', model, sigma, x_edges, y_edges)
-    # and G19 detections
+    # and HST detections
     graham_det_hist = import_recovery('graham', model, sigma, x_edges, y_edges,
             detections=True)
 
@@ -55,14 +60,14 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     tstart_bins = pd.Series(x_edges[:-1])
     trials = pd.DataFrame([], index=tstart_bins)
     trials['GALEX'] = galex_hist.T
-    trials['G19'] = (graham_hist + graham_det_hist).T
-    trials['This study'] = trials['GALEX'] + trials['G19']
+    trials['HST'] = (graham_hist + graham_det_hist).T
+    trials['This study'] = trials['GALEX'] + trials['HST']
 
     # DataFrame for number of detections per tstart bin and data source
     detections = pd.DataFrame([], index=tstart_bins)
     detections['GALEX'] = np.zeros((nbins, 1))
-    detections['G19'] = graham_det_hist.T
-    detections['This study'] = detections['GALEX'] + detections['G19']
+    detections['HST'] = graham_det_hist.T
+    detections['This study'] = detections['GALEX'] + detections['HST']
 
     # Import ASAS-SN and ZTF SNe
     asassn_det, asassn_all = count_asassn_sne()
@@ -93,8 +98,8 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
 def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=YMAX):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
-        lower: DataFrame of lower 90% CI for GALEX, G19 data
-        upper: DataFrame of upper 90% CI for GALEX, G19 data
+        lower: DataFrame of lower 90% CI for GALEX, HST data
+        upper: DataFrame of upper 90% CI for GALEX, HST data
         external: DataFrame of BCI for ASAS-SN and ZTF data
     """
 
@@ -110,46 +115,76 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
         y1 = lower[col].to_numpy()
         y2 = upper[col].to_numpy()
         # Add endpoints
-        y1 = np.append(y1, 0.)
-        y2 = np.append(y2, 0.)
+        y1 = np.append(y1, y1[-1])
+        y2 = np.append(y2, y2[-1])
         
         color = COLORS[col]
         alpha = ALPHAS[col]
         hatch = HATCHES[col]
+        ls = STYLE[col]
+        lw = 2
 
-        ax.fill_between(x, y1, y2, facecolor=color, edgecolor='None', alpha=alpha, 
-                step='post', label=col)
-        # Plot hatches separately to work around matplotlib bug
-        ax.fill_between(x, y1, y2, facecolor='None', edgecolor=color, alpha=1, 
-                hatch=hatch, step='post', lw=2, label=col)
-
-    # Re-combine transparent patches with hatch patches
-    handles, labels = ax.get_legend_handles_labels()
-    indices = [0, 2, 4]
-    handles = [(handles[i], handles[i+1]) for i in indices]
-    labels = [labels[i] for i in indices]
+        if col == 'This study':
+            ax.fill_between(x, y1, y2, facecolor=color, edgecolor='None', 
+                    alpha=alpha, step='post', ls=ls, lw=lw, label=col)
+            # In-plot label
+            # ax.text(20, (y2[0]-y1[0])/2, col, ha='left', va='center', 
+            #         size=TEXT_SIZE)
+        
+        else:
+            # Upper bound
+            ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=col)
+            # Lower bound
+            ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
+            # In-plot label
+            # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
+            #         color=color)
 
     # Plot external study estimates as points
-    x = 0
-    for study in external.index:
+    pt_x = -40
+    for i, study in enumerate(external.index):
         row = external.loc[study]
         midpoint = row.mean()
         err = row['bci_upper'] - midpoint
-        ebar = ax.errorbar(x, midpoint, yerr=err, label=study, 
-                marker=MARKERS[study], c=COLORS[study], mec=COLORS[study], mfc='w', 
-                ms=10, linestyle='none', elinewidth=2, mew=2, capsize=6)
-        print(ebar)
-        handles.append(ebar.lines[0])
-        labels.append(study)
-        x += 30
+        ax.errorbar(pt_x, midpoint, yerr=err, label=study, marker=MARKERS[study], 
+                c=COLORS[study], mec=COLORS[study], mfc='w', ms=10, 
+                linestyle='none', elinewidth=2, mew=2, capsize=6)
+        # In-plot label
+        if i % 2 == 1:
+            text_y = midpoint + err + 1
+            va = 'bottom'
+        else:
+            text_y = -1
+            va = 'top'
+        # ax.text(pt_x, text_y, study, color=COLORS[study], size=TEXT_SIZE-2,
+        #         ha='center', va=va)
+        pt_x += pt_x
 
     # Format axes
-    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
-    ax.set_ylabel('Rate of CSM interaction [%]')
-    ax.set_ylim((0, y_max))
+    ax.set_xlabel('$t_{start}$ [days]')
+    ax.set_ylabel('Rate of CSM interaction [%]', rotation='horizontal', 
+                ha='left', va='top', y=1.1, labelpad=-5)
+    ax.set_ylim((None, y_max))
+    ylim = ax.get_ylim()
+
+    # Set spine extent
+    ax.spines['bottom'].set_bounds(x[0], x[-1])
+    ax.spines['left'].set_bounds(0, ylim[1])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+        
+    # Set ticks
+    x_minor_ticks = np.arange(x[0], x[-1], 50)
+    ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+    dy = int((ylim[1] - 0) / 20)
+    y_minor_ticks = np.arange(0, ylim[1], dy)
+    ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
+    ax.tick_params(which='both', top=False, right=False)
+
+    ax.set_ylim((-2*dy, None))
 
     # Legend
-    plt.legend(handles, labels, loc='upper right')
+    plt.legend(loc='best')
 
     # plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -281,7 +316,7 @@ def read_pub_data(path, cols, col_names, skip_rows):
 #     """Format source string in LATEX table."""
 
 #     fmt = { 'GALEX': '$\it{%s}$' % source, 
-#             'G19': '\citetalias{Graham2019-SN2015cp}',
+#             'HST': '\citetalias{Graham2019-SN2015cp}',
 #             'ASAS-SN': '%s\\tablenotemark{a}' % source,
 #             'ZTF': '%s\\tablenotemark{b}' % source,
 #             'This study': 'This study', 'All': 'All'}

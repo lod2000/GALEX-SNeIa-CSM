@@ -127,7 +127,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
     # Plot
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(tight_layout=True)
     pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm,
             edgecolor='k', linewidth=0.3, antialiased=True)
 
@@ -177,8 +177,10 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
-    ax.set_xlabel('$t_{start}$ [rest frame days post-discovery]')
-    ax.set_ylabel('Scale factor')
+    ax.tick_params(which='both', direction='out', top=False, right=False)
+    ax.set_xlabel('$t_{start}$ [days]')
+    # ax.set_ylabel('Scale factor')
+    ax.set_ylabel('$S$', rotation='horizontal')
 
     # Adjust colorbar: add extension below lower limit
     if upper_lim:
@@ -186,14 +188,17 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         bounds = list(cmap_bounds) + [100]
         extend = 'max'
     else:
-        cbar_label = 'No. of excluded SNe Ia'
+        cbar_label = 'Excluded SNe Ia'
         bounds = [0] + list(cmap_bounds)
         extend = 'min'
-    cbar = fig.colorbar(pcm, label=cbar_label, spacing='uniform', extend=extend, 
-            boundaries=bounds, ticks=cmap_bounds, extendfrac='auto')
-    cbar.ax.minorticks_off()
+    cbar = fig.colorbar(pcm, spacing='uniform', extend=extend, 
+            boundaries=bounds, ticks=cmap_bounds, extendfrac='auto', 
+            fraction=0.1, aspect=16, pad=0.04)
+    cbar.ax.tick_params(which='both', right=False)
+    # cbar.ax.set_ylabel(cbar_label)
+    cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
+                ha='right', va='top', y=1.12, labelpad=0)
 
-    plt.tight_layout()
     plt.savefig(output_file, dpi=300)
 
     if show:
