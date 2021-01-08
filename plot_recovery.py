@@ -110,8 +110,9 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     # colorbar limits
     if upper_lim:
         # set limit to highest value not at 100%
-        hist_max = int(np.max(hist[hist < 100].to_numpy())) + 1
-        hist_min = int(np.min(hist.to_numpy()))
+        # print(hist[hist < 100].to_numpy())
+        hist_max = int(np.nanmax(hist[hist < 100].to_numpy())) + 1
+        hist_min = np.min(hist.to_numpy())
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
         hist_min = 1
@@ -184,7 +185,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
 
     # Adjust colorbar: add extension below lower limit
     if upper_lim:
-        cbar_label = 'Upper 90\% confidence [%]'
+        cbar_label = 'Upper 90% confidence limit [%]'
         bounds = list(cmap_bounds) + [100]
         extend = 'max'
     else:
