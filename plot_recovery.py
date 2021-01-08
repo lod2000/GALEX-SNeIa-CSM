@@ -137,13 +137,13 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         
         # Hatch and outline detections
         h = ['//', '\\\\']
-        ls = ['--', '-']
-        lw = [2, 3]
+        ls = ['--', ':', '-.']
+        lw = [2, 3, 4]
         for n in range(int(det_hist.max().max())):
             # Hatch
             det_mask = det_hist[det_hist >= n+1]
             det_mask[pd.notna(det_mask)] = -1
-            cm = ax.pcolor(x_edges, y_edges, det_mask, hatch=h[n], alpha=0)
+            # cm = ax.pcolor(x_edges, y_edges, det_mask, hatch=h[n], alpha=0)
 
             # Outline area
             det_mask.reset_index(inplace=True, drop=True)
@@ -152,7 +152,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
             y_lower = []
             y_upper = []
             for i, x_edge in enumerate(x_edges):
-                col = det_mask[str(x_edge)]
+                col = det_mask[x_edge]
                 # Continuous range of values above limit
                 cont = col[pd.notna(col)]
                 if len(cont) == 0:
@@ -172,7 +172,13 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
             y_upper.reverse()
             y = y_lower + y_upper
 
-            ax.plot(x, y, color='r', linestyle=ls[n], linewidth=lw[n])
+            line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n],
+                    label='%s det.' % (n+1))
+            line.set_clip_on(False) # allow line to bleed over spines
+
+        # Legend for detections
+        plt.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
+                borderpad=0.4, bbox_to_anchor=(0., 1.12), borderaxespad=0.)
 
     # Format axes
     ax.set_yscale('log')
