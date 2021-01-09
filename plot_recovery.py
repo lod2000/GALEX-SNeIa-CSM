@@ -112,7 +112,6 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         # set limit to highest value not at 100%
         hist_max = int(np.nanmax(hist[hist < 100].to_numpy())) + 1
         hist_min = np.min(hist.to_numpy())
-        print(hist_min)
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
         hist_min = 1
