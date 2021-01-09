@@ -183,6 +183,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
     # Set ticks
     x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
     ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(500))
     dy = int((ylim[1] - 0) / 10)
     y_minor_ticks = np.arange(0, ylim[1]+0.1, dy)
     ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
@@ -221,6 +222,11 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
     ax.grid(b=True, which='both', axis='y', color='w', lw=1, zorder=2)
 
     ax.set_ylim((-dy, None))
+
+    # ax.set_ylim((0.1, None))
+    # ax.set_yscale('log')
+    # ax.set_xlim((50, None))
+    # ax.set_xscale('log')
 
     # Legend (actually upper right)
     plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 1.), 
