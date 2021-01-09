@@ -126,8 +126,7 @@ def main():
                     markeredgecolor='none', markersize=MS_LOW, alpha=ALPHA_LOW,
                     label='detection limit (NUV)', lw=0)
     ]
-    ncol = 3
-    plt.legend(handles=handles + legend_elements, loc='upper right', ncol=ncol,
+    plt.legend(handles=handles + legend_elements, loc='upper right', ncol=3,
             handletextpad=0.2, handlelength=1.0)
 
     plt.savefig(Path('out/limits.pdf'), dpi=300)

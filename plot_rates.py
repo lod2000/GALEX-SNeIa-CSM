@@ -19,17 +19,20 @@ YMAX = None
 
 # Plot settings
 TEXT_SIZE = 16
+ARROW_LENGTH = 2
 COLORS = {  'GALEX': '#47a',
             'HST': '#e67',
             'This study': 'k',
-            'ASAS-SN': '#ffc107',
-            'ZTF': '#283'
+            # 'ASAS-SN': '#cb4',
+            # 'ZTF': '#283'
+            'ASAS-SN': 'k',
+            'ZTF': 'k'
 }
 MARKERS = { 'ASAS-SN': 'o', 
             'ZTF': 's'
 }
-ALPHAS = {  'GALEX': 0.3,
-            'HST': 0.3,
+ALPHAS = {  'GALEX': 0.1,
+            'HST': 0.1,
             'This study': 0.3
 }
 HATCHES = { 'GALEX': '|',
@@ -124,46 +127,49 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
         ls = STYLE[col]
         lw = 2
 
+        # Italicize GALEX
+        if col == 'GALEX':
+            label = '$\it{%s}$' % col
+        else:
+            label = col
+
         if col == 'This study':
             ax.fill_between(x, y1, y2, facecolor=color, edgecolor='None', 
-                    alpha=alpha, step='post', ls=ls, lw=lw, label=col)
+                    alpha=alpha, step='post', ls=ls, lw=lw, label=label, zorder=1)
             # In-plot label
             # ax.text(20, (y2[0]-y1[0])/2, col, ha='left', va='center', 
             #         size=TEXT_SIZE)
+            # Add arrows if line exits plot
+            if y_max is not None:
+                x_mid = (x[1:] + x[:-1]) / 2
+                above_lim = x_mid[y2[:-1] > y_max]
+                for val in above_lim:
+                    ax.arrow(val, y_max-ARROW_LENGTH, 0, ARROW_LENGTH, color=color,
+                            head_width=30, zorder=10, length_includes_head=True, 
+                            head_starts_at_zero=False, head_length=ARROW_LENGTH,
+                    )
         
+        # if col != 'This study':
         else:
             # Upper bound
-            ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=col)
+            ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
             # Lower bound
             ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
             # In-plot label
             # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
             #         color=color)
-
-    # Plot external study estimates as points
-    pt_x = -40
-    for i, study in enumerate(external.index):
-        row = external.loc[study]
-        midpoint = row.mean()
-        err = row['bci_upper'] - midpoint
-        ax.errorbar(pt_x, midpoint, yerr=err, label=study, marker=MARKERS[study], 
-                c=COLORS[study], mec=COLORS[study], mfc='w', ms=10, 
-                linestyle='none', elinewidth=2, mew=2, capsize=6)
-        # In-plot label
-        if i % 2 == 1:
-            text_y = midpoint + err + 1
-            va = 'bottom'
-        else:
-            text_y = -1
-            va = 'top'
-        # ax.text(pt_x, text_y, study, color=COLORS[study], size=TEXT_SIZE-2,
-        #         ha='center', va=va)
-        pt_x += pt_x
+            # Add arrow if line exits plot
+            if (y_max is not None) and (np.max(y2) > y_max):
+                exit_x = x[y2 > y_max][0]
+                ax.arrow(exit_x, y_max-ARROW_LENGTH, 0, ARROW_LENGTH, color=color, 
+                        head_width=30, zorder=10, length_includes_head=True, 
+                        head_starts_at_zero=False, head_length=ARROW_LENGTH,
+                )
 
     # Format axes
     ax.set_xlabel('$t_{start}$ [days]')
     ax.set_ylabel('Rate of CSM interaction [%]', rotation='horizontal', 
-                ha='left', va='top', y=1.1, labelpad=-5)
+                ha='left', va='top', y=1.12, labelpad=-2)
     ax.set_ylim((None, y_max))
     ylim = ax.get_ylim()
 
@@ -172,21 +178,54 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
     ax.spines['left'].set_bounds(0, ylim[1])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    # ax.spines['right'].set_bounds(0, ylim[1])
         
     # Set ticks
-    x_minor_ticks = np.arange(x[0], x[-1], 50)
+    x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
     ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
-    dy = int((ylim[1] - 0) / 20)
-    y_minor_ticks = np.arange(0, ylim[1], dy)
+    dy = int((ylim[1] - 0) / 10)
+    y_minor_ticks = np.arange(0, ylim[1]+0.1, dy)
     ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
+    y_major_ticks = np.arange(0, ylim[1]+0.1, 2*dy)
+    ax.yaxis.set_major_locator(ticker.FixedLocator(y_major_ticks))
     ax.tick_params(which='both', top=False, right=False)
 
-    ax.set_ylim((-2*dy, None))
+    # Plot external study estimates as points
+    pt_x = -int(x[-1] / 40)
+    text_y = -2.2*dy
+    for i, study in enumerate(external.index):
+        row = external.loc[study]
+        midpoint = row.mean()
+        err = row['bci_upper'] - midpoint
+        ax.errorbar(pt_x, midpoint, yerr=err, marker=MARKERS[study], 
+                c=COLORS[study], mec=COLORS[study], mfc='w', ms=0, 
+                linestyle='none', elinewidth=5, mew=2, capsize=0)#, label=study)
+        # In-plot label
+        # if i % 2 == 1:
+        #     text_y = midpoint + err + 1
+        #     va = 'bottom'
+        # else:
+        #     text_y = -1
+        #     va = 'top'
+        # ax.text(pt_x * 1.3, text_y, study, color=COLORS[study], size=TEXT_SIZE-2,
+        #         ha='left', va=va)
+        ax.annotate(study, xy=(pt_x, 0), xytext=(pt_x, text_y), ha='right',
+                size=TEXT_SIZE-2, va='center', 
+                arrowprops={'color': 'k', 'shrink': 0.08, 'width': 0.5,
+                        'headwidth': 0.5, 'headlength': 0.5})
+        pt_x += pt_x
+        text_y += dy/1.2
 
-    # Legend
-    plt.legend(loc='best')
+    # White grid
+    ax.grid(b=True, which='both', axis='x', color='w', lw=2, zorder=2)
+    ax.grid(b=True, which='both', axis='y', color='w', lw=1, zorder=2)
 
-    # plt.tight_layout()
+    ax.set_ylim((-dy, None))
+
+    # Legend (actually upper right)
+    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 1.), 
+            handletextpad=0.8, handlelength=2., borderpad=0.4)
+
     plt.savefig(output_file, dpi=300)
     if show:
         plt.show()
