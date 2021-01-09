@@ -99,8 +99,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     hist.sort_index(ascending=True, inplace=True)
 
     # Define colormap
-    n_colors = 10 # number of distinct colors
-    cmap_name = 'jet'
+    n_colors = 9 # number of distinct colors, including below/above bounds
+    cmap_name = 'plasma'
     if upper_lim:
         cmap_name += '_r' # reversed
     cmap = plt.cm.get_cmap(cmap_name)
@@ -110,9 +110,9 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     # colorbar limits
     if upper_lim:
         # set limit to highest value not at 100%
-        # print(hist[hist < 100].to_numpy())
         hist_max = int(np.nanmax(hist[hist < 100].to_numpy())) + 1
         hist_min = np.min(hist.to_numpy())
+        print(hist_min)
     else:
         hist_max = int(np.max(hist.to_numpy())) + 1
         hist_min = 1
@@ -132,18 +132,15 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm,
             edgecolor='k', linewidth=0.3, antialiased=True)
 
-    # Hatch detections
+    # Outline detections
     if len(det_hist) > 0:
-        
-        # Hatch and outline detections
-        h = ['//', '\\\\']
         ls = ['--', ':', '-.']
-        lw = [2, 3, 4]
+        lw = [3, 4, 5]
+
         for n in range(int(det_hist.max().max())):
-            # Hatch
+            # Mask detections
             det_mask = det_hist[det_hist >= n+1]
             det_mask[pd.notna(det_mask)] = -1
-            # cm = ax.pcolor(x_edges, y_edges, det_mask, hatch=h[n], alpha=0)
 
             # Outline area
             det_mask.reset_index(inplace=True, drop=True)
@@ -167,10 +164,10 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
                 y_upper += [y_edges[cont.index[-1]+1]] * 2
 
             x_upper.reverse()
-            x = x_lower + x_upper
+            x = x_lower + x_upper[0:1] # don't outline top
 
             y_upper.reverse()
-            y = y_lower + y_upper
+            y = y_lower + y_upper[:1]
 
             line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n],
                     label='%s det.' % (n+1))
@@ -184,6 +181,8 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
+    ax.xaxis.set_minor_locator(MultipleLocator(100))
+    ax.xaxis.set_major_locator(MultipleLocator(500))
     ax.tick_params(which='both', direction='out', top=False, right=False)
     ax.set_xlabel('$t_{start}$ [days]')
     # ax.set_ylabel('Scale factor')
