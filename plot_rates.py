@@ -156,10 +156,6 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
             line2, = ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
             # Lower bound
             line1, = ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
-            # allow lines to bleed over spines
-            line2.set_clip_on(False)
-            if not log:
-                line1.set_clip_on(False)
             # In-plot label
             # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
             #         color=color)
