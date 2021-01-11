@@ -45,7 +45,7 @@ STYLE = {   'GALEX': '--',
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
-        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX):
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, log=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -94,11 +94,12 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     #         output_file=Path('out/rates_%s.tex' % model))
 
     scale_mean = int(np.mean(y_edges))
-    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max,
+    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log,
             output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
 
 
-def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=YMAX):
+def plot(lower, upper, external, output_file='out/rates.pdf', show=True, 
+        y_max=YMAX, log=False):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
         lower: DataFrame of lower 90% CI for GALEX, HST data
@@ -152,9 +153,13 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
         # if col != 'This study':
         else:
             # Upper bound
-            ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
+            line2, = ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
             # Lower bound
-            ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
+            line1, = ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
+            # allow lines to bleed over spines
+            line2.set_clip_on(False)
+            if not log:
+                line1.set_clip_on(False)
             # In-plot label
             # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
             #         color=color)
@@ -166,72 +171,84 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True, y_max=Y
                         head_starts_at_zero=False, head_length=ARROW_LENGTH,
                 )
 
-    # Format axes
+    # Axes labels
     ax.set_xlabel('$t_{start}$ [days]')
-    ax.set_ylabel('Rate of CSM interaction [%]', rotation='horizontal', 
-                ha='left', va='top', y=1.12, labelpad=-2)
-    ax.set_ylim((None, y_max))
+    ax.set_ylabel('$f_{CSM}$ [%]', rotation='horizontal', 
+                ha='left', va='top', y=1.16, labelpad=-2)
+
+    # Axes limits
+    if log:
+        y_min = 0.1
+        y_max = 100
+        ax.set_yscale('log')
+    else:
+        y_min = 0
+    ax.set_ylim((y_min, y_max))
     ylim = ax.get_ylim()
 
-    # Set spine extent
-    ax.spines['bottom'].set_bounds(x[0], x[-1])
-    ax.spines['left'].set_bounds(0, ylim[1])
+    # Axes spines
+    # ax.spines['bottom'].set_bounds(x[0], x[-1])
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_bounds(y_min, ylim[1])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     # ax.spines['right'].set_bounds(0, ylim[1])
         
-    # Set ticks
-    x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
-    ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+    # x-axis ticks
+    # x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
     ax.xaxis.set_major_locator(ticker.MultipleLocator(500))
-    dy = int((ylim[1] - 0) / 10)
-    y_minor_ticks = np.arange(0, ylim[1]+0.1, dy)
-    ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
-    y_major_ticks = np.arange(0, ylim[1]+0.1, 2*dy)
-    ax.yaxis.set_major_locator(ticker.FixedLocator(y_major_ticks))
-    ax.tick_params(which='both', top=False, right=False)
+    ax.tick_params(axis='x', which='both', bottom=False, top=False)
+    ax.tick_params(axis='x', pad=8)
 
-    # Plot external study estimates as points
-    pt_x = -int(x[-1] / 40)
-    text_y = -2.2*dy
+    # y-axis ticks
+    ax.tick_params(axis='y', which='both', left=True, right=False)
+    if log:
+        formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
+        ax.yaxis.set_major_formatter(formatter)
+    else:
+        y_frac = 1/10
+        dy = int((ylim[1] - y_min) * y_frac)
+        y_minor_ticks = np.arange(y_min, ylim[1] + 0.01, dy)
+        ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
+        y_major_ticks = np.arange(y_min, ylim[1] + 0.01, 2 * dy)
+        ax.yaxis.set_major_locator(ticker.FixedLocator(y_major_ticks))
+
+    # Grid lines
+    ax.grid(b=True, which='both', axis='x', color='w', lw=1, zorder=2)
+    if log:
+        ax.grid(b=True, which='major', axis='y', color='w', lw=1, zorder=2)
+    else:
+        ax.grid(b=True, which='both', axis='y', color='w', lw=1, zorder=2)
+
+    # Plot external study estimates as bars
+    x_frac = 1/40 # fraction of x-axis to plot ranges left of x=0
+    x_bar = -int(x[-1] * x_frac) # x-val of error bar
+    y_text = -0.16 # y-value of annotation
     for i, study in enumerate(external.index):
+        # Calculate error bar
         row = external.loc[study]
         midpoint = row.mean()
         err = row['bci_upper'] - midpoint
-        ax.errorbar(pt_x, midpoint, yerr=err, marker=MARKERS[study], 
+        # Plot error bar
+        ax.errorbar(x_bar, midpoint, yerr=err, marker=MARKERS[study], 
                 c=COLORS[study], mec=COLORS[study], mfc='w', ms=0, 
                 linestyle='none', elinewidth=5, mew=2, capsize=0)#, label=study)
-        # In-plot label
-        # if i % 2 == 1:
-        #     text_y = midpoint + err + 1
-        #     va = 'bottom'
-        # else:
-        #     text_y = -1
-        #     va = 'top'
-        # ax.text(pt_x * 1.3, text_y, study, color=COLORS[study], size=TEXT_SIZE-2,
-        #         ha='left', va=va)
-        ax.annotate(study, xy=(pt_x, 0), xytext=(pt_x, text_y), ha='right',
-                size=TEXT_SIZE-2, va='center', 
+        # Annotate label under bar
+        ax.annotate(study, xy=(x_bar, y_min), xytext=(x_bar, y_text), 
+                textcoords=('data', 'axes fraction'),
+                ha='right', va='top', size=TEXT_SIZE-2,
                 arrowprops={'color': 'k', 'shrink': 0.08, 'width': 0.5,
                         'headwidth': 0.5, 'headlength': 0.5})
-        pt_x += pt_x
-        text_y += dy/1.2
-
-    # White grid
-    ax.grid(b=True, which='both', axis='x', color='w', lw=2, zorder=2)
-    ax.grid(b=True, which='both', axis='y', color='w', lw=1, zorder=2)
-
-    ax.set_ylim((-dy, None))
-
-    # ax.set_ylim((0.1, None))
-    # ax.set_yscale('log')
-    # ax.set_xlim((50, None))
-    # ax.set_xscale('log')
+        # Adjust label coordinates
+        x_bar += x_bar
+        y_text += 0.08
 
     # Legend (actually upper right)
     plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 1.), 
-            handletextpad=0.8, handlelength=2., borderpad=0.4)
+            handletextpad=0.8, handlelength=2., borderpad=0.5)
 
+    # Save & exit
     plt.savefig(output_file, dpi=300)
     if show:
         plt.show()
@@ -384,7 +401,8 @@ if __name__ == '__main__':
             help='t_start bin width')
     parser.add_argument('--ymax', type=float, default=YMAX, 
             help='y-axis upper limit')
+    parser.add_argument('--log', action='store_true', help='y-axis log scale')
     args = parser.parse_args()
 
     main(model=args.model, scale=args.scale, bin_width=args.twidth,
-            sigma=args.sigma, t_max=args.tmax, y_max=args.ymax)
+            sigma=args.sigma, t_max=args.tmax, y_max=args.ymax, log=args.log)
