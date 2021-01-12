@@ -145,6 +145,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
             rotation=270, labelpad=24)
 
     plt.savefig(Path('out/%s.pdf' % sn.name), dpi=300)
+    plt.savefig(Path('out/%s.png' % sn.name), dpi=300)
     if show:
         plt.show()
     else:

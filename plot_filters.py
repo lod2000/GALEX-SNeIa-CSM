@@ -44,4 +44,5 @@ ax.set_ylabel('Effective Throughput [%]')
 # ax.legend()
 
 plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=300)
+plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=300)
 plt.show()

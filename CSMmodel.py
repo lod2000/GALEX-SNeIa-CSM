@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
@@ -35,6 +36,31 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
     csm_model.plot_redshift(save=True, show=show)
+
+    # Plot CSM light curve
+    fig, ax = plt.subplots(tight_layout=True)
+
+    t = np.arange(tstart-1, tstart+500, 1)
+    csm_lum = csm_model(t, 0.)
+    band = 'F275W'
+    ax.plot(t, csm_lum[band], label=band)
+
+    ax.spines['bottom'].set_bounds(tstart, tstart+500)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.tick_params(axis='both', which='both', top=False, right=False)
+    x_minor_ticks = np.arange(tstart, tstart+500, 50)
+    ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+
+    ax.set_yscale('log')
+    ax.set_ylim((1e36, 4e37))
+    ax.set_xlabel('Time since discovery [days]')
+    ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
+            ha='left', va='top', y=1.1, labelpad=-5)
+
+    plt.savefig(Path('out/CSM_model.png'))
+    plt.close()
 
 
 class CSMmodel:
@@ -125,8 +151,6 @@ class CSMmodel:
             zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
-        import matplotlib.ticker as ticker
-
         fig, ax = plt.subplots(tight_layout=True)
 
         # Set up range of redshifts
@@ -172,6 +196,7 @@ class CSMmodel:
                 ha='left', va='top', y=1.1, labelpad=-5)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
+        plt.savefig(Path('out/Chev94_redshift.png'))
         if show:
             plt.show()
         else:
@@ -234,7 +259,7 @@ class Chev94Model:
         return fl
 
 
-    def plot(self, t, save=True, show=False, fname='out/Chev94_spectrum.pdf'):
+    def plot(self, t, save=True, show=False):
         """Plot spectral model."""
 
         fig, ax = plt.subplots(tight_layout=True)
@@ -275,7 +300,9 @@ class Chev94Model:
         plt.xlabel('Wavelength [Å]')
         plt.ylabel('Luminosity [$10^{37}$ erg/s]')
 
-        if save: plt.savefig(Path(fname), dpi=300)
+        if save: 
+            plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
+            plt.savefig(Path('out/Chev94_spectrum.png'), dpi=300)
         if show:
             plt.show()
         else:
