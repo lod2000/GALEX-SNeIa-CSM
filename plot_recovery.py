@@ -19,56 +19,107 @@ ITERATIONS = 10000 # default number of injection iterations
 
 def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=SCALE_BINS,
-        show_plot=True, model='Chev94', study='galex', cmax=None,
+        show=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, overwrite=False, detections=False,
-        upper_lim=False, cmin=None, quad=False, png=False):
+        upper_lim=False, cmin=None, quad=False, extension='.pdf'):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
-    # Injection save directory
-    save_dir = run_dir(study, model, sigma)
-    det_save_dir = run_dir(study + '_det', model, sigma)
+    if quad:
+        # Subplots
+        fig, axs = plt.subplots(2, 2, tight_layout=True)
+
+        study = ['galex', 'galex', 'graham', 'graham']
+        model = ['Chev94', 'flat', 'Chev94', 'flat']
+        det = [False, False, detections, detections]
+
+        # Plot file name
+        fname = 'recovery_quad'
+        if upper_lim:
+            fname += '_upperlim'
+
+        for i, ax in enumerate(axs.flat):
+            hist, det_hist = get_histograms(study[i], model[i], x_edges, y_edges, 
+                    sigma, detections, upper_lim, overwrite, iterations)
+
+    else:
+        # Output file names
+        fname = 'recovery_%s_%s' % (study, model)
+        hist_file = OUTPUT_DIR / Path(fname + '.csv')
+        det_hist_file = OUTPUT_DIR / Path(fname + '_det.csv')
+        if upper_lim:
+            fname += '_upperlim'
+        elif detections:
+            fname += '_det'
     
-    # Output file names
+        hist, det_hist = get_histograms(study, model, x_edges, y_edges, sigma, 
+                detections, upper_lim, overwrite, iterations)
+
+    # Plot histogram
+    print('Plotting recovery histogram...')
+    if not detections:
+        det_hist = []
+
+    plot_file = OUTPUT_DIR / Path(fname + extension)
+
+    plot_single(x_edges, y_edges, hist, show=show, output_file=plot_file, cmax=cmax,
+            cmin=cmin, upper_lim=upper_lim, det_hist=det_hist)
+
+    # plt.savefig(plot_file, dpi=300)
+
+    # if show:
+    #     plt.show()
+    # else:
+    #     plt.close()
+
+
+def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False, 
+        upper_lim=False, overwrite=False, iterations=10000):
+    """Import histogram files if they exist, or generate if they don't."""
+        
     fname = 'recovery_%s_%s' % (study, model)
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
     det_hist_file = OUTPUT_DIR / Path(fname + '_det.csv')
-    if upper_lim:
-        plot_suffix = '_upperlim'
-    elif detections:
-        plot_suffix = '_det'
-    elif quad:
-        plot_suffix = '_quad'
-    else:
-        plot_suffix = ''
-    if png:
-        plot_suffix += '.png'
-    else:
-        plot_suffix += '.pdf'
-    plot_file = OUTPUT_DIR / Path(fname + plot_suffix)
 
-    # List of files in save dir
-    save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
-
-    # Generate summed histogram
+    # Generate histogram(s)
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
+
+        # List of files in save dir
+        save_dir = run_dir(study, model, sigma)
+        save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
+
+        # Also sum detections, if applicable
         if (detections or upper_lim) and study == 'graham':
+            det_save_dir = run_dir(study + '_det', model, sigma)
             det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
             det_hist = sum_hist(det_save_files, x_edges, y_edges, 
                     output_file=det_hist_file)
+        else:
+            det_hist = []
+
+        # Include detections in nondetections for binomial upper limits
         if upper_lim and study == 'graham':
             hist = hist + det_hist
+
+    # Import histogram(s)
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
         hist.columns = hist.columns.astype(int)
+
+        # Also import detections, if applicable
         if (detections or upper_lim) and study == 'graham':
             det_hist = pd.read_csv(det_hist_file, index_col=0)
             det_hist.columns = det_hist.columns.astype(int)
+        else:
+            det_hist = []
+
+        # Include detections in nondetections for binomial upper limits
         if upper_lim and study == 'graham':
             hist = hist + det_hist
 
@@ -82,13 +133,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         # Binomial confidence interval
         hist = 100 * bci_nan(det_hist, hist)[1]
 
-    # Plot histogram
-    print('Plotting recovery histogram...')
-    if not detections:
-        det_hist = []
-
-    plot_single(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
-            cmin=cmin, upper_lim=upper_lim, det_hist=det_hist)
+    return hist, det_hist
 
 
 def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
@@ -106,8 +151,8 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         det_hist: histogram of detections
     """
 
-    # Flip y-axis
-    hist.sort_index(ascending=True, inplace=True)
+    # Plot
+    fig, ax = plt.subplots(tight_layout=True)
 
     # Define colormap
     n_colors = 9 # number of distinct colors, including below/above bounds
@@ -137,15 +182,14 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     cmap_bounds = np.round(cmap_bounds)
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
-    # Plot
-    fig, ax = plt.subplots(tight_layout=True)
+    # Flip y-axis and plot hist
+    hist.sort_index(ascending=True, inplace=True)
     pcm = ax.pcolormesh(x_edges, y_edges, hist, cmap=cmap, norm=norm,
             edgecolor='k', linewidth=0.3, antialiased=True)
 
     # Outline detections
     if len(det_hist) > 0:
         ax = plot_detections(ax, x_edges, y_edges, det_hist)
-
         # Legend for detections
         plt.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
                 borderpad=0.4, bbox_to_anchor=(0., 1.12), borderaxespad=0.)
@@ -186,11 +230,26 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         plt.close()
 
 
+def plot_hist(ax, x_edges, y_edges, hist, det_hist, cmap, norm):
+    """Add 2D histogram plot to axis.
+    Inputs:
+        ax: matplotlib axis
+        x_edges: x-axis bin edges
+        y_edges: y-axis bin edges
+        hist: Pandas 2D histogram
+        det_hist: Pandas 2D histogram of detections, same shape as hist
+    """
+    
+    pass
+
+
 def plot_detections(ax, x_edges, y_edges, det_hist):
     """Add outline of detections to histogram.
     Inputs:
         ax: matplotlib axis
-        det_hist: Numpy 2D histogram of detections, same shape as other hist
+        x_edges: x-axis bin edges
+        y_edges: y-axis bin edges
+        det_hist: Pandas 2D histogram of detections, same shape as other hist
     """
 
     # Outline styles
@@ -362,9 +421,12 @@ if __name__ == '__main__':
             help='Number of scale factor bins')
     parser.add_argument('--quad', '-q', action='store_true', 
             help='Grid of four recovery plots')
+    parser.add_argument('--extension', '-e', type=str, default='.pdf', 
+            help='Plot file extension')
     args = parser.parse_args()
 
     main(iterations=args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
             study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, 
             cmin=args.cmin, scale_max=args.smax, bin_width=args.twidth, 
-            detections=args.detections, upper_lim=args.upperlim, quad=args.quad)
+            detections=args.detections, upper_lim=args.upperlim, quad=args.quad,
+            extension=args.extension)
