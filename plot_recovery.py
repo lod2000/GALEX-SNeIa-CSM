@@ -13,37 +13,45 @@ from CSMmodel import CSMmodel
 
 SIGMA = 3
 CONF = 0.9
+OUTPUT_DIR = Path('recovery_plots/')
+SCALE_BINS = 20 # number of scale factor bins
+ITERATIONS = 10000 # default number of injection iterations
 
-def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
-        scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=20,
+def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
+        scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=SCALE_BINS,
         show_plot=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, overwrite=False, detections=False,
-        upper_lim=False, cmin=None):
+        upper_lim=False, cmin=None, quad=False, png=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
-    # Define folder structure
+    # Injection save directory
     save_dir = run_dir(study, model, sigma)
     det_save_dir = run_dir(study + '_det', model, sigma)
-    # if detections:
-    #     save_dir = det_save_dir
+    
+    # Output file names
     fname = 'recovery_%s_%s' % (study, model)
-    det_fname = 'recovery_%s_det_%s' % (study, model)
-    # if detections:
-    #     fname = det_fname
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
-    det_hist_file = OUTPUT_DIR / Path(det_fname + '.csv')
+    det_hist_file = OUTPUT_DIR / Path(fname + '_det.csv')
     if upper_lim:
-        plot_file = OUTPUT_DIR / Path(fname + '_upperlim.pdf')
+        plot_suffix = '_upperlim'
     elif detections:
-        plot_file = OUTPUT_DIR / Path(fname + '_det.pdf')        
+        plot_suffix = '_det'
+    elif quad:
+        plot_suffix = '_quad'
     else:
-        plot_file = OUTPUT_DIR / Path(fname + '.pdf')
+        plot_suffix = ''
+    if png:
+        plot_suffix += '.png'
+    else:
+        plot_suffix += '.pdf'
+    plot_file = OUTPUT_DIR / Path(fname + plot_suffix)
 
     # List of files in save dir
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+
     # Generate summed histogram
     if overwrite or not hist_file.is_file():
         print('\nImporting and summing saves...')
@@ -57,8 +65,10 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     else:
         print('\nImporting histogram...')
         hist = pd.read_csv(hist_file, index_col=0)
+        hist.columns = hist.columns.astype(int)
         if (detections or upper_lim) and study == 'graham':
             det_hist = pd.read_csv(det_hist_file, index_col=0)
+            det_hist.columns = det_hist.columns.astype(int)
         if upper_lim and study == 'graham':
             hist = hist + det_hist
 
@@ -76,11 +86,12 @@ def main(iterations, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
     print('Plotting recovery histogram...')
     if not detections:
         det_hist = []
-    plot(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
+
+    plot_single(x_edges, y_edges, hist, show=show_plot, output_file=plot_file, cmax=cmax,
             cmin=cmin, upper_lim=upper_lim, det_hist=det_hist)
 
 
-def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
+def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
         cmax=None, cmin=None, upper_lim=False, det_hist=[]):
     """Plot 2D histogram of recovery rate by time since discovery and scale factor.
     Inputs:
@@ -133,44 +144,7 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
 
     # Outline detections
     if len(det_hist) > 0:
-        ls = ['--', ':', '-.']
-        lw = [3, 4, 5]
-
-        for n in range(int(det_hist.max().max())):
-            # Mask detections
-            det_mask = det_hist[det_hist >= n+1]
-            det_mask[pd.notna(det_mask)] = -1
-
-            # Outline area
-            det_mask.reset_index(inplace=True, drop=True)
-            x_lower = []
-            x_upper = []
-            y_lower = []
-            y_upper = []
-            for i, x_edge in enumerate(x_edges):
-                col = det_mask[x_edge]
-                # Continuous range of values above limit
-                cont = col[pd.notna(col)]
-                if len(cont) == 0:
-                    x_upper.insert(0, x_lower[0])
-                    y_upper.insert(0, y_lower[0])
-                    break
-
-                x_lower += [x_edge, x_edges[i+1]]
-                x_upper += [x_edge, x_edges[i+1]]
-
-                y_lower += [y_edges[cont.index[0]]] * 2
-                y_upper += [y_edges[cont.index[-1]+1]] * 2
-
-            x_upper.reverse()
-            x = x_lower + x_upper[0:1] # don't outline top
-
-            y_upper.reverse()
-            y = y_lower + y_upper[:1]
-
-            line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n],
-                    label='%s det.' % (n+1))
-            line.set_clip_on(False) # allow line to bleed over spines
+        ax = plot_detections(ax, x_edges, y_edges, det_hist)
 
         # Legend for detections
         plt.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
@@ -210,6 +184,56 @@ def plot(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         plt.show()
     else:
         plt.close()
+
+
+def plot_detections(ax, x_edges, y_edges, det_hist):
+    """Add outline of detections to histogram.
+    Inputs:
+        ax: matplotlib axis
+        det_hist: Numpy 2D histogram of detections, same shape as other hist
+    """
+
+    # Outline styles
+    ls = ['--', ':']
+    lw = [3, 4]
+
+    for n in range(int(det_hist.max().max())):
+        # Mask detections
+        det_mask = det_hist[det_hist >= n+1]
+        det_mask[pd.notna(det_mask)] = -1
+
+        # Outline area
+        det_mask.reset_index(inplace=True, drop=True)
+        x_lower = []
+        x_upper = []
+        y_lower = []
+        y_upper = []
+        for i, x_edge in enumerate(x_edges):
+            col = det_mask[x_edge]
+            # Continuous range of values above limit
+            cont = col[pd.notna(col)]
+            if len(cont) == 0:
+                x_upper.insert(0, x_lower[0])
+                y_upper.insert(0, y_lower[0])
+                break
+
+            x_lower += [x_edge, x_edges[i+1]]
+            x_upper += [x_edge, x_edges[i+1]]
+
+            y_lower += [y_edges[cont.index[0]]] * 2
+            y_upper += [y_edges[cont.index[-1]+1]] * 2
+
+        x_upper.reverse()
+        x = x_lower + x_upper[0:1] # don't outline top
+
+        y_upper.reverse()
+        y = y_lower + y_upper[:1]
+
+        line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n],
+                label='%s det.' % (n+1))
+        line.set_clip_on(False) # allow line to bleed over spines
+
+    return ax
 
 
 def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
@@ -312,24 +336,35 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--iterations', '-i', type=int, default=10000, help='Iterations')
-    parser.add_argument('--overwrite', '-o', action='store_true', help='Overwrite histograms')
-    parser.add_argument('--model', '-m', type=str, default='Chev94', help='CSM model spectrum')
-    parser.add_argument('--study', '-s', type=str, default='galex', help='Study from which to pull data')
+    parser.add_argument('--iterations', '-i', type=int, default=ITERATIONS, 
+            help='Injection-recobery iterations')
+    parser.add_argument('--overwrite', '-o', action='store_true', 
+            help='Overwrite histograms (takes longer)')
+    parser.add_argument('--model', '-m', type=str, default='Chev94', 
+            help='CSM spectral model: "flat" or "Chev94"')
+    parser.add_argument('--study', '-s', type=str, default='galex', 
+            help='Study from which to pull data: "galex" or "graham"')
     parser.add_argument('--sigma', type=int, nargs='+', default=[SIGMA], 
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--cmax', type=float, help='Max colorbar value')
     parser.add_argument('--cmin', type=float, help='Minimum colorbar value')
-    parser.add_argument('--tmax', default=TSTART_MAX, type=int, help='x-axis upper limit')
-    parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, help='x-axis bin width')
+    parser.add_argument('--tmax', default=TSTART_MAX, type=int, 
+            help='t_start upper limit')
+    parser.add_argument('--twidth', default=TSTART_BIN_WIDTH, type=int, 
+            help='t_start bin width')
     parser.add_argument('-d', '--detections', action='store_true', 
-            help='Include recovery of G19 detections as hatch overlay')
+            help='Include recovery of HST detections as hatch overlay')
     parser.add_argument('-u', '--upperlim', action='store_true', 
-            help='plot upper limit of binomial conf intervals instead of excluded SNe')
-    parser.add_argument('--smax', default=SCALE_MAX, type=int, help='y-axis upper limit')
+            help='Plot upper limit of binomial conf intervals instead of excluded SNe')
+    parser.add_argument('--smax', default=SCALE_MAX, type=int, 
+            help='Scale factor upper limit')
+    parser.add_argument('--sbins', default=SCALE_BINS, type=int, 
+            help='Number of scale factor bins')
+    parser.add_argument('--quad', '-q', action='store_true', 
+            help='Grid of four recovery plots')
     args = parser.parse_args()
 
-    main(args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
+    main(iterations=args.iterations, t_min=0, t_max=args.tmax, overwrite=args.overwrite, model=args.model, 
             study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, 
             cmin=args.cmin, scale_max=args.smax, bin_width=args.twidth, 
-            detections=args.detections, upper_lim=args.upperlim)
+            detections=args.detections, upper_lim=args.upperlim, quad=args.quad)
