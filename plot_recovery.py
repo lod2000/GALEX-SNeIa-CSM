@@ -33,7 +33,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
         study = ['galex', 'galex', 'graham', 'graham']
         model = ['Chev94', 'flat', 'Chev94', 'flat']
-        det = [False, False, detections, detections]
+        # det = [False, False, detections, detections]
 
         # Plot file name
         fname = 'recovery_quad'
@@ -45,10 +45,8 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
                     sigma, detections, upper_lim, overwrite, iterations)
 
     else:
-        # Output file names
+        # Plot file name
         fname = 'recovery_%s_%s' % (study, model)
-        hist_file = OUTPUT_DIR / Path(fname + '.csv')
-        det_hist_file = OUTPUT_DIR / Path(fname + '_det.csv')
         if upper_lim:
             fname += '_upperlim'
         elif detections:
@@ -59,8 +57,6 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
     # Plot histogram
     print('Plotting recovery histogram...')
-    if not detections:
-        det_hist = []
 
     plot_file = OUTPUT_DIR / Path(fname + extension)
 
@@ -69,10 +65,10 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
     # plt.savefig(plot_file, dpi=300)
 
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.close()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False, 
@@ -132,6 +128,9 @@ def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False,
 
         # Binomial confidence interval
         hist = 100 * bci_nan(det_hist, hist)[1]
+    
+    if not detections:
+        det_hist = []
 
     return hist, det_hist
 
