@@ -9,6 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
+import copy
 from utils import *
 from CSMmodel import CSMmodel
 
@@ -41,10 +42,10 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
         study = ['galex', 'galex', 'graham', 'graham']
         model = ['Chev94', 'flat', 'Chev94', 'flat']
-        label = ['GALEX data, line-emission model',
-                 'GALEX data, flat spectrum model',
-                 'HST data, line-emission model',
-                 'HST data, flat spectrum model']
+        label = ['GALEX observations, line-emission model',
+                 'GALEX observations, flat spectrum model',
+                 'HST observations, line-emission model',
+                 'HST observations, flat spectrum model']
 
         # Determine max and min of all four histograms; widest range -> cmap
         hist_max = 0
@@ -65,12 +66,11 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             # Import histograms again
             hist, det_hist = get_histograms(study[i], model[i], x_edges, y_edges, 
                     sigma=sigma, detections=detections, upper_lim=upper_lim, 
-                    conf=CONF, overwrite=overwrite, iterations=iterations,
-                    verb=False)
+                    conf=CONF, overwrite=False, iterations=iterations, verb=False)
             norm = BoundaryNorm(bounds, cmap.N) # colormap index
             pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width)
             # Outline detections
-            if len(det_hist) > 0:
+            if len(det_hist) > 0 and not upper_lim:
                 plot_detections(ax, x_edges, y_edges, det_hist, label=add_label)
                 add_label = False # only include one set of legend handles
             # Format
@@ -78,9 +78,9 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             ax.label_outer() # hide labels for inner plots
 
         # Legend for detections
-        if len(det_hist) > 0:
+        if len(det_hist) > 0 and not upper_lim:
             fig.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
-                    borderpad=0.4, borderaxespad=0.)
+                    borderpad=0.4, fontsize=20)
 
         # Adjust colorbar bounds: add extension below lower limit
         if upper_lim:
@@ -92,19 +92,21 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             bounds = [0] + list(bounds)
             extend = 'min'
         # Adjust subplots to make room for colorbar axis
-        plt.subplots_adjust(bottom=0.08, top=0.85, left=0.06, right=0.96, 
-                wspace=0.05, hspace=0.1)
-        cax = plt.axes([0.25, 0.9, 0.7, 0.05]) # left, bottom, width, height
+        plt.subplots_adjust(bottom=0.07, top=0.89, left=0.05, right=0.97, 
+                wspace=0.07, hspace=0.12)
+        if len(det_hist) > 0 and not upper_lim:
+            cax = plt.axes([0.27, 0.95, 0.55, 0.03]) # left, bottom, width, height
+        else:
+            cax = plt.axes([0.05, 0.95, 0.65, 0.03]) # left, bottom, width, height
         # Add horizontal colorbar above subplots
         cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, 
                 ax=axs, orientation='horizontal', fraction=0.1,
                 spacing='uniform', extend=extend, boundaries=bounds, 
                 ticks=bounds, extendfrac='auto')
         cbar.ax.tick_params(which='both', right=False, bottom=False)
-        # horizontal label above cbar
-        cbar.ax.set_ylabel(cbar_label, rotation='horizontal')
-        # cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
-        #             ha='right', va='top', y=1.12, labelpad=0)
+        # horizontal label next to cbar
+        cbar.set_label(cbar_label, rotation='horizontal', va='center', 
+                ha='left', x=1.03, labelpad=-30)
 
     # Single plot
     else:
@@ -265,7 +267,7 @@ def get_cmap(hist, upper_lim=False, cmin=None, cmax=None, n_colors=9,
     # Get colormap
     if upper_lim:
         name += '_r' # reversed
-    cmap = plt.cm.get_cmap(name)
+    cmap = copy.copy(cm.get_cmap(name))
     cmap.set_under(under) # set color for values under minimum
     cmap.set_over(over) # set color for values over maximum
 
