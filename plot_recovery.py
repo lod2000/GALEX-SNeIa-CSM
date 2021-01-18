@@ -28,21 +28,23 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
     y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
 
     if quad:
+        # Plot file name
+        fname = 'recovery_quad'
+        if upper_lim:
+            fname += '_upperlim'
+
         # Subplots
+        print('Plotting recovery histograms...')
         fig, axs = plt.subplots(2, 2, tight_layout=True)
 
         study = ['galex', 'galex', 'graham', 'graham']
         model = ['Chev94', 'flat', 'Chev94', 'flat']
         # det = [False, False, detections, detections]
 
-        # Plot file name
-        fname = 'recovery_quad'
-        if upper_lim:
-            fname += '_upperlim'
-
         for i, ax in enumerate(axs.flat):
             hist, det_hist = get_histograms(study[i], model[i], x_edges, y_edges, 
-                    sigma, detections, upper_lim, overwrite, iterations)
+                    sigma=sigma, detections=detections, upper_lim=upper_lim, 
+                    conf=CONF, overwrite=overwrite, iterations=iterations)
 
     else:
         # Plot file name
@@ -52,16 +54,37 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         elif detections:
             fname += '_det'
     
-        hist, det_hist = get_histograms(study, model, x_edges, y_edges, sigma, 
-                detections, upper_lim, overwrite, iterations)
+        hist, det_hist = get_histograms(study, model, x_edges, y_edges, 
+                sigma=sigma, detections=detections, upper_lim=upper_lim, 
+                conf=CONF, overwrite=overwrite, iterations=iterations)
+
+        print('Plotting recovery histogram...')
+        fig, ax = plt.subplots(tight_layout=True)
+
+        # Define colormap and index and plot
+        cmap, bounds = get_cmap(hist, upper_lim=upper_lim, cmin=cmin, cmax=cmax)
+        pcm = plot_hist(ax, x_edges, y_edges, hist, det_hist, cmap, bounds, 
+                bin_width=bin_width)
+
+        # Adjust colorbar: add extension below lower limit
+        if upper_lim:
+            cbar_label = 'Upper 90% confidence limit [%]'
+            bounds = list(bounds) + [100]
+            extend = 'max'
+        else:
+            cbar_label = 'Excluded SNe Ia'
+            bounds = [0] + list(bounds)
+            extend = 'min'
+        cbar = fig.colorbar(pcm, spacing='uniform', extend=extend, 
+                boundaries=bounds, ticks=bounds, extendfrac='auto', 
+                fraction=0.1, aspect=16, pad=0.04)
+        cbar.ax.tick_params(which='both', right=False)
+        cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
+                    ha='right', va='top', y=1.12, labelpad=0)
 
     # Plot histogram
-    print('Plotting recovery histogram...')
 
     plot_file = OUTPUT_DIR / Path(fname + extension)
-
-    plot_single(x_edges, y_edges, hist, show=show, output_file=plot_file, cmax=cmax,
-            cmin=cmin, upper_lim=upper_lim, det_hist=det_hist)
 
     # plt.savefig(plot_file, dpi=300)
 
@@ -72,8 +95,23 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
 
 def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False, 
-        upper_lim=False, overwrite=False, iterations=10000):
-    """Import histogram files if they exist, or generate if they don't."""
+        upper_lim=False, conf=0.9, overwrite=False, iterations=10000):
+    """Import histogram files if they exist, or generate if they don't.
+    Inputs:
+        study: 'galex' or 'graham'
+        model: 'Chev94' or 'flat'
+        x_edges: x-axis bin edges
+        y_edges: y-axis bin edges
+        sigma: recovery significance threshold
+        detections: whether to outline detections
+        upper_lim: if True, plot upper limit of binomial conf interval
+        conf: confidence level of binomial interval
+        overwrite: if True, re-bin and overwrite histograms
+        iterations: number of iterations used in injection runs
+    Outputs:
+        hist: 2D histogram of excluded SNe Ia or upper conf interval
+        det_hist: 2D histogram of detections if needed, else []
+    """
         
     fname = 'recovery_%s_%s' % (study, model)
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
@@ -127,7 +165,7 @@ def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False,
             det_hist = pd.DataFrame(zeros, index=hist.index, columns=hist.columns)
 
         # Binomial confidence interval
-        hist = 100 * bci_nan(det_hist, hist)[1]
+        hist = 100 * bci_nan(det_hist, hist, conf=conf)[1]
     
     if not detections:
         det_hist = []
@@ -135,32 +173,26 @@ def get_histograms(study, model, x_edges, y_edges, sigma=3, detections=False,
     return hist, det_hist
 
 
-def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf', 
-        cmax=None, cmin=None, upper_lim=False, det_hist=[]):
-    """Plot 2D histogram of recovery rate by time since discovery and scale factor.
+def get_cmap(hist, upper_lim=False, cmin=None, cmax=None, n_colors=9, 
+        name='plasma', under='k', over='k'):
+    """Return colormap and bounds for 2D histogram.
     Inputs:
-        x_edges: x-axis bin edges
-        y_edges: y-axis bin edges
         hist: 2D histogram
-        show: whether to display plot
-        output_file: output png plot file
-        cmax: optional manual maximum value of colorbar
         cmin: optional manual minimum value of colorbar (must be >0)
-        upper_lim: if True, plot upper 90% C.I. instead of number of excluded SNe
-        det_hist: histogram of detections
+        cmax: optional manual maximum value of colorbar
+        n_colors: number of distinct colors, including above/below bounds
+        name: pre-defined colormap name
+    Outputs:
+        cmap: matplotlib colormap
+        bounds: boundaries between discrete colors
     """
 
-    # Plot
-    fig, ax = plt.subplots(tight_layout=True)
-
-    # Define colormap
-    n_colors = 9 # number of distinct colors, including below/above bounds
-    cmap_name = 'plasma'
+    # Get colormap
     if upper_lim:
-        cmap_name += '_r' # reversed
-    cmap = plt.cm.get_cmap(cmap_name)
-    cmap.set_under('k') # set color for values under minimum
-    cmap.set_over('k') # set color for values over maximum
+        name += '_r' # reversed
+    cmap = plt.cm.get_cmap(name)
+    cmap.set_under(under) # set color for values under minimum
+    cmap.set_over(over) # set color for values over maximum
 
     # colorbar limits
     if upper_lim:
@@ -176,9 +208,30 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
         cmin = hist_min
 
     # colormap bounds: (rounded) logarithmic scale
-    cmap_bounds = np.logspace(np.log10(cmin), np.log10(cmax), num=n_colors)
-    cmap_bounds[0] = int(cmap_bounds[0]) # first bound must round down
-    cmap_bounds = np.round(cmap_bounds)
+    bounds = np.logspace(np.log10(cmin), np.log10(cmax), num=n_colors)
+    bounds[0] = int(bounds[0]) # first bound must round down
+    bounds = np.round(bounds)
+
+    return cmap, bounds
+
+
+def plot_hist(ax, x_edges, y_edges, hist, det_hist, cmap, cmap_bounds, 
+        bin_width=100):
+    """Add 2D histogram plot to axis.
+    Inputs:
+        ax: matplotlib axis
+        x_edges: x-axis bin edges
+        y_edges: y-axis bin edges
+        hist: Pandas 2D histogram
+        det_hist: Pandas 2D histogram of detections, same shape as hist
+        cmap: colormap
+        cmap_bounds: boundaries between discrete colors
+        bin_width: x-axis bin width in days
+    Output:
+        pcm: pcolormesh object
+    """
+
+    # Colormap index
     norm = BoundaryNorm(cmap_bounds, cmap.N) # map boundaries onto colorbar
 
     # Flip y-axis and plot hist
@@ -188,7 +241,7 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
 
     # Outline detections
     if len(det_hist) > 0:
-        ax = plot_detections(ax, x_edges, y_edges, det_hist)
+        plot_detections(ax, x_edges, y_edges, det_hist)
         # Legend for detections
         plt.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
                 borderpad=0.4, bbox_to_anchor=(0., 1.12), borderaxespad=0.)
@@ -197,49 +250,13 @@ def plot_single(x_edges, y_edges, hist, show=True, output_file='recovery.pdf',
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
-    ax.xaxis.set_minor_locator(MultipleLocator(100))
-    ax.xaxis.set_major_locator(MultipleLocator(500))
+    ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
+    ax.xaxis.set_major_locator(MultipleLocator(5 * bin_width))
     ax.tick_params(which='both', direction='out', top=False, right=False)
     ax.set_xlabel('$t_{start}$ [days]')
-    # ax.set_ylabel('Scale factor')
     ax.set_ylabel('$S$', rotation='horizontal')
 
-    # Adjust colorbar: add extension below lower limit
-    if upper_lim:
-        cbar_label = 'Upper 90% confidence limit [%]'
-        bounds = list(cmap_bounds) + [100]
-        extend = 'max'
-    else:
-        cbar_label = 'Excluded SNe Ia'
-        bounds = [0] + list(cmap_bounds)
-        extend = 'min'
-    cbar = fig.colorbar(pcm, spacing='uniform', extend=extend, 
-            boundaries=bounds, ticks=cmap_bounds, extendfrac='auto', 
-            fraction=0.1, aspect=16, pad=0.04)
-    cbar.ax.tick_params(which='both', right=False)
-    # cbar.ax.set_ylabel(cbar_label)
-    cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
-                ha='right', va='top', y=1.12, labelpad=0)
-
-    plt.savefig(output_file, dpi=300)
-
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def plot_hist(ax, x_edges, y_edges, hist, det_hist, cmap, norm):
-    """Add 2D histogram plot to axis.
-    Inputs:
-        ax: matplotlib axis
-        x_edges: x-axis bin edges
-        y_edges: y-axis bin edges
-        hist: Pandas 2D histogram
-        det_hist: Pandas 2D histogram of detections, same shape as hist
-    """
-    
-    pass
+    return pcm
 
 
 def plot_detections(ax, x_edges, y_edges, det_hist):
@@ -290,8 +307,6 @@ def plot_detections(ax, x_edges, y_edges, det_hist):
         line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n],
                 label='%s det.' % (n+1))
         line.set_clip_on(False) # allow line to bleed over spines
-
-    return ax
 
 
 def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
