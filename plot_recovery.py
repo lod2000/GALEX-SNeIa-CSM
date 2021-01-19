@@ -93,7 +93,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             extend = 'min'
         # Adjust subplots to make room for colorbar axis
         plt.subplots_adjust(bottom=0.11, top=0.85, left=0.08, right=0.97, 
-                wspace=0.07, hspace=0.2)
+                wspace=0.09, hspace=0.2)
         if len(det_hist) > 0 and not upper_lim:
             cax = plt.axes([0.33, 0.94, 0.47, 0.03]) # left, bottom, width, height
         else:
@@ -118,7 +118,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             fname += '_det'
 
         print('Plotting recovery histogram...')
-        fig, ax = plt.subplots(tight_layout=True)
+        fig, ax = plt.subplots()
     
         hist, det_hist = get_histograms(study, model, x_edges, y_edges, 
                 sigma=sigma, detections=detections, upper_lim=upper_lim, 
@@ -152,10 +152,11 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         cbar.ax.tick_params(which='both', right=False)
         # horizontal label above plot
         cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
-                    ha='right', va='top', y=1.12, labelpad=0)
+                    ha='right', va='top', y=1.16, labelpad=0)
 
-    # Plot histogram
+        plt.tight_layout(pad=0.3)
 
+    # Save hist
     plot_file = OUTPUT_DIR / Path(fname + extension)
 
     plt.savefig(plot_file, dpi=300)
