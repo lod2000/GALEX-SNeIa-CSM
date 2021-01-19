@@ -200,7 +200,6 @@ class CSMmodel:
         plt.tight_layout(pad=0.3)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
-        plt.savefig(Path('out/Chev94_redshift.png'))
         if show:
             plt.show()
         else:
@@ -270,16 +269,17 @@ class Chev94Model:
 
         wl = np.arange(W0, W1, DW)
         fl = self.gen_model(t)
-        plt.plot(wl, fl/1e37)
-        plt.ylim((0, 6))
+        ax.plot(wl, fl/1e37)
+
+        y_max = 6
 
         # Label peaks
         for name in self.line_wl.keys():
             # Set label position
             peak_wl = float(self.line_wl[name])
-            x = peak_wl + 20
+            x = peak_wl + 40
             peak_fl = fl[np.argwhere(np.round(wl,1) == peak_wl)[0][0]]
-            y = max(min(peak_fl/1e37, max(plt.ylim()) - 0.5), min(plt.ylim()) + 0.4)
+            y = max(min(peak_fl/1e37, y_max - 0.4), 0.4)
             # Text alignment
             va = 'center'
             ha = 'left'
@@ -294,7 +294,7 @@ class Chev94Model:
             text = text.replace('V I', 'VI')
             text = text.replace('I V', 'IV')
             # Custom adjustments
-            if text in ['C II]', 'C I]', 'O VI', 'C IV', 'C III]']:
+            if text in ['C II]', 'C I]', 'O VI', 'C IV', 'C III]', 'Mg II']:
                 x = peak_wl
                 ha = 'center'
                 va = 'bottom'
@@ -306,16 +306,26 @@ class Chev94Model:
                 y = peak_fl/1e37 + 0.3
             ax.text(x, y, text, size=10, va=va, ha=ha)
 
-        ax.set_xlabel('Wavelength [Å]', labelpad=0)
-        ax.set_ylabel('Luminosity [$10^{37}$ erg/s]')
+        ax.set_xlim((900, 3000))
+        ax.set_ylim((-0.5, 6))
 
-        ax.set_xlim((800, 3200))
+        # Set spine extent
+        ax.spines['bottom'].set_bounds(1000, 3000)
+        ax.spines['left'].set_bounds(0, 6)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Set ticks
+        ax.tick_params(which='both', top=False, right=False)
 
-        plt.tight_layout(pad=0.3)
+        ax.set_xlabel('Wavelength [Å]')
+        ax.set_ylabel('Luminosity [$10^{37}$ erg/s]', rotation='horizontal', 
+                ha='left', va='top', y=1.16, labelpad=0)
+
+        plt.tight_layout(pad=0.5)
 
         if save: 
             plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
-            plt.savefig(Path('out/Chev94_spectrum.png'), dpi=300)
         if show:
             plt.show()
         else:
