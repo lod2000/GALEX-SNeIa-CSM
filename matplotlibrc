@@ -8,6 +8,7 @@ lines.linewidth     : 1 #2
 axes.labelsize      : 10 #22
 axes.titlesize      : 10 #20
 axes.titleweight    : heavy
+axes.labelpad       : 2
 
 ## Ticks
 xtick.top           : True

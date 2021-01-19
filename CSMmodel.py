@@ -31,11 +31,11 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
     # Plot Chev94 spectrum at original scale
     chev_model = Chev94Model(scale=scale/CHEV94_2015cp_SCALE)
-    # chev_model.plot(0, save=True, show=show)
+    chev_model.plot(0, save=True, show=show)
 
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
-    csm_model.plot_redshift(save=True, show=show)
+    # csm_model.plot_redshift(save=True, show=show)
 
     # Plot CSM light curve
     fig, ax = plt.subplots(tight_layout=True)
@@ -266,7 +266,7 @@ class Chev94Model:
     def plot(self, t, save=True, show=False):
         """Plot spectral model."""
 
-        fig, ax = plt.subplots(tight_layout=True)
+        fig, ax = plt.subplots()
 
         wl = np.arange(W0, W1, DW)
         fl = self.gen_model(t)
@@ -279,12 +279,12 @@ class Chev94Model:
             peak_wl = float(self.line_wl[name])
             x = peak_wl + 20
             peak_fl = fl[np.argwhere(np.round(wl,1) == peak_wl)[0][0]]
-            y = max(min(peak_fl/1e37, max(plt.ylim()) - 0.2), min(plt.ylim()) + 0.4)
+            y = max(min(peak_fl/1e37, max(plt.ylim()) - 0.5), min(plt.ylim()) + 0.4)
             # Text alignment
-            va = 'top'
+            va = 'center'
             ha = 'left'
             # Ignore smaller lines which get in the way
-            if name == 'OV]' or name == 'SiII]':
+            if name in ['OV]', 'SiII]', 'OIII]', 'CI]', '[NeIV]']:
                 continue
             # Adjust names
             text = name
@@ -294,15 +294,24 @@ class Chev94Model:
             text = text.replace('V I', 'VI')
             text = text.replace('I V', 'IV')
             # Custom adjustments
-            if text == 'C II]' or text == 'C I]' or text == 'O VI':
+            if text in ['C II]', 'C I]', 'O VI', 'C IV', 'C III]']:
                 x = peak_wl
                 ha = 'center'
                 va = 'bottom'
-                y = peak_fl/1e37 + 0.1
-            plt.text(x, y, text, size=10, va=va, ha=ha)
+                y = peak_fl/1e37 + 0.2
+            elif text in ['He II', '[Ne IV]']:
+                x = peak_wl - 50
+                ha = 'left'
+                va = 'bottom'
+                y = peak_fl/1e37 + 0.3
+            ax.text(x, y, text, size=10, va=va, ha=ha)
 
-        plt.xlabel('Wavelength [Å]')
-        plt.ylabel('Luminosity [$10^{37}$ erg/s]')
+        ax.set_xlabel('Wavelength [Å]', labelpad=0)
+        ax.set_ylabel('Luminosity [$10^{37}$ erg/s]')
+
+        ax.set_xlim((800, 3200))
+
+        plt.tight_layout(pad=0.3)
 
         if save: 
             plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
