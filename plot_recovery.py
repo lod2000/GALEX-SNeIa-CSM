@@ -16,7 +16,7 @@ from CSMmodel import CSMmodel
 SIGMA = 3
 CONF = 0.9
 OUTPUT_DIR = Path('recovery_plots/')
-SCALE_BINS = 20 # number of scale factor bins
+SCALE_BINS = 15 # number of scale factor bins
 ITERATIONS = 10000 # default number of injection iterations
 
 def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
@@ -27,7 +27,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins)
+    y_edges = np.logspace(np.log10(scale_min), np.log10(scale_max), num=y_bins+1)
 
     # Quad plot: four main plots in one figure
     if quad:
@@ -76,11 +76,14 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             # Format
             ax.set_title(label[i], weight='normal')
             ax.label_outer() # hide labels for inner plots
+            # Reverse y-ticks on right-hand plots
+            if i % 2 == 1:
+                ax.tick_params(which='major', left=False, right=True)
 
         # Legend for detections
         if len(det_hist) > 0 and not upper_lim:
             fig.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
-                    borderpad=0.4)
+                    borderpad=0.5)
 
         # Adjust colorbar bounds: add extension below lower limit
         if upper_lim:
@@ -90,23 +93,25 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         else:
             cbar_label = 'Excluded SNe Ia'
             bounds = [0] + list(bounds)
-            extend = 'min'
+            extend = None
         # Adjust subplots to make room for colorbar axis
         plt.subplots_adjust(bottom=0.11, top=0.85, left=0.08, right=0.97, 
                 wspace=0.09, hspace=0.2)
+        # Define cbar axis
         if len(det_hist) > 0 and not upper_lim:
-            cax = plt.axes([0.33, 0.94, 0.47, 0.03]) # left, bottom, width, height
+            cax = plt.axes([0.33, 0.92, 0.47, 0.03]) # left, bottom, width, height
         else:
-            cax = plt.axes([0.08, 0.94, 0.59, 0.03]) # left, bottom, width, height
+            cax = plt.axes([0.08, 0.92, 0.59, 0.03]) # left, bottom, width, height
         # Add horizontal colorbar above subplots
         cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, 
                 ax=axs, orientation='horizontal', fraction=0.1,
                 spacing='uniform', extend=extend, boundaries=bounds, 
                 ticks=bounds, extendfrac='auto')
-        cbar.ax.tick_params(which='both', right=False, bottom=False)
+        cbar.ax.xaxis.set_ticks_position('top')
+        cbar.ax.tick_params(which='both', bottom=False, top=False, pad=2)
         # horizontal label next to cbar
-        cbar.set_label(cbar_label, rotation='horizontal', va='center', 
-                ha='left', x=1.03, labelpad=-19)
+        cbar.set_label(cbar_label, rotation='horizontal', va='bottom', 
+                ha='left', x=1.03, labelpad=0)
 
     # Single plot
     else:
@@ -317,9 +322,13 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100):
     ax.set_yscale('log')
     formatter = FuncFormatter(lambda y, _: '{:.16g}'.format(y))
     ax.yaxis.set_major_formatter(formatter)
-    ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
+    # ax.yaxis.set_minor_formatter(formatter)
+    # ax.xaxis.set_minor_locator(MultipleLocator(bin_width))
     ax.xaxis.set_major_locator(MultipleLocator(5 * bin_width))
-    ax.tick_params(which='both', direction='out', top=False, right=False)
+    # ax.xaxis.set_minor_locator(MultipleLocator(5 * bin_width))
+    ax.tick_params(which='major', direction='out', top=False, right=False, width=1)
+    # ax.tick_params(which='minor', axis='both', left=False)
+    ax.minorticks_off()
     ax.set_xlabel('$t_{start}$ [days]')
     ax.set_ylabel('$S$', rotation='horizontal')
 
