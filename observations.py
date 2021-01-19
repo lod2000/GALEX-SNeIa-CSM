@@ -63,7 +63,7 @@ def main(data_dir=DATA_DIR, overwrite=False, osc_file=OSC_FILE):
     print('Number of SNe observed by GALEX: %s' % len(galex_sne))
 
     # Plot histograms of observation epochs
-    plot(observations)
+    plot(observations, show=True)
 
     # Select only those with before+after observations
     print('\nSelecting SNe with before+after observations...')
@@ -122,8 +122,8 @@ def plot(observations, show=False):
     print('\nPlotting histogram of observation frequency...')
     bands = ['FUV', 'NUV']
 
-    fig, axes = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(8,6.5),
-            gridspec_kw={'hspace': 0.05})
+    fig, axes = plt.subplots(2, 1, sharex=True, figsize=(3.25, 4),
+            gridspec_kw={'hspace': 0.1, 'bottom': 0.1, 'right': 0.98, 'top': 0.95})
 
     for ax, band in zip(axes, bands):
         df = observations[observations['band'] == band]
@@ -133,27 +133,58 @@ def plot(observations, show=False):
         bins = np.logspace(0, np.log10(np.max(all_epochs)), 11)
         color = COLORS[band]
 
-        ax.hist(all_epochs, bins=bins, histtype='step', align='mid', lw=2, 
-                color=color, label='all SNe (%s)' % all_epochs.shape[0])
+        all_n = ax.hist(all_epochs, bins=bins, histtype='step', align='mid', 
+                lw=2, color=color, label='all (%s)' % all_epochs.shape[0])[0]
         ax.hist(pre_post_epochs, bins=bins, histtype='bar', align='mid',
                 label='before+after (%s)' % pre_post_epochs.shape[0], 
                 rwidth=0.95, color=color)
 
-        ax.set_title(band, x=0.08, y=0.8)
+        # Max bin value
+        y_max = np.round(np.max(all_n), -2)
+        if y_max < np.max(all_n):
+            y_max += 100
+        x_max = 500
+
+        # In-plot labels
+        x_pad = 1.15
+        y_pad = 50
+        ax.text(bins[3] * x_pad, all_n[3] + y_pad, 'all (%s)' % all_epochs.shape[0],
+                va='bottom', ha='left')
+        ax.text(bins[1] * x_pad, -y_pad, 'before+after (%s)' % pre_post_epochs.shape[0],
+                va='top', ha='left')
+
+        ax.set_title(band, x=1., y=0.9, va='top', ha='right', size=14)
+
+        ax.set_xlabel('Total number of epochs')
+        if band == 'FUV':
+            ax.set_ylabel('Number of SNe Ia', rotation='horizontal', 
+                    ha='left', va='top', y=1.1, labelpad=-2)
+
         ax.set_xscale('log')
+        ax.set_xlim((0.6, x_max))
+        ax.set_ylim((-350, None))
+
+        # Set spine extent
+        ax.spines['bottom'].set_bounds(1, x_max)
+        ax.spines['left'].set_bounds(0, y_max)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Set ticks
         ax.xaxis.set_major_formatter(tkr.ScalarFormatter())
+        i_max = int(np.ceil(np.log10(x_max)))
+        x_minor_ticks = [10**i * np.arange(1, 10, 1) for i in range(i_max)]
+        x_minor_ticks = np.concatenate(x_minor_ticks)
+        x_minor_ticks = x_minor_ticks[x_minor_ticks <= x_max]
+        ax.xaxis.set_minor_locator(tkr.FixedLocator(x_minor_ticks))
+        ax.yaxis.set_major_locator(tkr.MultipleLocator(500))
+        y_minor_ticks = np.arange(0, y_max+100, 100)
+        ax.yaxis.set_minor_locator(tkr.FixedLocator(y_minor_ticks))
+        ax.tick_params(which='both', top=False, right=False)
 
-        ax.legend()
-        ax.label_outer()
+        ax.label_outer() # outside axis labels only
 
-    # Outside axis labels only
-    fig.add_subplot(111, frameon=False)
-    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, 
-            right=False, which='both')
-    plt.xlabel('Total number of epochs', labelpad=12)
-    plt.ylabel('Number of SNe', labelpad=18)
-
-    plt.savefig(Path('out/observations.pdf'), bbox_inches='tight', dpi=300)
+    plt.savefig(Path('out/observations.pdf'), dpi=300)
     if show:
         plt.show()
     else:

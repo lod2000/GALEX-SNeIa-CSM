@@ -35,7 +35,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
-    # csm_model.plot_redshift(save=True, show=show)
+    csm_model.plot_redshift(save=True, show=show)
 
     # Plot CSM light curve
     fig, ax = plt.subplots(tight_layout=True)
@@ -59,6 +59,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
             ha='left', va='top', y=1.1, labelpad=-5)
 
+    plt.tight_layout()
     plt.savefig(Path('out/CSM_model.png'))
     plt.close()
 
