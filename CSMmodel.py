@@ -31,7 +31,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
     # Plot Chev94 spectrum at original scale
     chev_model = Chev94Model(scale=scale/CHEV94_2015cp_SCALE)
-    chev_model.plot(0, save=True, show=show)
+    # chev_model.plot(0, save=True, show=show)
 
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
@@ -151,7 +151,7 @@ class CSMmodel:
             zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
-        fig, ax = plt.subplots(tight_layout=True)
+        fig, ax = plt.subplots()
 
         # Set up range of redshifts
         z_vals = np.arange(0., 0.51, 0.01)
@@ -161,6 +161,7 @@ class CSMmodel:
             'F275W':[]
         }
         line_style = {'F275W': ':', 'NUV': '--', 'FUV': '-'}
+        # text_pad = {'F275W': 0, 'NUV': -7e36, 'FUV': 0}
 
         for z in z_vals:
             f = self(self.tstart + tstep, z)
@@ -168,11 +169,12 @@ class CSMmodel:
 
         L_min = 1e39
         L_max = 0
-        for band in ['F275W', 'NUV', 'FUV']:
+        text_idx = 42
+        for i, band in enumerate(['F275W', 'NUV', 'FUV']):
             ax.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
-                    lw=2, ls=line_style[band])
-            ax.text(z_vals[0], luminosity[band][0], band, 
-                    color=COLORS[band], ha='left', size=16, va='bottom')
+                    lw=1, ls=line_style[band])
+            ax.text(z_vals[text_idx], luminosity[band][text_idx], band, 
+                    color=COLORS[band], size=10, ha='center', va='bottom')
             L_min = min(L_min, np.min(luminosity[band]))
             L_max = max(L_max, np.max(luminosity[band]))
 
@@ -193,7 +195,9 @@ class CSMmodel:
 
         ax.set_xlabel('Redshift')
         ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
-                ha='left', va='top', y=1.1, labelpad=-5)
+                ha='left', va='top', y=1.1, labelpad=-2)
+
+        plt.tight_layout(pad=0.3)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
         plt.savefig(Path('out/Chev94_redshift.png'))
@@ -295,7 +299,7 @@ class Chev94Model:
                 ha = 'center'
                 va = 'bottom'
                 y = peak_fl/1e37 + 0.1
-            plt.text(x, y, text, size=16, va=va, ha=ha)
+            plt.text(x, y, text, size=10, va=va, ha=ha)
 
         plt.xlabel('Wavelength [Å]')
         plt.ylabel('Luminosity [$10^{37}$ erg/s]')

@@ -2,7 +2,7 @@
 figure.figsize      : 3.25, 2 #8, 5  ## figsize in inches
 
 ## Lines
-lines.linewidth     : 2
+lines.linewidth     : 1 #2
 
 ## Axes
 axes.labelsize      : 10 #22
