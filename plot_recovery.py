@@ -21,7 +21,7 @@ ITERATIONS = 10000 # default number of injection iterations
 
 def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=SCALE_BINS,
-        show=False, model='Chev94', study='galex', cmax=None,
+        show=True, model='Chev94', study='galex', cmax=None,
         sigma=SIGMA, overwrite=False, detections=False,
         upper_lim=False, cmin=None, quad=False, extension='.pdf'):
     
@@ -38,7 +38,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
 
         # Define subplots
         print('Plotting recovery histograms...')
-        fig, axs = plt.subplots(2, 2, figsize=(16, 12))
+        fig, axs = plt.subplots(2, 2, figsize=(6.5, 5))
 
         study = ['galex', 'galex', 'graham', 'graham']
         model = ['Chev94', 'flat', 'Chev94', 'flat']
@@ -80,7 +80,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         # Legend for detections
         if len(det_hist) > 0 and not upper_lim:
             fig.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
-                    borderpad=0.4, fontsize=20)
+                    borderpad=0.4)
 
         # Adjust colorbar bounds: add extension below lower limit
         if upper_lim:
@@ -92,12 +92,12 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             bounds = [0] + list(bounds)
             extend = 'min'
         # Adjust subplots to make room for colorbar axis
-        plt.subplots_adjust(bottom=0.07, top=0.89, left=0.05, right=0.97, 
-                wspace=0.07, hspace=0.12)
+        plt.subplots_adjust(bottom=0.11, top=0.85, left=0.08, right=0.97, 
+                wspace=0.07, hspace=0.2)
         if len(det_hist) > 0 and not upper_lim:
-            cax = plt.axes([0.27, 0.95, 0.55, 0.03]) # left, bottom, width, height
+            cax = plt.axes([0.33, 0.94, 0.47, 0.03]) # left, bottom, width, height
         else:
-            cax = plt.axes([0.05, 0.95, 0.65, 0.03]) # left, bottom, width, height
+            cax = plt.axes([0.08, 0.94, 0.59, 0.03]) # left, bottom, width, height
         # Add horizontal colorbar above subplots
         cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax, 
                 ax=axs, orientation='horizontal', fraction=0.1,
@@ -106,7 +106,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         cbar.ax.tick_params(which='both', right=False, bottom=False)
         # horizontal label next to cbar
         cbar.set_label(cbar_label, rotation='horizontal', va='center', 
-                ha='left', x=1.03, labelpad=-30)
+                ha='left', x=1.03, labelpad=-19)
 
     # Single plot
     else:
@@ -292,8 +292,7 @@ def get_cmap(hist, upper_lim=False, cmin=None, cmax=None, n_colors=9,
     return cmap, bounds
 
 
-def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, 
-        bin_width=100):
+def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100):
     """Add 2D histogram plot to axis.
     Inputs:
         ax: matplotlib axis
@@ -337,8 +336,8 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
     """
 
     # Outline styles
-    ls = ['--', ':']
-    lw = [3, 4]
+    lw = [2, 2.5]
+    dashes = [(4, 1), (1, 1)]
 
     for n in range(int(det_hist.max().max())):
         # Mask detections
@@ -372,7 +371,7 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
         y_upper.reverse()
         y = y_lower + y_upper[:1]
 
-        line, = ax.plot(x, y, color='k', linestyle=ls[n], linewidth=lw[n])
+        line, = ax.plot(x, y, color='k', linestyle='--', linewidth=lw[n], dashes=dashes[n])
         line.set_clip_on(False) # allow line to bleed over spines
         if label:
             line.set_label('%s det.' % (n+1))

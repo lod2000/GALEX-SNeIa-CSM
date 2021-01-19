@@ -1,12 +1,12 @@
 ## Figure
-figure.figsize      : 8, 5  ## figure size in inches
+figure.figsize      : 3.25, 2 #8, 5  ## figsize in inches
 
 ## Lines
 lines.linewidth     : 2
 
 ## Axes
-axes.labelsize      : 22
-axes.titlesize      : 20
+axes.labelsize      : 10 #22
+axes.titlesize      : 10 #20
 axes.titleweight    : heavy
 
 ## Ticks
@@ -14,25 +14,25 @@ xtick.top           : True
 xtick.minor.visible : True
 xtick.major.size    : 5
 xtick.minor.size    : 3
-xtick.major.width   : 3
+xtick.major.width   : 2 #3
 xtick.minor.width   : 1
 xtick.direction     : in
-xtick.labelsize     : 18
+xtick.labelsize     : 10 #18
 xtick.major.pad     : 5
 
 ytick.right         : True
 ytick.minor.visible : True
 ytick.major.size    : 5
 ytick.minor.size    : 3
-ytick.major.width   : 3
+ytick.major.width   : 2 #3
 ytick.minor.width   : 1
 ytick.direction     : in
-ytick.labelsize     : 18
+ytick.labelsize     : 10 #18
 ytick.major.pad     : 5
 
 ## Legend
 legend.framealpha   : 1
-legend.fontsize     : 12
+legend.fontsize     : 10 #12
 legend.edgecolor    : 0
 legend.borderpad    : 0.8
 legend.borderaxespad: 1
