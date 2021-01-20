@@ -22,8 +22,16 @@ ITERATIONS = 10000 # default number of injection iterations
 def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         scale_max=SCALE_MAX, bin_width=TSTART_BIN_WIDTH, y_bins=SCALE_BINS,
         show=True, model='Chev94', study='galex', cmax=None,
-        sigma=SIGMA, overwrite=False, detections=False,
+        sigma=SIGMA, overwrite=False, detections=False, reference=False,
         upper_lim=False, cmin=None, quad=False, extension='.pdf'):
+
+    # Import reference SN labels
+    if reference:
+        sn_label = pd.read_csv(Path('ref/sn_scale_factors.csv'), index_col=0)
+        quad_wspace = 0.16 # widen spacing between plots
+    else:
+        sn_label = []
+        quad_wspace = 0.08
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -68,7 +76,15 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
                     sigma=sigma, detections=detections, upper_lim=upper_lim, 
                     conf=CONF, overwrite=False, iterations=iterations, verb=False)
             norm = BoundaryNorm(bounds, cmap.N) # colormap index
-            pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width)
+            # Right-hand plots: y-ticks on right side and no reference labels
+            if i % 2 == 1:
+                pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width,
+                        sn_label=sn_label, markers_only=True)
+                ax.tick_params(which='major', left=False, right=True)
+            # Left-hand plots: y-ticks on left side, reference labels on right
+            else:
+                pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width,
+                        sn_label=sn_label)
             # Outline detections
             if len(det_hist) > 0 and not upper_lim:
                 plot_detections(ax, x_edges, y_edges, det_hist, label=add_label)
@@ -76,9 +92,6 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             # Format
             ax.set_title(label[i], weight='normal')
             ax.label_outer() # hide labels for inner plots
-            # Reverse y-ticks on right-hand plots
-            if i % 2 == 1:
-                ax.tick_params(which='major', left=False, right=True)
 
         # Legend for detections
         if len(det_hist) > 0 and not upper_lim:
@@ -96,7 +109,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             extend = None
         # Adjust subplots to make room for colorbar axis
         plt.subplots_adjust(bottom=0.11, top=0.85, left=0.08, right=0.97, 
-                wspace=0.09, hspace=0.2)
+                wspace=quad_wspace, hspace=0.2)
         # Define cbar axis
         if len(det_hist) > 0 and not upper_lim:
             cax = plt.axes([0.33, 0.92, 0.47, 0.03]) # left, bottom, width, height
@@ -132,7 +145,7 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
         # Define colormap and index and plot
         cmap, bounds = get_cmap(hist, upper_lim=upper_lim, cmin=cmin, cmax=cmax)
         norm = BoundaryNorm(bounds, cmap.N) # colormap index
-        pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width)
+        pcm = plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width, sn_label)
 
         # Outline detections
         if len(det_hist) > 0:
@@ -151,9 +164,13 @@ def main(iterations=10000, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_M
             bounds = [0] + list(bounds)
             extend = 'min'
         # Add vertical colorbar to the side
+        if reference:
+            cbar_pad = 0.16
+        else:
+            cbar_pad = 0.04
         cbar = fig.colorbar(pcm, spacing='uniform', extend=extend, 
                 boundaries=bounds, ticks=bounds, extendfrac='auto', 
-                fraction=0.1, aspect=16, pad=0.04)
+                fraction=0.1, aspect=16, pad=cbar_pad)
         cbar.ax.tick_params(which='both', right=False)
         # horizontal label above plot
         cbar.ax.set_ylabel(cbar_label, rotation='horizontal', 
@@ -298,7 +315,8 @@ def get_cmap(hist, upper_lim=False, cmin=None, cmax=None, n_colors=9,
     return cmap, bounds
 
 
-def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100):
+def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100, sn_label=[],
+        markers_only=False):
     """Add 2D histogram plot to axis.
     Inputs:
         ax: matplotlib axis
@@ -309,6 +327,8 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100):
         cmap: colormap
         norm: colormap index
         bin_width: x-axis bin width in days
+        sn_label: DataFrame of SNe to label as reference on right side of plot
+        markers_only: if True, only add SN label markers to left side
     Output:
         pcm: pcolormesh object
     """
@@ -331,6 +351,14 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100):
     ax.minorticks_off()
     ax.set_xlabel('$t_{start}$ [days]')
     ax.set_ylabel('$S$', rotation='horizontal')
+
+    # Add reference SN labels
+    if len(sn_label) > 0:
+        for sn, info in sn_label.iterrows():
+            if markers_only:
+                ax.text(x_edges[0], info.scale, '-', c='r', va='center', ha='right')
+            else:
+                ax.text(x_edges[-1], info.scale, '- '+info.label, c='r', va='center')
 
     return pcm
 
@@ -513,6 +541,8 @@ if __name__ == '__main__':
             help='Number of scale factor bins')
     parser.add_argument('--quad', '-q', action='store_true', 
             help='Grid of four recovery plots')
+    parser.add_argument('--reference', '-r', action='store_true', 
+            help='Label reference SNe along vertical axis')
     parser.add_argument('--extension', '-e', type=str, default='.pdf', 
             help='Plot file extension')
     args = parser.parse_args()
@@ -521,4 +551,4 @@ if __name__ == '__main__':
             study=args.study.lower(), sigma=args.sigma, cmax=args.cmax, 
             cmin=args.cmin, scale_max=args.smax, bin_width=args.twidth, 
             detections=args.detections, upper_lim=args.upperlim, quad=args.quad,
-            extension=args.extension)
+            extension=args.extension, reference=args.reference)
