@@ -109,7 +109,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         external: DataFrame of BCI for ASAS-SN and ZTF data
     """
 
-    fig, ax = plt.subplots(gridspec_kw={'left': 0.1, 'right': 0.98, 'bottom': 0.2, 'top': 0.82})
+    fig, ax = plt.subplots(gridspec_kw={'left': 0.1, 'right': 0.96, 'bottom': 0.2, 'top': 0.82})
 
     x = lower.index.to_numpy()
     x_end = x[-1] + (x[1] - x[0])
@@ -198,9 +198,9 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
     # ax.spines['bottom'].set_bounds(x[0], x[-1])
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_bounds(y_min, ylim[1])
+    # ax.spines['right'].set_visible(False)
+    ax.spines['right'].set_bounds(y_min, ylim[1])
     ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    # ax.spines['right'].set_bounds(0, ylim[1])
         
     # x-axis ticks
     # x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
@@ -210,7 +210,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
     ax.tick_params(axis='x', pad=5)
 
     # y-axis ticks
-    ax.tick_params(axis='y', which='both', left=True, right=False)
+    ax.tick_params(axis='y', which='both', left=True, right=True)
     if log:
         formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
         ax.yaxis.set_major_formatter(formatter)
@@ -256,7 +256,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         y_text += 0.1
 
     # Legend (actually upper right)
-    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 0.95), 
+    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
             handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
 
     # Save & exit
