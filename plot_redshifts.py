@@ -22,8 +22,8 @@ hist = ax.hist(z, bins=bins, range=(z_min, z_max), histtype='bar', color=color)
 ax.set_xlabel('Redshift')
 ax.set_ylabel('Number of SNe Ia')
 
-plt.grid(b=True, which='major', axis='x', color='w', lw=3)
-plt.grid(b=True, which='minor', axis='x', color='w', lw=2)
+plt.grid(b=True, which='major', axis='x', color='w', lw=2)
+plt.grid(b=True, which='minor', axis='x', color='w', lw=1)
 plt.grid(b=True, which='major', axis='y', color='w', lw=1)
 
 plt.savefig(Path('out/redshifts.pdf'), bbox_inches='tight', dpi=300)
