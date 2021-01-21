@@ -16,9 +16,10 @@ SCALE = [0.9, 1.1] # default model scale
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
 YMAX = None
+PAD = 0.1 # percent, y-axis padding on log scale
 
 # Plot settings
-TEXT_SIZE = 16
+# TEXT_SIZE = 16
 ARROW_LENGTH = 2
 COLORS = {  'GALEX': '#47a',
             'HST': '#e67',
@@ -45,7 +46,8 @@ STYLE = {   'GALEX': '--',
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
-        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, log=False):
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, log=False,
+        pad=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
@@ -94,12 +96,12 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     #         output_file=Path('out/rates_%s.tex' % model))
 
     scale_mean = int(np.mean(y_edges))
-    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log,
+    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
             output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
 
 
 def plot(lower, upper, external, output_file='out/rates.pdf', show=True, 
-        y_max=YMAX, log=False):
+        y_max=YMAX, log=False, pad=False):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
         lower: DataFrame of lower 90% CI for GALEX, HST data
@@ -107,7 +109,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         external: DataFrame of BCI for ASAS-SN and ZTF data
     """
 
-    fig, ax = plt.subplots(tight_layout=True)
+    fig, ax = plt.subplots(gridspec_kw={'left': 0.1, 'right': 0.98, 'bottom': 0.2, 'top': 0.82})
 
     x = lower.index.to_numpy()
     x_end = x[-1] + (x[1] - x[0])
@@ -121,12 +123,16 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         # Add endpoints
         y1 = np.append(y1, y1[-1])
         y2 = np.append(y2, y2[-1])
+
+        if log and pad:
+            y1 += PAD
+            y2 += PAD
         
         color = COLORS[col]
         alpha = ALPHAS[col]
         hatch = HATCHES[col]
         ls = STYLE[col]
-        lw = 2
+        lw = 1
 
         # Italicize GALEX
         if col == 'GALEX':
@@ -156,6 +162,8 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
             line2, = ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
             # Lower bound
             line1, = ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
+            if (log and pad) or not log:
+                line1.set_clip_on(False) # stop bottom line from clipping on axis
             # In-plot label
             # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
             #         color=color)
@@ -168,9 +176,13 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
                 )
 
     # Axes labels
-    ax.set_xlabel('$t_{start}$ [days]')
-    ax.set_ylabel('$f_{CSM}$ [%]', rotation='horizontal', 
-                ha='left', va='top', y=1.16, labelpad=-2)
+    ax.set_xlabel('$t_{start}$ [days]', labelpad=0)
+    if log and pad:
+        ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
+    else:
+        ylabel = '$f_{CSM}$ [%]'
+    ax.set_ylabel(ylabel, rotation='horizontal', ha='left', va='bottom', y=1.08, 
+            labelpad=0)
 
     # Axes limits
     if log:
@@ -195,7 +207,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
     ax.xaxis.set_major_locator(ticker.MultipleLocator(500))
     ax.tick_params(axis='x', which='both', bottom=False, top=False)
-    ax.tick_params(axis='x', pad=8)
+    ax.tick_params(axis='x', pad=5)
 
     # y-axis ticks
     ax.tick_params(axis='y', which='both', left=True, right=False)
@@ -211,38 +223,41 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         ax.yaxis.set_major_locator(ticker.FixedLocator(y_major_ticks))
 
     # Grid lines
-    ax.grid(b=True, which='both', axis='x', color='w', lw=1, zorder=2)
+    ax.grid(b=True, which='minor', axis='x', color='w', lw=0.5, zorder=2)
+    ax.grid(b=True, which='major', axis='x', color='w', lw=1, zorder=2)
     if log:
-        ax.grid(b=True, which='major', axis='y', color='w', lw=1, zorder=2)
+        ax.grid(b=True, which='major', axis='y', color='w', lw=0.5, zorder=2)
     else:
-        ax.grid(b=True, which='both', axis='y', color='w', lw=1, zorder=2)
+        ax.grid(b=True, which='both', axis='y', color='w', lw=0.5, zorder=2)
 
     # Plot external study estimates as bars
     x_frac = 1/40 # fraction of x-axis to plot ranges left of x=0
     x_bar = -int(x[-1] * x_frac) # x-val of error bar
-    y_text = -0.16 # y-value of annotation
+    y_text = -0.2 # y-value of annotation
     for i, study in enumerate(external.index):
         # Calculate error bar
         row = external.loc[study]
         midpoint = row.mean()
         err = row['bci_upper'] - midpoint
+        if log and pad:
+            midpoint += PAD
         # Plot error bar
         ax.errorbar(x_bar, midpoint, yerr=err, marker=MARKERS[study], 
                 c=COLORS[study], mec=COLORS[study], mfc='w', ms=0, 
-                linestyle='none', elinewidth=5, mew=2, capsize=0)#, label=study)
+                linestyle='none', elinewidth=3, mew=2, capsize=0)#, label=study)
         # Annotate label under bar
         ax.annotate(study, xy=(x_bar, y_min), xytext=(x_bar, y_text), 
                 textcoords=('data', 'axes fraction'),
-                ha='right', va='top', size=TEXT_SIZE-2,
-                arrowprops={'color': 'k', 'shrink': 0.08, 'width': 0.5,
-                        'headwidth': 0.5, 'headlength': 0.5})
+                ha='right', va='top', size=8, #size=TEXT_SIZE-2,
+                arrowprops={'color': 'k', 'shrink': 0.1, 'width': 0.2,
+                        'headwidth': 0.2, 'headlength': 0.01})
         # Adjust label coordinates
         x_bar += x_bar
-        y_text += 0.08
+        y_text += 0.1
 
     # Legend (actually upper right)
-    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 1.), 
-            handletextpad=0.8, handlelength=2., borderpad=0.5)
+    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 0.95), 
+            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
 
     # Save & exit
     plt.savefig(output_file, dpi=300)
@@ -398,7 +413,8 @@ if __name__ == '__main__':
     parser.add_argument('--ymax', type=float, default=YMAX, 
             help='y-axis upper limit')
     parser.add_argument('--log', action='store_true', help='y-axis log scale')
+    parser.add_argument('--pad', action='store_true', help='pad y-axis by 0.1% on log scale')
     args = parser.parse_args()
 
-    main(model=args.model, scale=args.scale, bin_width=args.twidth,
+    main(model=args.model, scale=args.scale, bin_width=args.twidth, pad=args.pad,
             sigma=args.sigma, t_max=args.tmax, y_max=args.ymax, log=args.log)
