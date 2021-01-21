@@ -49,7 +49,7 @@ def main():
     y_col = 'luminosity_hostsub_hz'
     yerr_col = 'luminosity_hostsub_err_hz'
     
-    fig, ax = plt.subplots(tight_layout=True)
+    fig, ax = plt.subplots(figsize=(6.5, 4), tight_layout=True)
 
     # Plot Swift SN2011fe from Brown+ 2012
     band = 'UVM2'
@@ -66,7 +66,7 @@ def main():
             lc['flux_err'], dist, dist_err, z, z_err, a_v, a_band)
     lc['luminosity_hz'] = wavelength2freq(lc['luminosity'], 2245.8)
     ax.plot(lc['t_delta_rest'], lc['luminosity_hz'], color='brown', 
-            label='SN2011fe (%s)' % band, zorder=1)
+            label='SN2011fe (%s)' % band, zorder=1, lw=2, rasterized=True)
 
     # Plot near-peak SNe Ia
     for sn_name in det_sne:
@@ -89,6 +89,7 @@ def main():
         #         alpha=ALPHA_DET, zorder=8)
 
     # Plot non-detection limits
+    print('Plotting non-detection limits...')
     for sn_name in tqdm(sn_info.index):
         sn = Supernova(sn_name, sn_info)
 
@@ -110,8 +111,9 @@ def main():
                 zorder=10)
 
     # Format axes
-    ax.set_xlabel('Time since discovery [days]')
-    ax.set_ylabel('UV Luminosity [erg s$^{-1}$ Hz$^{-1}$]')
+    ax.set_xlabel('Time since discovery [days]', fontsize=12)
+    ax.set_ylabel('UV Luminosity [erg s$^{-1}$ Hz$^{-1}$]', rotation='horizontal', 
+                ha='left', va='bottom', y=1., labelpad=0, fontsize=12)
     ax.set_xlim(XLIM)
     ax.set_yscale('log')
     ax.set_ylim(YLIM)
@@ -127,7 +129,7 @@ def main():
                     label='detection limit (NUV)', lw=0)
     ]
     plt.legend(handles=handles + legend_elements, loc='upper right', ncol=3,
-            handletextpad=0.2, handlelength=1.0)
+            handletextpad=0.2, handlelength=1.0, fontsize=10)
 
     plt.savefig(Path('out/limits.pdf'), dpi=300)
 
