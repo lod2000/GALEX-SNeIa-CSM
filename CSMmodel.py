@@ -195,10 +195,11 @@ class CSMmodel:
         ax.tick_params(which='both', top=False, right=False)
 
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
-                ha='left', va='top', y=1.1, labelpad=-2)
+        ax.set_ylabel('Filter Luminosity [erg s$^{-1}$ Å$^{-1}$]', rotation='horizontal', 
+                ha='left', va='top', y=1.16, labelpad=-2)
 
         plt.tight_layout(pad=0.3)
+        plt.subplots_adjust(top=0.88)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
         if show:
@@ -320,7 +321,7 @@ class Chev94Model:
         ax.tick_params(which='both', top=False, right=False)
 
         ax.set_xlabel('Wavelength [Å]')
-        ax.set_ylabel('Luminosity [$10^{37}$ erg/s]', rotation='horizontal', 
+        ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]', rotation='horizontal', 
                 ha='left', va='top', y=1.16, labelpad=0)
 
         plt.tight_layout(pad=0.5)

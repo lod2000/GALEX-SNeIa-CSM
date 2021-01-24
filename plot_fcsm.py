@@ -85,10 +85,15 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     bci_upper *= 100
 
     # Calculate binomial confidence intervals for external data
+    print('\nExternal measures of f_CSM:')
     asassn_bci = 100 * binom_conf_interval(asassn_det, asassn_all, 
             confidence_level=CONF, interval='jeffreys')
+    print('ASAS-SN')
+    print(asassn_bci)
     ztf_bci = 100 * binom_conf_interval(ztf_det, ztf_all, confidence_level=CONF, 
             interval='jeffreys')
+    print('ZTF')
+    print(ztf_bci)
     external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
             columns=['bci_lower', 'bci_upper'])
 

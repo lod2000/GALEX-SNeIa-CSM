@@ -119,7 +119,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
             handlelength=1.2, fontsize=11)
 
     # Adjust and label axes
-    ax.set_xlabel('Rest frame time since discovery [days]')
+    ax.set_xlabel('Time since discovery [days]')
     ax.set_yscale('log')
     ax.set_ylabel('Observed flux [erg s$^{-1}$ Å$^{-1}$ cm$^{-2}$]')
     ax.set_ylim((np.min(ymin), None))
@@ -466,7 +466,7 @@ def plot_lc(ax, lc, tmax):
     if len(detections.index) > 0:
         ax.errorbar(detections[time_col], detections[data_col], 
                 yerr=detections[err_col], linestyle='none', 
-                marker='o', ms=5, elinewidth=1, c=color, 
+                marker='o', ms=6, elinewidth=1, c=color, mec='k',
                 label='%s det.' % lc.band
         )
 
@@ -475,7 +475,7 @@ def plot_lc(ax, lc, tmax):
     if len(nondetections.index > 0):
         ax.scatter(nondetections[time_col], 
                 nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
-                marker='v', s=25, color=color, 
+                marker='v', s=36, color=color, mec='k',
                 label='%s %sσ limit' % (lc.band, DET_SIGMA))
 
     return ax
