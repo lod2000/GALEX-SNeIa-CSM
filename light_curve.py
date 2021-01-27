@@ -90,8 +90,8 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
         legend_col: number of columns in legend
     """
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    fig.set_tight_layout(True)
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    # fig.set_tight_layout(True)
 
     # Plot Swift data data
     if swift:
@@ -105,23 +105,33 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
 
     # Import and plot GALEX data
     ymin = []
+    bg_max = 0
+    pre_obs = 0
     for band in ['FUV', 'NUV']:
         try:
             lc = LightCurve(sn, band)
-            ax = plot_lc(ax, lc, tmax)
+            # Pre-SN obs.
+            before = lc.data[lc('t_delta_rest') <= DT_MIN]
+            pre_obs += len(before.index)
             ymin.append(lc.bg / 1.5)
-        except:
+            bg_max = max(bg_max, lc.bg)
+
+            ax = plot_lc(ax, lc, tmax)
+        except FileNotFoundError:
             # No data for this channel
             continue
 
     # Add legend
-    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.5, 
-            handlelength=1.2, fontsize=11)
+    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.2, 
+            handlelength=1.0, fontsize=6, borderaxespad=1.5, borderpad=0.5, columnspacing=0.8)
 
     # Adjust and label axes
+    label_y = 1.05
     ax.set_xlabel('Time since discovery [days]')
     ax.set_yscale('log')
-    ax.set_ylabel('Observed flux [erg s$^{-1}$ Å$^{-1}$ cm$^{-2}$]')
+    ax.tick_params(axis='y', which='major', left=False)
+    ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]', 
+            rotation='horizontal', labelpad=0, y=label_y, ha='left')
     ax.set_ylim((np.min(ymin), None))
 
     # Adjust limits
@@ -132,6 +142,9 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
     ylim[1] *= 10**pad
     ax.set_ylim(ylim)
 
+    # In-plot labels
+    ax.text(xlim[0]+3, bg_max * 1.1,'host %sσ (%s obs)' % (BG_SIGMA, pre_obs))
+
     # Twin axis with absolute luminosity
     luminosity_ax = ax.twinx()
     ylim_flux = np.array(ax.get_ylim())
@@ -141,8 +154,11 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
     luminosity_ax.set_yscale('log')
     luminosity_ax.set_ylim(ylim_luminosity)
     
-    luminosity_ax.set_ylabel('UV Luminosity [erg s$^{-1}$ Å$^{-1}$]', 
-            rotation=270, labelpad=24)
+    luminosity_ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Å$^{-1}$]', y=label_y,
+            rotation='horizontal', labelpad=0, ha='right', va='bottom')
+
+    plt.tight_layout(pad=0.3)
+    plt.subplots_adjust(top=0.86)
 
     plt.savefig(Path('out/%s.pdf' % sn.name), dpi=300)
     plt.savefig(Path('out/%s.png' % sn.name), dpi=300)
@@ -453,20 +469,22 @@ def plot_lc(ax, lc, tmax):
 
     # Plot background average of epochs before discovery
     plt.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 
-            linewidth=1, label='%s host (%s obs.)' % (lc.band, pre_obs))
+            linewidth=1, #label='%s host (%s obs.)' % (lc.band, pre_obs)
+    )
     # 1-sigma range
     bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
     plt.axhspan(ymin=(lc.bg - BG_SIGMA * bg_err), color=color,
             ymax=(lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA,
-            label='%s host %sσ' %(lc.band, BG_SIGMA))
+            #label='%s host %sσ' %(lc.band, BG_SIGMA)
+    )
 
     # Plot observed fluxes after discovery: detections
     after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
     detections = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
     if len(detections.index) > 0:
         ax.errorbar(detections[time_col], detections[data_col], 
-                yerr=detections[err_col], linestyle='none', 
-                marker='o', ms=6, elinewidth=1, c=color, mec='k',
+                yerr=detections[err_col], linestyle='none', ecolor='k',
+                marker='o', ms=4, elinewidth=1, c=color, mec='k', mew=0.5,
                 label='%s det.' % lc.band
         )
 
@@ -475,7 +493,7 @@ def plot_lc(ax, lc, tmax):
     if len(nondetections.index > 0):
         ax.scatter(nondetections[time_col], 
                 nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
-                marker='v', s=36, color=color, mec='k',
+                marker='v', s=16, color=color, edgecolors='k', lw=0.5,
                 label='%s %sσ limit' % (lc.band, DET_SIGMA))
 
     return ax
@@ -487,9 +505,10 @@ def plot_external(ax, sn, lc, bands, marker='D'):
     for band in bands:
         data = lc[lc['Filter'] == band]
         ax.errorbar(data['t_delta_rest'], data['flux'], linestyle='none',
-                yerr=data['flux_err'], marker=marker, ms=4, label=band,
-                elinewidth=1, markeredgecolor=COLORS[band], 
-                markerfacecolor='white', ecolor=COLORS[band])
+                yerr=data['flux_err'], marker=marker, ms=2.5, label=band,
+                elinewidth=0.5, markeredgecolor=COLORS[band], 
+                markerfacecolor='white', ecolor=COLORS[band], mew=0.5,
+                rasterized=True)
 
     return ax
 
