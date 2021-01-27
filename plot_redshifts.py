@@ -39,14 +39,13 @@ ax.yaxis.set_major_locator(ticker.FixedLocator(yticks_major))
 yticks_minor = np.arange(0, np.max(hist_arr[0]) + minor_tick_space, minor_tick_space)
 ax.yaxis.set_minor_locator(ticker.FixedLocator(yticks_minor))
 ax.tick_params(axis='both', which='both', top=False, right=False)
-# ax.tick_params(axis='x', pad=8)
 
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.spines['bottom'].set_bounds(z_min, z_max)
 ax.spines['left'].set_bounds(0, yticks_minor[-1])
 
-ax.set_ylabel('Number of SNe Ia', rotation='horizontal', ha='left', va='bottom', y=1.05, labelpad=-1)
+ax.set_ylabel('Number of SNe Ia', rotation='horizontal', ha='left', y=1.05, labelpad=-1)
 
 plt.tight_layout(pad=0.3)
 plt.subplots_adjust(top=0.88)
