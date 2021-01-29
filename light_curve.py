@@ -464,12 +464,12 @@ def plot_lc(ax, lc, tmax):
     pre_obs = len(before.index)
 
     # Plot background average of epochs before discovery
-    plt.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 
+    ax.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 
             linewidth=1, #label='%s host (%s obs.)' % (lc.band, pre_obs)
     )
     # 1-sigma range
     bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
-    plt.axhspan(ymin=(lc.bg - BG_SIGMA * bg_err), color=color,
+    ax.axhspan(ymin=(lc.bg - BG_SIGMA * bg_err), color=color,
             ymax=(lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA,
             #label='%s host %sσ' %(lc.band, BG_SIGMA)
     )
