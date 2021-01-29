@@ -349,7 +349,7 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100, sn_label=[]
     ax.tick_params(which='major', direction='out', top=False, right=False, width=1)
     # ax.tick_params(which='minor', axis='both', left=False)
     ax.minorticks_off()
-    ax.set_xlabel('$t_{start}$ [days]')
+    ax.set_xlabel('$t_\mathrm{start}$ [days]')
     ax.set_ylabel('$S$', rotation='horizontal')
 
     # Add reference SN labels
