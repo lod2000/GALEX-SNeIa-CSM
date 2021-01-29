@@ -162,43 +162,24 @@ class CSMmodel:
             'F275W':[]
         }
         line_style = {'F275W': ':', 'NUV': '--', 'FUV': '-'}
-        # text_pad = {'F275W': 0, 'NUV': -7e36, 'FUV': 0}
 
         for z in z_vals:
             f = self(self.tstart + tstep, z)
             for band, fl in f.items(): luminosity[band].append(fl)
 
-        L_min = 1e39
-        L_max = 0
         text_idx = 42
         for i, band in enumerate(['F275W', 'NUV', 'FUV']):
             ax.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
                     lw=1, ls=line_style[band])
-            ax.text(z_vals[text_idx], luminosity[band][text_idx], band, 
+            ax.text(z_vals[text_idx], luminosity[band][text_idx] * 1.1, band, 
                     color=COLORS[band], size=10, ha='center', va='bottom')
-            L_min = min(L_min, np.min(luminosity[band]))
-            L_max = max(L_max, np.max(luminosity[band]))
 
-        ax.set_xlim((-0.02, 0.5))
         ax.set_yscale('log')
-        ax.set_ylim((L_min - 1.4e36, None))
-
-        # Set spine extent
-        # ax.spines['bottom'].set_bounds(0, 0.5)
-        # ax.spines['left'].set_bounds(np.round(L_min, -36), np.round(L_max, -38))
-        # ax.spines['top'].set_visible(False)
-        # ax.spines['right'].set_visible(False)
-        
-        # Set ticks
-        # x_minor_ticks = np.arange(0, 0.5, 0.02)
-        # ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
-        # ax.tick_params(which='both', top=False, right=False)
 
         ax.set_xlabel('Redshift')
         ax.set_ylabel('$L_\mathrm{filter}$ [erg s$^{-1}$ Å$^{-1}$]')
 
         plt.tight_layout(pad=0.3)
-        # plt.subplots_adjust(top=0.88)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
         if show:
@@ -307,23 +288,13 @@ class Chev94Model:
                 y = peak_fl/1e37 + 0.3
             ax.text(x, y, text, size=10, va=va, ha=ha)
 
-        ax.set_xlim((900, 3000))
-        ax.set_ylim((-0.5, 6))
-
-        # Set spine extent
-        ax.spines['bottom'].set_bounds(1000, 3000)
-        ax.spines['left'].set_bounds(0, 6)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
-        # Set ticks
-        ax.tick_params(which='both', top=False, right=False)
+        ax.set_xlim((850, 3100))
+        ax.set_ylim((-0.5, 6.5))
 
         ax.set_xlabel('Wavelength [Å]')
-        ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]', rotation='horizontal', 
-                ha='left', va='top', y=1.16, labelpad=0)
+        ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]')
 
-        plt.tight_layout(pad=0.5)
+        plt.tight_layout(pad=0.3)
 
         if save: 
             plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
