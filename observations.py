@@ -122,8 +122,8 @@ def plot(observations, show=False):
     print('\nPlotting histogram of observation frequency...')
     bands = ['FUV', 'NUV']
 
-    fig, axes = plt.subplots(2, 1, sharex=True, figsize=(3.25, 4),
-            gridspec_kw={'hspace': 0.1, 'bottom': 0.1, 'right': 0.98, 'top': 0.95})
+    fig, axes = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(3.25, 4),
+            tight_layout=True)
 
     for ax, band in zip(axes, bands):
         df = observations[observations['band'] == band]
@@ -134,57 +134,24 @@ def plot(observations, show=False):
         color = COLORS[band]
 
         all_n = ax.hist(all_epochs, bins=bins, histtype='step', align='mid', 
-                lw=2, color=color, label='all (%s)' % all_epochs.shape[0])[0]
+                lw=1.5, color=color, label='all (%s)' % all_epochs.shape[0])[0]
         ax.hist(pre_post_epochs, bins=bins, histtype='bar', align='mid',
                 label='before+after (%s)' % pre_post_epochs.shape[0], 
                 rwidth=0.95, color=color)
 
-        # Max bin value
-        y_max = np.round(np.max(all_n), -2)
-        if y_max < np.max(all_n):
-            y_max += 100
-        x_max = 500
-
-        # In-plot labels
-        x_pad = 1.15
-        y_pad = 50
-        ax.text(bins[3] * x_pad, all_n[3] + y_pad, 'all (%s)' % all_epochs.shape[0],
-                va='bottom', ha='left')
-        ax.text(bins[1] * x_pad, -y_pad, 'before+after (%s)' % pre_post_epochs.shape[0],
-                va='top', ha='left')
-
-        ax.set_title(band, x=1., y=0.9, va='top', ha='right', size=14)
+        ax.set_title(band, x=0.05, y=0.9, va='top', ha='left', size=14)
 
         ax.set_xlabel('Total number of epochs')
-        if band == 'FUV':
-            ax.set_ylabel('Number of SNe Ia', rotation='horizontal', 
-                    ha='left', va='top', y=1.1, labelpad=-2)
-
+        ax.set_ylabel('Number of SNe Ia')
         ax.set_xscale('log')
-        ax.set_xlim((0.6, x_max))
-        ax.set_ylim((-350, None))
-
-        # Set spine extent
-        ax.spines['bottom'].set_bounds(1, x_max)
-        ax.spines['left'].set_bounds(0, y_max)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
-        # Set ticks
         ax.xaxis.set_major_formatter(tkr.ScalarFormatter())
-        i_max = int(np.ceil(np.log10(x_max)))
-        x_minor_ticks = [10**i * np.arange(1, 10, 1) for i in range(i_max)]
-        x_minor_ticks = np.concatenate(x_minor_ticks)
-        x_minor_ticks = x_minor_ticks[x_minor_ticks <= x_max]
-        ax.xaxis.set_minor_locator(tkr.FixedLocator(x_minor_ticks))
-        ax.yaxis.set_major_locator(tkr.MultipleLocator(500))
-        y_minor_ticks = np.arange(0, y_max+100, 100)
-        ax.yaxis.set_minor_locator(tkr.FixedLocator(y_minor_ticks))
-        ax.tick_params(which='both', top=False, right=False)
 
         ax.label_outer() # outside axis labels only
+        ax.legend(handletextpad=0.5, handlelength=1.0, borderaxespad=1., borderpad=0.5)
 
-    plt.savefig(Path('out/observations.pdf'), dpi=300)
+    plt.tight_layout(pad=0.3)
+
+    plt.savefig(Path('out/observation_hist.pdf'), dpi=300)
     if show:
         plt.show()
     else:
