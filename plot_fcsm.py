@@ -7,25 +7,20 @@ from astropy.stats import binom_conf_interval
 from utils import *
 from plot_recovery import sum_hist
 
-# TSTART_BINS = [0, 20, 100, 500, 1000, 2500]
 # Defaults
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
 SCALE = [0.9, 1.1] # default model scale
-# DS = 0.1 # range above and below scale to include
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
 YMAX = None
 PAD = 0.1 # percent, y-axis padding on log scale
 
 # Plot settings
-# TEXT_SIZE = 16
 ARROW_LENGTH = 2
 COLORS = {  'GALEX': '#47a',
             'HST': '#e67',
             'This study': 'k',
-            # 'ASAS-SN': '#cb4',
-            # 'ZTF': '#283'
             'ASAS-SN': 'k',
             'ZTF': 'k'
 }
@@ -96,9 +91,6 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
     print(ztf_bci)
     external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
             columns=['bci_lower', 'bci_upper'])
-
-    # table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
-    #         output_file=Path('out/rates_%s.tex' % model))
 
     scale_mean = int(np.mean(y_edges))
     plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
@@ -304,16 +296,10 @@ def count_asassn_sne():
             cols = [0, 1, 2, 5, 9, 10]
         file_path = Path('ref/%s' % file)
         df = read_pub_data(file_path, cols, col_names, skip_row)
-        # df = pd.read_csv(file_path, sep='\s+', index_col=0, na_values='---', 
-        #         skiprows=skip_row, usecols=cols, names=)
         df['disc_age'] = df['disc_age'].astype(float)
         data.append(df)
 
     data = pd.concat(data)
-    # print(data)
-    # print(np.min(data['disc_age']))
-    # print(np.mean(data['disc_age']))
-    # print(np.max(data['disc_age']))
 
     all_Ia = data[data['type'].str.contains('Ia')]
     Ia_CSM = data[data['type'] == 'Ia+CSM']
@@ -350,56 +336,6 @@ def read_pub_data(path, cols, col_names, skip_rows):
     df = pd.read_csv(path, sep='\s+', index_col=0, na_values='---', 
             skiprows=skip_rows, usecols=cols, names=col_names)
     return df
-
-
-# def table(detections, trials, bci_upper, tstart_bins=TSTART_BINS, 
-#         output_file='out/rates.tex'):
-#     """Generate LATEX table to go along with plot."""
-    
-#     # Combine to single DataFrame
-#     df = pd.melt(detections.reset_index(), id_vars='index', var_name='Source', 
-#             value_name='Detections')
-#     df['Trials'] = pd.melt(trials.reset_index(), id_vars='index')['value']
-#     df['Upper BCI'] = pd.melt(bci_upper.reset_index(), id_vars='index')['value']
-#     # Remove empty rows & rename epochs col
-#     df = df[pd.notna(df['Upper BCI'])].rename(columns={'index': 'Epoch'})
-#     # Replace index and sort
-#     df = df.sort_values('Epoch').set_index('Epoch')
-#     # df = df.astype({'Detections': int, 'Trials': int})
-#     # Rearrange columns
-#     df = df[['Detections', 'Trials', 'Upper BCI', 'Source']]
-
-#     # Row labels
-#     rows = {}
-#     for i in range(len(tstart_bins)-1):
-#         rows[tstart_bins[i]] = '%s - %s' % (tstart_bins[i], tstart_bins[i+1])
-#     new_index = pd.Series(np.vectorize(rows.get)(df.index), name='Epoch')
-#     df.set_index(new_index, inplace=True)
-
-#     table = df.to_latex(formatters={'Source': source_fmt, 'Upper BCI': '{:.1f}'.format,
-#               'Detections': '{:.1f}'.format, 'Trials': '{:.1f}'.format}, escape=False)
-#     # Replace table header and footer with template
-#     # Edit this file if you need to change the number of columns or description
-#     with open(Path('ref/deluxetable_template.tex'), 'r') as file:
-#         dt_file = file.read()
-#         header = dt_file.split('===')[0]
-#         footer = dt_file.split('===')[1]
-#     table = header + '\n'.join(table.split('\n')[5:-3]) + footer
-#     # Write table
-#     with open(Path(output_file), 'w') as file:
-#         file.write(table)
-
-
-# def source_fmt(source):
-#     """Format source string in LATEX table."""
-
-#     fmt = { 'GALEX': '$\it{%s}$' % source, 
-#             'HST': '\citetalias{Graham2019-SN2015cp}',
-#             'ASAS-SN': '%s\\tablenotemark{a}' % source,
-#             'ZTF': '%s\\tablenotemark{b}' % source,
-#             'This study': 'This study', 'All': 'All'}
-
-#     return fmt[source]
 
 
 if __name__ == '__main__':
