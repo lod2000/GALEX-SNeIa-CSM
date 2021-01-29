@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import ticker
 from astropy.stats import binom_conf_interval
 from utils import *
 from plot_recovery import sum_hist
@@ -11,6 +10,7 @@ from plot_recovery import sum_hist
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
 SCALE = [0.9, 1.1] # default model scale
+MULTI_SCALE = [[0.9, 1.1], [9, 11], [90, 100]] # range of multiple scale factors
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
 YMAX = None
@@ -42,59 +42,20 @@ STYLE = {   'GALEX': '--',
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
         model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, log=False,
-        pad=False):
+        pad=False, multi=False):
     
     # Bin edges
     x_edges = np.arange(t_min, t_max+bin_width, bin_width)
     y_edges = np.array(scale)
-    nbins = len(x_edges)-1
 
-    # Import sum histograms for GALEX and HST non-detections
-    galex_hist = import_recovery('galex', model, sigma, x_edges, y_edges)
-    graham_hist = import_recovery('graham', model, sigma, x_edges, y_edges)
-    # and HST detections
-    graham_det_hist = import_recovery('graham', model, sigma, x_edges, y_edges,
-            detections=True)
+    bci_lower, bci_upper = get_all_bci(x_edges, y_edges, model, sigma=sigma, conf=CONF)
 
-    # DataFrame for number of trials per tstart bin and data source
-    tstart_bins = pd.Series(x_edges[:-1])
-    trials = pd.DataFrame([], index=tstart_bins)
-    trials['GALEX'] = galex_hist.T
-    trials['HST'] = (graham_hist + graham_det_hist).T
-    trials['This study'] = trials['GALEX'] + trials['HST']
-
-    # DataFrame for number of detections per tstart bin and data source
-    detections = pd.DataFrame([], index=tstart_bins)
-    detections['GALEX'] = np.zeros((nbins, 1))
-    detections['HST'] = graham_det_hist.T
-    detections['This study'] = detections['GALEX'] + detections['HST']
-
-    # Import ASAS-SN and ZTF SNe
-    asassn_det, asassn_all = count_asassn_sne()
-    ztf_det, ztf_all = count_ztf_sne()
-
-    # Calculate binomial confidence intervals
-    bci_lower, bci_upper = bci_nan(detections, trials, conf=CONF)
-    # Convert to percentages
-    bci_lower *= 100
-    bci_upper *= 100
-
-    # Calculate binomial confidence intervals for external data
-    print('\nExternal measures of f_CSM:')
-    asassn_bci = 100 * binom_conf_interval(asassn_det, asassn_all, 
-            confidence_level=CONF, interval='jeffreys')
-    print('ASAS-SN')
-    print(asassn_bci)
-    ztf_bci = 100 * binom_conf_interval(ztf_det, ztf_all, confidence_level=CONF, 
-            interval='jeffreys')
-    print('ZTF')
-    print(ztf_bci)
-    external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
-            columns=['bci_lower', 'bci_upper'])
+    # ZTF and ASAS-SN data
+    external_bci = get_external_bci(conf=CONF)
 
     scale_mean = int(np.mean(y_edges))
     plot_single(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
-            output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
+            output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean)))
 
 
 def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True, 
@@ -139,7 +100,71 @@ def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True,
 
     # y-axis ticks
     if log:
-        formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
+        formatter = plt.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
+        ax.yaxis.set_major_formatter(formatter)
+
+    # Plot external study estimates as bars
+    x_frac = 1/30 # fraction of x-axis to plot ranges left of x=0
+    x_bar = -int(x[-1] * x_frac) # x-val of error bar
+    plot_external(ax, external, x_bar, log=log, pad=pad)
+
+    # Legend (actually upper right)
+    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
+            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
+
+    plt.tight_layout(pad=0.3)
+
+    # Save & exit
+    plt.savefig(output_file, dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_multiple(scale_ranges, external, output_file='out/rates_multi.pdf', 
+        show=True, y_max=YMAX, log=False, pad=False):
+    """Plot binomial confidence limits for CSM interaction rate.
+    Inputs:
+        scale_ranges: list of [min, max] scale factor ranges
+        external: DataFrame of BCI for ASAS-SN and ZTF data
+        output_file: file name for plot
+        show: if True, display plot before saving
+        y_max: maximum y-axis value (if log==False)
+        log: if True, plot y-axis on log scale from 0.1 - 100
+        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+    """
+
+    nrows = len(scale_ranges)
+    fig, axs = plt.subplots(nrows, 2, figsize=(6.5, 2 * nrows))
+
+    x = plot_bounds(ax, lower, upper, y_max, log, pad)
+    
+    # Axes labels
+    ax.set_xlabel('$t_{start}$ [days]')
+    if log and pad:
+        ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
+    else:
+        ylabel = '$f_{CSM}$ [%]'
+    ax.set_ylabel(ylabel)
+
+    # Axes limits
+    if log:
+        y_min = 0.05
+        y_max = 150
+        ax.set_yscale('log')
+    else:
+        y_min = None
+    ax.set_ylim((y_min, y_max))
+    ylim = ax.get_ylim()
+        
+    # x-axis ticks
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(100))
+    ax.xaxis.set_major_locator(plt.MultipleLocator(500))
+
+    # y-axis ticks
+    if log:
+        formatter = plt.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
         ax.yaxis.set_major_formatter(formatter)
 
     # Plot external study estimates as bars
@@ -281,6 +306,49 @@ def plot_external(ax, external, x_bar, y_text=-0.2, log=False, pad=False):
         y_text += 0.1
 
 
+def get_all_bci(x_edges, y_edges, model, sigma=SIGMA, conf=CONF):
+    """Import GALEX, HST data, bin, and calculate BCI for all.
+    Inputs:
+        x_edges: x-bin edges
+        y_edges: y-bin edges
+        model: 'Chev94' or 'flat'
+        sigma: confidence for excluded SNe Ia
+        conf: confidence level for BCI, default 90%
+    Outputs:
+        bci_lower: DataFrame of lower bounds
+        bci_upper: DataFrame of upper bounds
+    """
+
+    # Import sum histograms for GALEX and HST non-detections
+    galex_hist = import_recovery('galex', model, sigma, x_edges, y_edges)
+    graham_hist = import_recovery('graham', model, sigma, x_edges, y_edges)
+    # and HST detections
+    graham_det_hist = import_recovery('graham', model, sigma, x_edges, y_edges,
+            detections=True)
+
+    # DataFrame for number of trials per tstart bin and data source
+    tstart_bins = pd.Series(x_edges[:-1])
+    trials = pd.DataFrame([], index=tstart_bins)
+    trials['GALEX'] = galex_hist.T
+    trials['HST'] = (graham_hist + graham_det_hist).T
+    trials['This study'] = trials['GALEX'] + trials['HST']
+
+    # DataFrame for number of detections per tstart bin and data source
+    detections = pd.DataFrame([], index=tstart_bins)
+    nbins = len(x_edges)-1
+    detections['GALEX'] = np.zeros((nbins, 1))
+    detections['HST'] = graham_det_hist.T
+    detections['This study'] = detections['GALEX'] + detections['HST']
+
+    # Calculate binomial confidence intervals
+    bci_lower, bci_upper = bci_nan(detections, trials, conf=conf)
+    # Convert to percentages
+    bci_lower *= 100
+    bci_upper *= 100
+
+    return bci_lower, bci_upper
+
+
 def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
         iterations=ITERATIONS):
     """Import recovery save files and sum histograms with given bounds."""
@@ -294,6 +362,38 @@ def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
     count = np.nan_to_num(hist.iloc[0].to_numpy())
 
     return count
+
+
+def get_external_bci(conf=CONF, interval='jeffreys', verb=True):
+    """Import external data sets and calculate BCI.
+    Inputs:
+        conf: confidence level, default 90%
+        interval: 
+        verb: if True, print BCIs as they are calculated
+    Output:
+        external_bci: DataFrame of binomial confidence intervals
+    """
+
+    # Import ASAS-SN and ZTF SNe
+    asassn_det, asassn_all = count_asassn_sne()
+    ztf_det, ztf_all = count_ztf_sne()
+
+    # Calculate binomial confidence intervals for external data
+    print('\nExternal measures of f_CSM:')
+    asassn_bci = 100 * binom_conf_interval(asassn_det, asassn_all, 
+            confidence_level=conf, interval=interval)
+    ztf_bci = 100 * binom_conf_interval(ztf_det, ztf_all, confidence_level=conf, 
+            interval=interval)
+
+    if verb:
+        print('ASAS-SN')
+        print(asassn_bci)
+        print('ZTF')
+        print(ztf_bci)
+
+    external_bci = pd.DataFrame([asassn_bci, ztf_bci], index=['ASAS-SN', 'ZTF'],
+            columns=['bci_lower', 'bci_upper'])
+    return external_bci
 
 
 def count_asassn_sne():
@@ -372,6 +472,8 @@ if __name__ == '__main__':
             help='y-axis upper limit')
     parser.add_argument('--log', action='store_true', help='y-axis log scale')
     parser.add_argument('--pad', action='store_true', help='pad y-axis by 0.1% on log scale')
+    parser.add_argument('-M', '--multi', action='store_true', 
+            help='generate grid of plots for multiple scale factors')
     args = parser.parse_args()
 
     main(model=args.model, scale=args.scale, bin_width=args.twidth, pad=args.pad,
