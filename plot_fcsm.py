@@ -93,26 +93,92 @@ def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
             columns=['bci_lower', 'bci_upper'])
 
     scale_mean = int(np.mean(y_edges))
-    plot(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
+    plot_single(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
             output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))) 
 
 
-def plot(lower, upper, external, output_file='out/rates.pdf', show=True, 
+def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True, 
         y_max=YMAX, log=False, pad=False):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
         lower: DataFrame of lower 90% CI for GALEX, HST data
         upper: DataFrame of upper 90% CI for GALEX, HST data
         external: DataFrame of BCI for ASAS-SN and ZTF data
+        output_file: file name for plot
+        show: if True, display plot before saving
+        y_max: maximum y-axis value (if log==False)
+        log: if True, plot y-axis on log scale from 0.1 - 100
+        pad: if True, pad all data by 0.1% so lower bound is displayed on log
     """
 
     fig, ax = plt.subplots(figsize=(3.25, 2.25))
 
+    x = plot_bounds(ax, lower, upper, y_max, log, pad)
+    
+    # Axes labels
+    ax.set_xlabel('$t_{start}$ [days]')
+    if log and pad:
+        ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
+    else:
+        ylabel = '$f_{CSM}$ [%]'
+    ax.set_ylabel(ylabel)
+
+    # Axes limits
+    if log:
+        y_min = 0.05
+        y_max = 150
+        ax.set_yscale('log')
+    else:
+        y_min = None
+    ax.set_ylim((y_min, y_max))
+    ylim = ax.get_ylim()
+        
+    # x-axis ticks
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(100))
+    ax.xaxis.set_major_locator(plt.MultipleLocator(500))
+
+    # y-axis ticks
+    if log:
+        formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
+        ax.yaxis.set_major_formatter(formatter)
+
+    # Plot external study estimates as bars
+    x_frac = 1/30 # fraction of x-axis to plot ranges left of x=0
+    x_bar = -int(x[-1] * x_frac) # x-val of error bar
+    plot_external(ax, external, x_bar, log=log, pad=pad)
+
+    # Legend (actually upper right)
+    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
+            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
+
+    plt.tight_layout(pad=0.3)
+
+    # Save & exit
+    plt.savefig(output_file, dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_bounds(ax, lower, upper, y_max=YMAX, log=False, pad=False):
+    """Plot lower & upper bounds on fCSM for GALEX and HST data.
+    Inputs:
+        ax: matplotlib axis
+        lower: DataFrame of lower 90% CI for GALEX, HST data
+        upper: DataFrame of upper 90% CI for GALEX, HST data
+        y_max: maximum y-axis value (if log==False)
+        log: if True, plot y-axis on log scale from 0.1 - 100
+        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+    Output:
+        x: x values of fCSM bounds
+    """
+
+    # x-values of fCSM bounds
     x = lower.index.to_numpy()
     x_end = x[-1] + (x[1] - x[0])
     x = np.append(x, [x_end])
 
-    # Plot confidence intervals
     for col in lower.columns:
         # Find midpoint and errors for plotting
         y1 = lower[col].to_numpy()
@@ -171,64 +237,28 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
                         head_starts_at_zero=False, head_length=ARROW_LENGTH,
                 )
 
-    # Axes labels
-    ax.set_xlabel('$t_{start}$ [days]')
-    if log and pad:
-        ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
-    else:
-        ylabel = '$f_{CSM}$ [%]'
-    ax.set_ylabel(ylabel, labelpad=-5)
-
-    # Axes limits
-    if log:
-        y_min = 0.05
-        y_max = 150
-        ax.set_yscale('log')
-    else:
-        y_min = 0
-    ax.set_ylim((y_min, y_max))
-    ylim = ax.get_ylim()
-
-    # Axes spines
-    # ax.spines['bottom'].set_bounds(x[0], x[-1])
-    # ax.spines['bottom'].set_visible(False)
-    # ax.spines['left'].set_bounds(y_min, ylim[1])
-    # ax.spines['right'].set_visible(False)
-    # ax.spines['right'].set_bounds(y_min, ylim[1])
-    # ax.spines['top'].set_visible(False)
-        
-    # x-axis ticks
-    # x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(500))
-    # ax.tick_params(axis='x', which='both', bottom=False, top=False)
-    # ax.tick_params(axis='x', pad=5)
-
-    # y-axis ticks
-    # ax.tick_params(axis='y', which='both', left=True, right=True)
-    if log:
-        formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
-        ax.yaxis.set_major_formatter(formatter)
-    else:
-        y_frac = 1/10
-        dy = int((ylim[1] - y_min) * y_frac)
-        y_minor_ticks = np.arange(y_min, ylim[1] + 0.01, dy)
-        ax.yaxis.set_minor_locator(ticker.FixedLocator(y_minor_ticks))
-        y_major_ticks = np.arange(y_min, ylim[1] + 0.01, 2 * dy)
-        ax.yaxis.set_major_locator(ticker.FixedLocator(y_major_ticks))
-
     # Grid lines
-    ax.grid(b=True, which='minor', axis='x', color='w', lw=0.5, zorder=2)
-    ax.grid(b=True, which='major', axis='x', color='w', lw=1, zorder=2)
+    ax.grid(b=True, which='minor', axis='x', color='w', lw=0.5)
+    ax.grid(b=True, which='major', axis='x', color='w', lw=1)
     if log:
-        ax.grid(b=True, which='major', axis='y', color='w', lw=0.5, zorder=2)
+        ax.grid(b=True, which='major', axis='y', color='w', lw=0.5)
     else:
-        ax.grid(b=True, which='both', axis='y', color='w', lw=0.5, zorder=2)
+        ax.grid(b=True, which='both', axis='y', color='w', lw=0.5)
 
-    # Plot external study estimates as bars
-    x_frac = 1/40 # fraction of x-axis to plot ranges left of x=0
-    x_bar = -int(x[-1] * x_frac) # x-val of error bar
-    y_text = -0.2 # y-value of annotation
+    return x
+
+
+def plot_external(ax, external, x_bar, y_text=-0.2, log=False, pad=False):
+    """Plot estimates from ASAS-SN and ZTF studies as bars to left of x-axis.
+    Inputs:
+        ax: matplotlib axis
+        external: DataFrame of external fCSM bounds
+        x_bar: x-value of right-most error bar
+        y_text: y-value of annotation
+        log: if True, plot y-axis on log scale from 0.1 - 100
+        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+    """
+
     for i, study in enumerate(external.index):
         # Calculate error bar
         row = external.loc[study]
@@ -249,24 +279,6 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         # Adjust label coordinates
         x_bar += x_bar
         y_text += 0.1
-
-    # Legend (actually upper right)
-    plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
-            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
-
-    plt.tight_layout(pad=0.3)
-
-    # Save & exit
-    plt.savefig(output_file, dpi=300)
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def plot_bounds():
-    """Plot lower & upper bounds on fCSM for GALEX and HST data."""
-    pass
 
 
 def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
