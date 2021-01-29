@@ -111,9 +111,8 @@ def main():
                 zorder=10)
 
     # Format axes
-    ax.set_xlabel('Time since discovery [days]', fontsize=12)
-    ax.set_ylabel('UV Luminosity [erg s$^{-1}$ Hz$^{-1}$]', rotation='horizontal', 
-                ha='left', va='bottom', y=1., labelpad=0, fontsize=12)
+    ax.set_xlabel('Time since discovery [days]')
+    ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Hz$^{-1}$]')
     ax.set_xlim(XLIM)
     ax.set_yscale('log')
     ax.set_ylim(YLIM)
@@ -129,7 +128,7 @@ def main():
                     label='detection limit (NUV)', lw=0)
     ]
     plt.legend(handles=handles + legend_elements, loc='upper right', ncol=3,
-            handletextpad=0.2, handlelength=1.0, fontsize=10)
+            handletextpad=0.5, handlelength=1.0)
 
     plt.savefig(Path('out/limits.pdf'), dpi=300)
 
