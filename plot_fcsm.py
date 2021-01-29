@@ -106,7 +106,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         external: DataFrame of BCI for ASAS-SN and ZTF data
     """
 
-    fig, ax = plt.subplots(gridspec_kw={'left': 0.1, 'right': 0.96, 'bottom': 0.2, 'top': 0.82})
+    fig, ax = plt.subplots(figsize=(3.25, 2.25))
 
     x = lower.index.to_numpy()
     x_end = x[-1] + (x[1] - x[0])
@@ -132,7 +132,7 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
         lw = 1
 
         # Italicize GALEX
-        if col == 'GALEX':
+        if col == 'GALEX' or col == 'HST':
             label = '$\it{%s}$' % col
         else:
             label = col
@@ -153,7 +153,6 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
                             head_starts_at_zero=False, head_length=ARROW_LENGTH,
                     )
         
-        # if col != 'This study':
         else:
             # Upper bound
             line2, = ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
@@ -173,18 +172,17 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
                 )
 
     # Axes labels
-    ax.set_xlabel('$t_{start}$ [days]', labelpad=0)
+    ax.set_xlabel('$t_{start}$ [days]')
     if log and pad:
         ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
     else:
         ylabel = '$f_{CSM}$ [%]'
-    ax.set_ylabel(ylabel, rotation='horizontal', ha='left', va='bottom', y=1.08, 
-            labelpad=0)
+    ax.set_ylabel(ylabel, labelpad=-5)
 
     # Axes limits
     if log:
-        y_min = 0.1
-        y_max = 100
+        y_min = 0.05
+        y_max = 150
         ax.set_yscale('log')
     else:
         y_min = 0
@@ -193,21 +191,21 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
 
     # Axes spines
     # ax.spines['bottom'].set_bounds(x[0], x[-1])
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_bounds(y_min, ylim[1])
+    # ax.spines['bottom'].set_visible(False)
+    # ax.spines['left'].set_bounds(y_min, ylim[1])
     # ax.spines['right'].set_visible(False)
-    ax.spines['right'].set_bounds(y_min, ylim[1])
-    ax.spines['top'].set_visible(False)
+    # ax.spines['right'].set_bounds(y_min, ylim[1])
+    # ax.spines['top'].set_visible(False)
         
     # x-axis ticks
     # x_minor_ticks = np.arange(x[0], x[-1]+0.1, 100)
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
     ax.xaxis.set_major_locator(ticker.MultipleLocator(500))
-    ax.tick_params(axis='x', which='both', bottom=False, top=False)
-    ax.tick_params(axis='x', pad=5)
+    # ax.tick_params(axis='x', which='both', bottom=False, top=False)
+    # ax.tick_params(axis='x', pad=5)
 
     # y-axis ticks
-    ax.tick_params(axis='y', which='both', left=True, right=True)
+    # ax.tick_params(axis='y', which='both', left=True, right=True)
     if log:
         formatter = ticker.FuncFormatter(lambda y, _: '{:.16g}'.format(y))
         ax.yaxis.set_major_formatter(formatter)
@@ -243,9 +241,9 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
                 c=COLORS[study], mec=COLORS[study], mfc='w', ms=0, 
                 linestyle='none', elinewidth=3, mew=2, capsize=0)#, label=study)
         # Annotate label under bar
-        ax.annotate(study, xy=(x_bar, y_min), xytext=(x_bar, y_text), 
+        ax.annotate(study, xy=(x_bar, midpoint - err), xytext=(x_bar, y_text), 
                 textcoords=('data', 'axes fraction'),
-                ha='right', va='top', size=8, #size=TEXT_SIZE-2,
+                ha='right', va='top', size=9, #size=TEXT_SIZE-2,
                 arrowprops={'color': 'k', 'shrink': 0.1, 'width': 0.2,
                         'headwidth': 0.2, 'headlength': 0.01})
         # Adjust label coordinates
@@ -256,12 +254,19 @@ def plot(lower, upper, external, output_file='out/rates.pdf', show=True,
     plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
             handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
 
+    plt.tight_layout(pad=0.3)
+
     # Save & exit
     plt.savefig(output_file, dpi=300)
     if show:
         plt.show()
     else:
         plt.close()
+
+
+def plot_bounds():
+    """Plot lower & upper bounds on fCSM for GALEX and HST data."""
+    pass
 
 
 def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
