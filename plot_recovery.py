@@ -136,10 +136,10 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
 
     study = ['galex', 'galex', 'graham', 'graham']
     model = ['Chev94', 'flat', 'Chev94', 'flat']
-    label = ['GALEX observations, line-emission model',
-             'GALEX observations, flat spectrum model',
-             'HST observations, line-emission model',
-             'HST observations, flat spectrum model']
+    label = ['$\it{GALEX}$ observations, line-emission model',
+             '$\it{GALEX}$ observations, flat spectrum model',
+             '$\it{HST}$ observations, line-emission model',
+             '$\it{HST}$ observations, flat spectrum model']
 
     # Determine max and min of all four histograms; widest range -> cmap
     hist_max = 0
