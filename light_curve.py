@@ -90,8 +90,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
         legend_col: number of columns in legend
     """
 
-    fig, ax = plt.subplots(figsize=(3.5, 2.5))
-    # fig.set_tight_layout(True)
+    fig, ax = plt.subplots(figsize=(4, 2))
 
     # Plot Swift data data
     if swift:
@@ -130,8 +129,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
     ax.set_xlabel('Time since discovery [days]')
     ax.set_yscale('log')
     ax.tick_params(axis='y', which='major', left=False)
-    ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]', 
-            rotation='horizontal', labelpad=0, y=label_y, ha='left')
+    ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]')
     ax.set_ylim((np.min(ymin), None))
 
     # Adjust limits
@@ -153,12 +151,10 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
             sn.z, sn.z_err, sn.a_v, 'FUV')[0].value
     luminosity_ax.set_yscale('log')
     luminosity_ax.set_ylim(ylim_luminosity)
-    
-    luminosity_ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Å$^{-1}$]', y=label_y,
-            rotation='horizontal', labelpad=0, ha='right', va='bottom')
+    luminosity_ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Å$^{-1}$]', rotation=270,
+            labelpad=18)
 
     plt.tight_layout(pad=0.3)
-    plt.subplots_adjust(top=0.86)
 
     plt.savefig(Path('out/%s.pdf' % sn.name), dpi=300)
     plt.savefig(Path('out/%s.png' % sn.name), dpi=300)
