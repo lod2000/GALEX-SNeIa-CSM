@@ -14,7 +14,7 @@ from utils import *
 from CSMmodel import CSMmodel
 
 SIGMA = 3
-CONF = 0.9
+CONF = 0.9 # confidence level of binomial intervals
 OUTPUT_DIR = Path('recovery_plots/')
 SCALE_BINS = 15 # number of scale factor bins
 ITERATIONS = 10000 # default number of injection iterations
@@ -64,9 +64,10 @@ def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
         # Outline detections
         if len(det_hist) > 0:
             plot_detections(ax, x_edges, y_edges, det_hist, label=True)
-            # Legend for detections
-            plt.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
-                    borderpad=0.4, bbox_to_anchor=(0., 1.12), borderaxespad=0.)
+            # Legend for detections (actually upper left)
+            plt.legend(loc='lower left', ncol=2, handletextpad=0.8, handlelength=2.,
+                    borderpad=0.3, bbox_to_anchor=(0., 1.05), borderaxespad=0.,
+                    fontsize=9)
 
         # Adjust colorbar: add extension below lower limit
         if upper_lim:
@@ -94,7 +95,6 @@ def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
         # Save hist
         plot_file = OUTPUT_DIR / Path(fname + extension)
-
         plt.savefig(plot_file, dpi=300)
 
         if show:
@@ -198,7 +198,7 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
             wspace=wspace, hspace=0.2)
     # Define cbar axis
     if len(det_hist) > 0 and not upper_lim:
-        cax = plt.axes([0.33, 0.92, 0.47, 0.03]) # left, bottom, width, height
+        cax = plt.axes([0.3, 0.92, 0.5, 0.03]) # left, bottom, width, height
     else:
         cax = plt.axes([0.08, 0.92, 0.59, 0.03]) # left, bottom, width, height
     # Add horizontal colorbar above subplots
@@ -239,12 +239,20 @@ def get_histograms(study, model, x_edges, y_edges, sigma=SIGMA, detections=False
         verb: if True, print status updates as files are generated/imported
     Outputs:
         hist: 2D histogram of excluded SNe Ia or upper conf interval
-        det_hist: 2D histogram of detections if needed, else []
+        det_hist: list of 2D histograms of individual detections if needed, else []
     """
         
     fname = 'recovery_%s_%s' % (study, model)
     hist_file = OUTPUT_DIR / Path(fname + '.csv')
     det_hist_file = OUTPUT_DIR / Path(fname + '_det.csv')
+
+    # Import list of individual detections
+    if verb:
+        print('Importing individual %s %s detections...' % (model, study))
+    if detections and study == 'graham':
+        det_save_dir = run_dir(study + '_det', model, sigma)
+        det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
+        det_hist = {fname2sn(f)[0]: sum_hist([f], x_edges, y_edges, save=False) for f in det_save_files}
 
     # Generate histogram(s)
     if overwrite or not hist_file.is_file():
@@ -259,16 +267,15 @@ def get_histograms(study, model, x_edges, y_edges, sigma=SIGMA, detections=False
 
         # Also sum detections, if applicable
         if (detections or upper_lim) and study == 'graham':
-            det_save_dir = run_dir(study + '_det', model, sigma)
-            det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
-            det_hist = sum_hist(det_save_files, x_edges, y_edges, 
+            det_sum = sum_hist(det_save_files, x_edges, y_edges, 
                     output_file=det_hist_file)
         else:
+            det_sum = []
             det_hist = []
 
         # Include detections in nondetections for binomial upper limits
         if upper_lim and study == 'graham':
-            hist = hist + det_hist
+            hist = hist + det_sum
 
     # Import histogram(s)
     else:
@@ -279,26 +286,27 @@ def get_histograms(study, model, x_edges, y_edges, sigma=SIGMA, detections=False
 
         # Also import detections, if applicable
         if (detections or upper_lim) and study == 'graham':
-            det_hist = pd.read_csv(det_hist_file, index_col=0)
-            det_hist.columns = det_hist.columns.astype(int)
+            det_sum = pd.read_csv(det_hist_file, index_col=0)
+            det_sum.columns = det_sum.columns.astype(int)
             if verb:
                 print('Imported %s' % det_hist_file)
         else:
+            det_sum = []
             det_hist = []
 
         # Include detections in nondetections for binomial upper limits
         if upper_lim and study == 'graham':
-            hist = hist + det_hist
+            hist = hist + det_sum
 
     # Calculate 90% binom conf interval upper limits
     if upper_lim:
         # Zero detections for GALEX
         if study == 'galex':
             zeros = np.zeros(hist.shape)
-            det_hist = pd.DataFrame(zeros, index=hist.index, columns=hist.columns)
+            det_sum = pd.DataFrame(zeros, index=hist.index, columns=hist.columns)
 
         # Binomial confidence interval
-        hist = 100 * bci_nan(det_hist, hist, conf=conf)[1]
+        hist = 100 * bci_nan(det_sum, hist, conf=conf)[1]
     
     if not detections:
         det_hist = []
@@ -356,7 +364,6 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100, sn_label=[]
         x_edges: x-axis bin edges
         y_edges: y-axis bin edges
         hist: Pandas 2D histogram
-        det_hist: Pandas 2D histogram of detections, same shape as hist
         cmap: colormap
         norm: colormap index
         bin_width: x-axis bin width in days
@@ -402,7 +409,7 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
         ax: matplotlib axis
         x_edges: x-axis bin edges
         y_edges: y-axis bin edges
-        det_hist: Pandas 2D histogram of detections, same shape as other hist
+        det_hist: dict of 2D histograms of individual detections, all same shape
         label: if true, add handles and labels to legend
     """
 
@@ -410,9 +417,12 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
     lw = [2, 2.5]
     dashes = [(4, 1), (1, 1)]
 
-    for n in range(int(det_hist.max().max())):
+    # for n in range(int(det_hist.max().max())):
+    for n, sn_name in enumerate(det_hist):
         # Mask detections
-        det_mask = det_hist[det_hist >= n+1]
+        hist = det_hist[sn_name]
+        # det_mask = det_hist[det_hist >= n+1]
+        det_mask = hist[hist == 1]
         det_mask[pd.notna(det_mask)] = -1
 
         # Outline area
@@ -442,10 +452,12 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
         y_upper.reverse()
         y = y_lower + y_upper[:1]
 
-        line, = ax.plot(x, y, color='k', linestyle='--', linewidth=lw[n], dashes=dashes[n])
+        line, = ax.plot(x, y, color='k', linestyle='--', linewidth=lw[n], 
+                dashes=dashes[n])
         line.set_clip_on(False) # allow line to bleed over spines
         if label:
-            line.set_label('%s det.' % (n+1))
+            # line.set_label('%s det.' % (n+1))
+            line.set_label(sn_name.split('-')[-1].split(' 20')[-1])
 
 
 def sum_hist(save_files, x_edges, y_edges, save=True, output_file='recovery.csv'):
