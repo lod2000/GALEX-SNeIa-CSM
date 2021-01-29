@@ -41,25 +41,29 @@ STYLE = {   'GALEX': '--',
 
 
 def main(bin_width=TSTART_BIN_WIDTH, scale=SCALE, iterations=10000, y_max=YMAX,
-        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, log=False,
-        pad=False, multi=False):
+        model=MODEL, sigma=SIGMA, t_min=TSTART_MIN, t_max=TSTART_MAX, conf=CONF,
+        log=False, multi=False):
     
-    # Bin edges
-    x_edges = np.arange(t_min, t_max+bin_width, bin_width)
-    y_edges = np.array(scale)
+    x_edges = np.arange(t_min, t_max+bin_width, bin_width) # x-axis bin edges
 
-    bci_lower, bci_upper = get_all_bci(x_edges, y_edges, model, sigma=sigma, conf=CONF)
-
-    # ZTF and ASAS-SN data
-    external_bci = get_external_bci(conf=CONF)
-
-    scale_mean = int(np.mean(y_edges))
-    plot_single(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, log=log, pad=pad,
-            output_file=Path('out/rates_%s_scale%s.pdf' % (model, scale_mean)))
+    if multi:
+        pass
+    else:
+        y_edges = np.array(scale)
+        scale_mean = int(np.mean(y_edges))
+        # Get BCI for GALEX, HST data
+        bci_lower, bci_upper = get_all_bci(x_edges, y_edges, model, sigma=sigma, 
+            conf=conf)
+        # ZTF and ASAS-SN data
+        external_bci = get_external_bci(conf=conf)
+        # Plot single subplot
+        fname = Path('out/rates_%s_scale%s.pdf' % (model, scale_mean))
+        plot_single(bci_lower, bci_upper, external_bci, show=True, y_max=y_max, 
+                log=log, output_file=fname)
 
 
 def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True, 
-        y_max=YMAX, log=False, pad=False):
+        y_max=YMAX, log=False):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
         lower: DataFrame of lower 90% CI for GALEX, HST data
@@ -68,17 +72,16 @@ def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True,
         output_file: file name for plot
         show: if True, display plot before saving
         y_max: maximum y-axis value (if log==False)
-        log: if True, plot y-axis on log scale from 0.1 - 100
-        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+        log: if True, plot y-axis on log scale and pad all data by 0.1%
     """
 
     fig, ax = plt.subplots(figsize=(3.25, 2.25))
 
-    x = plot_bounds(ax, lower, upper, y_max, log, pad)
+    x = plot_bounds(ax, lower, upper, y_max, log)
     
     # Axes labels
     ax.set_xlabel('$t_{start}$ [days]')
-    if log and pad:
+    if log:
         ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
     else:
         ylabel = '$f_{CSM}$ [%]'
@@ -106,7 +109,7 @@ def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True,
     # Plot external study estimates as bars
     x_frac = 1/30 # fraction of x-axis to plot ranges left of x=0
     x_bar = -int(x[-1] * x_frac) # x-val of error bar
-    plot_external(ax, external, x_bar, log=log, pad=pad)
+    plot_external(ax, external, x_bar, log=log)
 
     # Legend (actually upper right)
     plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
@@ -123,7 +126,7 @@ def plot_single(lower, upper, external, output_file='out/rates.pdf', show=True,
 
 
 def plot_multiple(scale_ranges, external, output_file='out/rates_multi.pdf', 
-        show=True, y_max=YMAX, log=False, pad=False):
+        show=True, y_max=YMAX, log=False):
     """Plot binomial confidence limits for CSM interaction rate.
     Inputs:
         scale_ranges: list of [min, max] scale factor ranges
@@ -131,18 +134,17 @@ def plot_multiple(scale_ranges, external, output_file='out/rates_multi.pdf',
         output_file: file name for plot
         show: if True, display plot before saving
         y_max: maximum y-axis value (if log==False)
-        log: if True, plot y-axis on log scale from 0.1 - 100
-        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+        log: if True, plot y-axis on log scale and pad all data by 0.1%
     """
 
     nrows = len(scale_ranges)
     fig, axs = plt.subplots(nrows, 2, figsize=(6.5, 2 * nrows))
 
-    x = plot_bounds(ax, lower, upper, y_max, log, pad)
+    x = plot_bounds(ax, lower, upper, y_max, log)
     
     # Axes labels
     ax.set_xlabel('$t_{start}$ [days]')
-    if log and pad:
+    if log:
         ylabel = '$f_{CSM} + ' + str(PAD) + '\%$'
     else:
         ylabel = '$f_{CSM}$ [%]'
@@ -170,7 +172,7 @@ def plot_multiple(scale_ranges, external, output_file='out/rates_multi.pdf',
     # Plot external study estimates as bars
     x_frac = 1/30 # fraction of x-axis to plot ranges left of x=0
     x_bar = -int(x[-1] * x_frac) # x-val of error bar
-    plot_external(ax, external, x_bar, log=log, pad=pad)
+    plot_external(ax, external, x_bar, log=log)
 
     # Legend (actually upper right)
     plt.legend(loc='lower right', ncol=3, bbox_to_anchor=(1.05, 0.95), 
@@ -186,15 +188,14 @@ def plot_multiple(scale_ranges, external, output_file='out/rates_multi.pdf',
         plt.close()
 
 
-def plot_bounds(ax, lower, upper, y_max=YMAX, log=False, pad=False):
+def plot_bounds(ax, lower, upper, y_max=YMAX, log=False):
     """Plot lower & upper bounds on fCSM for GALEX and HST data.
     Inputs:
         ax: matplotlib axis
         lower: DataFrame of lower 90% CI for GALEX, HST data
         upper: DataFrame of upper 90% CI for GALEX, HST data
         y_max: maximum y-axis value (if log==False)
-        log: if True, plot y-axis on log scale from 0.1 - 100
-        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+        log: if True, plot y-axis on log scale and pad all data by 0.1%
     Output:
         x: x values of fCSM bounds
     """
@@ -212,7 +213,7 @@ def plot_bounds(ax, lower, upper, y_max=YMAX, log=False, pad=False):
         y1 = np.append(y1, y1[-1])
         y2 = np.append(y2, y2[-1])
 
-        if log and pad:
+        if log:
             y1 += PAD
             y2 += PAD
         
@@ -249,8 +250,7 @@ def plot_bounds(ax, lower, upper, y_max=YMAX, log=False, pad=False):
             line2, = ax.step(x, y2, c=color, ls=ls, lw=lw, where='post', label=label)
             # Lower bound
             line1, = ax.step(x, y1, c=color, ls=ls, lw=lw, where='post')
-            if (log and pad) or not log:
-                line1.set_clip_on(False) # stop bottom line from clipping on axis
+            line1.set_clip_on(False) # stop bottom line from clipping on axis
             # In-plot label
             # ax.text(0, y2[0], col, ha='left', va='bottom', size=TEXT_SIZE, 
             #         color=color)
@@ -273,15 +273,14 @@ def plot_bounds(ax, lower, upper, y_max=YMAX, log=False, pad=False):
     return x
 
 
-def plot_external(ax, external, x_bar, y_text=-0.2, log=False, pad=False):
+def plot_external(ax, external, x_bar, y_text=-0.2, log=False):
     """Plot estimates from ASAS-SN and ZTF studies as bars to left of x-axis.
     Inputs:
         ax: matplotlib axis
         external: DataFrame of external fCSM bounds
         x_bar: x-value of right-most error bar
         y_text: y-value of annotation
-        log: if True, plot y-axis on log scale from 0.1 - 100
-        pad: if True, pad all data by 0.1% so lower bound is displayed on log
+        log: if True, plot y-axis on log scale and pad all data by 0.1%
     """
 
     for i, study in enumerate(external.index):
@@ -289,7 +288,7 @@ def plot_external(ax, external, x_bar, y_text=-0.2, log=False, pad=False):
         row = external.loc[study]
         midpoint = row.mean()
         err = row['bci_upper'] - midpoint
-        if log and pad:
+        if log:
             midpoint += PAD
         # Plot error bar
         ax.errorbar(x_bar, midpoint, yerr=err, marker=MARKERS[study], 
@@ -471,10 +470,9 @@ if __name__ == '__main__':
     parser.add_argument('--ymax', type=float, default=YMAX, 
             help='y-axis upper limit')
     parser.add_argument('--log', action='store_true', help='y-axis log scale')
-    parser.add_argument('--pad', action='store_true', help='pad y-axis by 0.1% on log scale')
     parser.add_argument('-M', '--multi', action='store_true', 
             help='generate grid of plots for multiple scale factors')
     args = parser.parse_args()
 
-    main(model=args.model, scale=args.scale, bin_width=args.twidth, pad=args.pad,
+    main(model=args.model, scale=args.scale, bin_width=args.twidth,
             sigma=args.sigma, t_max=args.tmax, y_max=args.ymax, log=args.log)
