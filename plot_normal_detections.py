@@ -83,7 +83,7 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
     if i % 2 == 0:
         ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]')
     else:
-        luminosity_ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Å$^{-1}$]', rotation=270,
+        luminosity_ax.set_ylabel('$L_\mathrm{UV}$ [erg s$^{-1}$ Å$^{-1}$]', rotation=270,
                 labelpad=18)
 
     if i in range(2, 4):

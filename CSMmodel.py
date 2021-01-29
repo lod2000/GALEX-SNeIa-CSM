@@ -184,22 +184,21 @@ class CSMmodel:
         ax.set_ylim((L_min - 1.4e36, None))
 
         # Set spine extent
-        ax.spines['bottom'].set_bounds(0, 0.5)
-        ax.spines['left'].set_bounds(np.round(L_min, -36), np.round(L_max, -38))
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        # ax.spines['bottom'].set_bounds(0, 0.5)
+        # ax.spines['left'].set_bounds(np.round(L_min, -36), np.round(L_max, -38))
+        # ax.spines['top'].set_visible(False)
+        # ax.spines['right'].set_visible(False)
         
         # Set ticks
-        x_minor_ticks = np.arange(0, 0.5, 0.02)
-        ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
-        ax.tick_params(which='both', top=False, right=False)
+        # x_minor_ticks = np.arange(0, 0.5, 0.02)
+        # ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+        # ax.tick_params(which='both', top=False, right=False)
 
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('Filter Luminosity [erg s$^{-1}$ Å$^{-1}$]', rotation='horizontal', 
-                ha='left', va='top', y=1.16, labelpad=-2)
+        ax.set_ylabel('$L_\mathrm{filter}$ [erg s$^{-1}$ Å$^{-1}$]')
 
         plt.tight_layout(pad=0.3)
-        plt.subplots_adjust(top=0.88)
+        # plt.subplots_adjust(top=0.88)
 
         plt.savefig(Path('out/Chev94_redshift.pdf'))
         if show:

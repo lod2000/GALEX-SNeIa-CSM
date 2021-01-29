@@ -112,7 +112,7 @@ def main():
 
     # Format axes
     ax.set_xlabel('Time since discovery [days]')
-    ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Hz$^{-1}$]')
+    ax.set_ylabel('$L_\mathrm{UV}$ [erg s$^{-1}$ Hz$^{-1}$]')
     ax.set_xlim(XLIM)
     ax.set_yscale('log')
     ax.set_ylim(YLIM)
