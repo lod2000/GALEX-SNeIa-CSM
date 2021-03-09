@@ -16,7 +16,7 @@ from CSMmodel import CSMmodel
 SIGMA = 3
 CONF = 0.9 # confidence level of binomial intervals
 OUTPUT_DIR = Path('recovery_plots/')
-SCALE_BINS = 15 # number of scale factor bins
+SCALE_BINS = 20 # number of scale factor bins
 ITERATIONS = 10000 # default number of injection iterations
 
 def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
@@ -422,7 +422,7 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
         # Mask detections
         hist = det_hist[sn_name]
         # det_mask = det_hist[det_hist >= n+1]
-        det_mask = hist[hist == 1]
+        det_mask = hist[hist > 0]
         det_mask[pd.notna(det_mask)] = -1
 
         # Outline area

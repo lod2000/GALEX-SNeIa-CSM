@@ -7,7 +7,7 @@ import numpy as np
 RECOV_MIN = 50 # minimum number of days after discovery to count as recovery
 TSTART_MIN = 0
 TSTART_MAX = 2500
-SCALE_MIN = 0.1
+SCALE_MIN = 0.01
 SCALE_MAX = 100
 DECAY_RATE = 0.3 # CSM curve decay factor
 WIDTH = 250 # days, from PTF11kx

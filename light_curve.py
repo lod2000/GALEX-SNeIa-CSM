@@ -55,6 +55,7 @@ def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
         try:
             lc = LightCurve.from_name(sn_name, band)
             print('Background: %s +/- %s erg/s/cm^2/AA' % (lc.bg, lc.bg_err_tot))
+            print('Background obs: %s' % lc.bg_data.shape[0])
 
             # Display detections
             print('Detections:')
@@ -105,13 +106,11 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
     # Import and plot GALEX data
     ymin = []
     bg_max = 0
-    pre_obs = 0
     for band in ['FUV', 'NUV']:
         try:
             lc = LightCurve(sn, band)
             # Pre-SN obs.
             before = lc.data[lc('t_delta_rest') <= DT_MIN]
-            pre_obs += len(before.index)
             ymin.append(lc.bg / 1.5)
             bg_max = max(bg_max, lc.bg)
 
@@ -141,7 +140,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
     ax.set_ylim(ylim)
 
     # In-plot labels
-    ax.text(xlim[0]+3, bg_max * 1.1,'host %sσ (%s obs)' % (BG_SIGMA, pre_obs))
+    # ax.text(xlim[0]+3, bg_max * 1.1,'host %sσ' % BG_SIGMA)
 
     # Twin axis with absolute luminosity
     luminosity_ax = ax.twinx()
@@ -179,6 +178,7 @@ class LightCurve:
         data['t_delta_rest'] = 1 / (1 + sn.z) * data['t_delta']
         
         # Background & systematic error
+        self.bg_data = data[data['t_delta_rest'] < DT_MIN]
         self.bg, self.bg_err, self.sys_err = get_background(data, self.band)
         self.bg_err_tot = np.sqrt(self.bg_err**2 + self.sys_err**2)
         self.background = self.bg
@@ -253,7 +253,7 @@ class LightCurve:
         return injection
 
 
-    def detect_csm(self, sigma, count=[1], dt_min=-30, time_col='t_delta_rest', 
+    def detect_csm(self, sigma, count=[1], dt_min=DT_MIN, time_col='t_delta_rest', 
             data_col='flux_hostsub', err_col='flux_hostsub_err'):
         """Detect CSM. For multiple confidence tiers, len(sigma) = len(count).
         Inputs:
@@ -312,7 +312,7 @@ def get_background(data, band, dt_min=-30):
         sys_err: systematic error, same units
     """
 
-    bg_data = data[data['t_delta'] < dt_min]
+    bg_data = data[data['t_delta_rest'] < dt_min]
     flux = np.array(bg_data['flux_bgsub'])
     flux_err = np.array(bg_data['flux_bgsub_err'])
 
@@ -461,7 +461,6 @@ def plot_lc(ax, lc, tmax):
 
     # Pre-SN obs.
     before = lc.data[lc(time_col) <= DT_MIN]
-    pre_obs = len(before.index)
 
     # Plot background average of epochs before discovery
     ax.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 

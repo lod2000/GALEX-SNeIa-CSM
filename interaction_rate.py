@@ -23,7 +23,7 @@ def main(tstart, scale, model='Chev94', sigma=3, iterations=ITER, conf=CONF):
     """
 
     # Initialize DataFrame
-    rate_df = pd.DataFrame([], index=['GALEX', 'G19', 'This study'], 
+    rate_df = pd.DataFrame([], index=['GALEX', 'G19', 'All UV'], 
             columns=['Detections', 'Trials', 'Lower Limit [%]', 'Upper Limit [%]'])
 
     # Get save directories
@@ -41,12 +41,24 @@ def main(tstart, scale, model='Chev94', sigma=3, iterations=ITER, conf=CONF):
             iterations)
     rate_df.loc['G19', 'Detections'] = graham_detections
     rate_df.loc['G19', 'Trials'] = graham_detections + graham_nondetections
-    rate_df.loc['This study'] = np.sum(rate_df.loc[['GALEX', 'G19']])
+    rate_df.loc['All UV'] = np.sum(rate_df.loc[['GALEX', 'G19']])
 
     # Calculate binomial confidence interval
-    bci = 100 * binom_conf_interval(rate_df['Detections'], rate_df['Trials'], 
-            confidence_level=conf, interval='jeffreys')
-    rate_df[['Lower Limit [%]', 'Upper Limit [%]']] = bci.T
+    # bci = 100 * binom_conf_interval(rate_df['Detections'], rate_df['Trials'], 
+    #         confidence_level=conf, interval='jeffreys')
+    for study in rate_df.index:
+        detections = rate_df.loc[study, 'Detections']
+        trials = rate_df.loc[study, 'Trials']
+        if trials >= 1:
+            bci = 100 * binom_conf_interval(detections, trials, 
+                confidence_level=conf, interval='jeffreys')
+            rate_df.loc[study, ['Lower Limit [%]', 'Upper Limit [%]']] = bci.T
+        else:
+            rate_df.loc[study, 'Lower Limit [%]'] = np.nan
+            rate_df.loc[study, 'Upper Limit [%]'] = np.nan
+    # bci_lower, bci_upper = bci_nan(rate_df[['Detections']], rate_df[['Trials']])
+    # rate_df['Lower Limit [%]'] = bci_lower
+    # rate_df['Upper Limit [%]'] = bci_upper
 
     print('\nConfidence intervals for %s < tstart < %s, ' % tstart + 
             '%s < S < %s using the %s model' % (scale + (model,)))
@@ -60,7 +72,7 @@ def count_recovered_sne(save_dir, tstart, scale, iterations=ITER):
         tstart: tuple, CSM model interaction start time bounds
         scale: tuple, CSM model scale factor bounds
     Outputs:
-        recovered_sne: float, sum of recovery rates
+        recovered_sne: float, sum of recovery rates, rounded to nearest whole
     """
 
     print('Importing recovery save files from %s' % save_dir)
@@ -72,7 +84,7 @@ def count_recovered_sne(save_dir, tstart, scale, iterations=ITER):
         for r in tqdm(imap, total=len(save_files)):
             recovered_sne = np.nansum([r, recovered_sne])
 
-    return recovered_sne
+    return np.around(recovered_sne)
 
 
 def get_recovery_rate(save_file, tstart, scale):
@@ -109,11 +121,11 @@ if __name__ == '__main__':
     parser.add_argument('--scale', '-S', type=float, nargs=2, default=SCALE, 
             help='Range of CSM model scale factors')
     parser.add_argument('--model', '-m', type=str, default='Chev94', 
-            help='spectral model type ("Chev94" or "flat")')
+            help='spectral model type ("Chev94" or "flat", default "Chev94")')
     parser.add_argument('--conf', '-c', type=float, default=CONF,
-            help='Confidence level of binomial confidence interval')
+            help='Confidence level of binomial confidence interval, default 0.9')
     parser.add_argument('--iterations', '-i', type=int, default=ITER,
-            help='Number of injection iterations in save files')
+            help='Number of injection iterations in save files, default 10000')
     args = parser.parse_args()
 
     main(tuple(args.tstart), tuple(args.scale), model=args.model, 
