@@ -41,8 +41,8 @@ DET_SIGMA = 3 # detection threshold & nondetection upper limit
 DETRAD_CUT = 0.6 # detector radius cut in degrees
 
 
-def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
-        tmax=4000, pad=0, swift=False, cfa=False, legend_col=3):
+def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT, tmax=4000, 
+        pad=0, swift=False, cfa=False, legend_col=3, all_points=False):
 
     sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     sn = Supernova(sn_name, sn_info=sn_info)
@@ -78,10 +78,12 @@ def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
 
     if make_plot:
         print('\nPlotting %s...' % sn.name)
-        plot(sn, tmax=tmax, pad=pad, swift=swift, cfa=cfa, legend_col=legend_col)
+        plot(sn, tmax=tmax, pad=pad, swift=swift, cfa=cfa, legend_col=legend_col, 
+                all_points=all_points)
 
 
-def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
+def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
+        all_points=False):
     """Plot light curves for both GALEX filters plus external data.
     Inputs:
         sn: Supernova object
@@ -90,6 +92,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
         swift: bool, add Swift data if available
         cfa: bool, add CfA4 data if available
         legend_col: number of columns in legend
+        all_points: plot measured fluxes for all points rather than limits
     """
 
     fig, ax = plt.subplots(figsize=(4, 2))
@@ -115,13 +118,13 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True):
             ymin.append(lc.bg / 1.5)
             bg_max = max(bg_max, lc.bg)
 
-            ax = plot_lc(ax, lc, tmax)
+            ax = plot_lc(ax, lc, tmax, all_points)
         except FileNotFoundError:
             # No data for this channel
             continue
 
     # Add legend
-    plt.legend(loc='upper right', ncol=legend_col, handletextpad=0.2, 
+    plt.legend(loc='best', ncol=legend_col, handletextpad=0.2, 
             handlelength=1.0, fontsize=6, borderaxespad=1.5, borderpad=0.5, columnspacing=0.8)
 
     # Adjust and label axes
@@ -456,7 +459,7 @@ def import_light_curve(lc_file, detrad_cut=DETRAD_CUT, manual_cuts=[]):
 ################################################################################
 
 
-def plot_lc(ax, lc, tmax):
+def plot_lc(ax, lc, tmax, all_points=False):
 
     color = COLORS[lc.band]
 
@@ -481,21 +484,27 @@ def plot_lc(ax, lc, tmax):
 
     # Plot observed fluxes after discovery: detections
     after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
-    detections = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
-    if len(detections.index) > 0:
-        ax.errorbar(detections[time_col], detections[data_col], 
-                yerr=detections[err_col], linestyle='none', ecolor='k',
+    # if 'all_points', plot points with error bars for all observations
+    # otherwise, just plot detections with limits for everything else
+    if all_points:
+        points = after
+    else:
+        points = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
+    if len(points.index) > 0:
+        ax.errorbar(points[time_col], points[data_col], 
+                yerr=points[err_col], linestyle='none', ecolor='k',
                 marker='o', ms=4, elinewidth=1, c=color, mec='k', mew=0.5,
                 label='%s det.' % lc.band
         )
 
     # Plot nondetection limits
-    nondetections = after.drop(lc.detections)
-    if len(nondetections.index > 0):
-        ax.scatter(nondetections[time_col], 
-                nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
-                marker='v', s=16, color=color, edgecolors='k', lw=0.5,
-                label='%s %sσ limit' % (lc.band, DET_SIGMA))
+    if not all_points:
+        nondetections = after.drop(lc.detections)
+        if len(nondetections.index > 0):
+            ax.scatter(nondetections[time_col], 
+                    nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
+                    marker='v', s=16, color=color, edgecolors='k', lw=0.5,
+                    label='%s %sσ limit' % (lc.band, DET_SIGMA))
 
     return ax
 
@@ -687,9 +696,11 @@ if __name__=='__main__':
             help='plot CfA4 data if available')
     parser.add_argument('--lcol', type=int, default=3, 
             help='number of columns in legend')
+    parser.add_argument('--allpoints', action='store_true', 
+            help='plot all points instead of limits')
 
     args = parser.parse_args()
 
     main(args.sn, make_plot=args.plot, sigma=args.sigma, 
             count=args.sigcount, tmax=args.tmax, pad=args.pad, swift=args.swift, 
-            cfa=args.cfa, legend_col=args.lcol)
+            cfa=args.cfa, legend_col=args.lcol, all_points=args.allpoints)
