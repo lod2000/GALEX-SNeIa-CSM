@@ -38,6 +38,7 @@ BG_LINE_ALPHA = 0.7 # background line transparency
 BG_SIGMA = 1 # background uncertainty
 DT_MIN = -30 # Separation between background and SN data (days)
 DET_SIGMA = 3 # detection threshold & nondetection upper limit
+DETRAD_CUT = 0.6 # detector radius cut in degrees
 
 
 def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT,
@@ -381,8 +382,8 @@ def fit_sys_err(bg_flux, band):
     """Calculate systematic error from gAperture polynomial fit."""
 
     bg_mag = flux2mag(bg_flux, band)
-    # Calculate systematic error from gAperture photometric error 
-    sys_err_mag = gAper_sys_err(bg_mag, band)
+    # Calculate systematic error from gAperture photometric error
+    sys_err_mag = gAper_sys_err(bg_mag.value, band)
     # Convert mag error to SNR
     snr = 1 / (10 ** (sys_err_mag / 2.5) - 1)
     sys_err = bg_flux / snr
@@ -394,16 +395,21 @@ def gAper_sys_err(mag, band):
     based on Michael's polynomial fits.
     """
 
-    coeffs = {
-        'FUV': [4.07675572e-04, -1.98866713e-02, 3.24293442e-01, -1.75098239e+00],
-        'NUV': [3.38514034e-05, -2.88685479e-03, 9.88349458e-02, -1.69681516e+00,
-                1.45956431e+01, -5.02610071e+01]
-    }
-    fit = np.poly1d(coeffs[band])
-    return fit(mag.value)
+    # coeffs = {
+    #     'FUV': [4.07675572e-04, -1.98866713e-02, 3.24293442e-01, -1.75098239e+00],
+    #     'NUV': [3.38514034e-05, -2.88685479e-03, 9.88349458e-02, -1.69681516e+00,
+    #             1.45956431e+01, -5.02610071e+01]
+    # }
+    # fit = np.poly1d(coeffs[band])
+    # return fit(mag.value)
+
+    # fit coeffs
+    A = {'NUV': 4.94e-7, 'FUV': 4.78e-4}
+    B = {'NUV': 6.17, 'FUV': 2.60}
+    return A[band] * (mag-14)**B[band]
 
 
-def import_light_curve(lc_file, detrad_cut=0.55, manual_cuts=[]):
+def import_light_curve(lc_file, detrad_cut=DETRAD_CUT, manual_cuts=[]):
     """Import light curve file for specified SN and band, cutting points 
     with bad flags or sources outside detector radius.
     Inputs:
