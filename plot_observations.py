@@ -16,7 +16,7 @@ from utils import *
 DET_SIGMA = [5, 3] # detection significance threshold
 DET_COUNT = [1, 3] # number of points above DET_SIGMA to count as detection
 PLOT_SIGMA = 1 # multiple of uncertainty to plot as luminosity limit
-YLIM = (None, 5e27) # erg/s/Hz
+YLIM = (None, 1e27) # erg/s/Hz
 XLIM = (-50, 2250) # days
 LIMIT_CUTOFF = 10**25.88 # Graham 2015cp detection, erg/s/Hz
 
@@ -49,7 +49,7 @@ def main():
     y_col = 'luminosity_hostsub_hz'
     yerr_col = 'luminosity_hostsub_err_hz'
     
-    fig, ax = plt.subplots(figsize=(6.5, 4), tight_layout=True)
+    fig, ax = plt.subplots(figsize=(6.5, 5), tight_layout=True)
 
     # Plot Swift SN2011fe from Brown+ 2012
     band = 'UVM2'
@@ -80,7 +80,7 @@ def main():
                 yerr=detections[yerr_col], label='%s (%s)' % (sn.name, band), 
                 linestyle='none', ms=MS_DET, marker=MARKERS[sn.name], 
                 color=COLORS[sn.name], mec='k', ecolor='k', elinewidth=1, 
-                zorder=9)
+                zorder=9, rasterized=True)
         
         # Plot nondetection limits
         # nondetections = lc(tmin=XLIM[0], tmax=XLIM[1]).drop(detections.index)
@@ -127,8 +127,8 @@ def main():
                     markeredgecolor='none', markersize=MS_LOW, alpha=ALPHA_LOW,
                     label='detection limit (NUV)', lw=0)
     ]
-    plt.legend(handles=handles + legend_elements, loc='upper right', ncol=3,
-            handletextpad=0.5, handlelength=1.0)
+    plt.legend(handles=handles + legend_elements, loc='lower right', ncol=3,
+            handletextpad=0.5, handlelength=1.0, bbox_to_anchor=(1.02, 1.01))
 
     plt.savefig(Path('out/limits.pdf'), dpi=300)
 
