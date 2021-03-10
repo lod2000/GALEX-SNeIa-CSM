@@ -46,4 +46,4 @@ for sn_name in tqdm(sn_info.index):
 
 detections = pd.DataFrame(detections)
 print(detections)
-detections.to_csv('out/detections.csv', index_col=False)
+# detections.to_csv('out/detections.csv')
