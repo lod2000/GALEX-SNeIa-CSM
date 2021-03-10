@@ -10,7 +10,7 @@ from plot_recovery import sum_hist
 CONF = 0.9 # binomial confidence level
 MODEL = 'Chev94' # default spectral model
 SCALE = [0.9, 1.1] # default model scale
-MULTI_SCALE = [[0.9, 1.1], [9, 11], [90, 100]] # range of multiple scale factors
+MULTI_SCALE = [[90, 100], [9, 11], [0.9, 1.1]] # range of multiple scale factors
 SIGMA = 3 # default confidence for excluded SNe
 TSTART_MAX = 2000
 YMAX = None
@@ -134,6 +134,7 @@ def plot_multiple(scale_ranges, x_edges, external, show=True, y_max=YMAX,
     fig, axs = plt.subplots(nrows, ncols, figsize=(6.5, 2 * nrows))
 
     scales = sorted(scale_ranges * 2)
+    scales.reverse()
     models = ['Chev94', 'flat'] * nrows
     all_handles = []
     all_labels = []
