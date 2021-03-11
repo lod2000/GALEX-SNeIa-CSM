@@ -1,7 +1,7 @@
-﻿name,instrument,style,alpha,color,display_name,type,aperture_radius,label_x,label_y,pad_x
-FUV,GALEX,-,1,#a37,$\it{GALEX}$,effective area,25,mean,bottom,0
+name,instrument,style,alpha,color,display_name,type,aperture_radius,label_x,label_y,pad_x
+FUV,GALEX,-,1,#a37,$\it{GALEX}$,effective area,25,max,above,0
 NUV,GALEX,-,1,#47a,$\it{GALEX}$,effective area,25,mean,middle,0
 UVW1,Swift,--,0.6,#cb4,$\it{Swift}$,effective area,15,mean,above,100
 UVM2,Swift,--,0.6,#283,$\it{Swift}$,effective area,15,mean,above,-50
 UVW2,Swift,--,0.6,#6ce,$\it{Swift}$,effective area,15,max,above,-50
-F275W,HST,:,0.8,#e67,HST,effective throughput,120,max,above,50
+F275W,HST,:,0.8,#e67,HST,effective throughput,120,mean,middle,400

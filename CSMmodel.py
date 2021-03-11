@@ -251,7 +251,8 @@ class Chev94Model:
 
         wl = np.arange(W0, W1, DW)
         fl = self.gen_model(t)
-        ax.plot(wl, fl/1e37)
+        # ax.plot(wl, fl/1e37)
+        ax.plot(wl, fl)
 
         y_max = 6
 
@@ -261,12 +262,13 @@ class Chev94Model:
             peak_wl = float(self.line_wl[name])
             x = peak_wl + 40
             peak_fl = fl[np.argwhere(np.round(wl,1) == peak_wl)[0][0]]
-            y = max(min(peak_fl/1e37, y_max - 0.4), 0.4)
+            # y = max(min(peak_fl/1e37, y_max - 0.4), 0.4)
+            y = peak_fl
             # Text alignment
             va = 'center'
             ha = 'left'
             # Ignore smaller lines which get in the way
-            if name in ['OV]', 'SiII]', 'OIII]', 'CI]', '[NeIV]']:
+            if name in ['OV]', 'SiII]']:
                 continue
             # Adjust names
             text = name
@@ -276,23 +278,31 @@ class Chev94Model:
             text = text.replace('V I', 'VI')
             text = text.replace('I V', 'IV')
             # Custom adjustments
-            if text in ['C II]', 'C I]', 'O VI', 'C IV', 'C III]', 'Mg II']:
+            if text in ['C II]', 'C I]', 'O VI', 'C IV', 'Mg II', 'Ly-α']:
                 x = peak_wl
                 ha = 'center'
                 va = 'bottom'
-                y = peak_fl/1e37 + 0.2
+                # y = peak_fl/1e37 + 0.2
+                y = peak_fl * 1.1
             elif text in ['He II', '[Ne IV]']:
                 x = peak_wl - 50
                 ha = 'left'
                 va = 'bottom'
-                y = peak_fl/1e37 + 0.3
-            ax.text(x, y, text, size=10, va=va, ha=ha)
+                # y = peak_fl/1e37 + 0.3
+                y = peak_fl * 1.1
+            elif text in ['O III]']:
+                x = peak_wl
+                va = 'bottom'
+            ax.text(x, y, text, size=8, va=va, ha=ha)
 
         ax.set_xlim((850, 3100))
-        ax.set_ylim((-0.5, 6.5))
+        # ax.set_ylim((-0.5, 6.5))
+        ax.set_yscale('log')
+        ax.set_ylim((1e35, 1e39))
 
         ax.set_xlabel('Wavelength [Å]')
-        ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]')
+        # ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]')
+        ax.set_ylabel('Luminosity [erg s$^{-1}$]')
 
         plt.tight_layout(pad=0.3)
 
