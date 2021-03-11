@@ -18,7 +18,7 @@ DET_COUNT = [1, 3] # number of points above DET_SIGMA to count as detection
 PLOT_SIGMA = 1 # multiple of uncertainty to plot as luminosity limit
 YLIM = (None, 1e27) # erg/s/Hz
 XLIM = (-50, 2250) # days
-LIMIT_CUTOFF = 10**25.88 # Graham 2015cp detection, erg/s/Hz
+LIMIT_CUTOFF = 1e27 #10**25.88 # Graham 2015cp detection, erg/s/Hz
 
 # Plot design
 COLORS = {  'SN2007on': 'cyan',
