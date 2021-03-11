@@ -89,7 +89,7 @@ def gen_params(iterations, tstart_lims, scale_lims, log=True):
     return params
 
 
-def run_dir(study, model, sigma, detections=False):
+def run_dir(study, model, sigma, detections=False, parent=SAVE_DIR):
     """Generate run save directory."""
 
     if type(sigma) == list:
@@ -97,7 +97,7 @@ def run_dir(study, model, sigma, detections=False):
     if detections:
         study = study + '_det'
     run_name = '%s_%s_%ssigma' % (study, model, sigma)
-    run = SAVE_DIR / Path(run_name)
+    run = parent / Path(run_name)
     if not run.is_dir(): run.mkdir()
 
     return run
