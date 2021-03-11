@@ -97,7 +97,7 @@ def run_dir(study, model, sigma, detections=False, parent=SAVE_DIR):
     if detections:
         study = study + '_det'
     run_name = '%s_%s_%ssigma' % (study, model, sigma)
-    run = parent / Path(run_name)
+    run = Path(parent) / Path(run_name)
     if not run.is_dir(): run.mkdir()
 
     return run
