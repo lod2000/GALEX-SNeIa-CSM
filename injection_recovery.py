@@ -274,12 +274,12 @@ if __name__ == '__main__':
             help='Detection confidence level (multiple for tiered detections)')
     parser.add_argument('--sigcount', type=int, nargs='+', default=SIGMA_COUNT,
             help='Number of points at corresponding sigma to count as detection')
-    parser.add_argument('--save', type=dir, default=SAVE_DIR,
+    parser.add_argument('--savedir', type=str, default=SAVE_DIR,
             help='Recovery save directory, default mnt/d/injection_recovery_runs')
     args = parser.parse_args()
 
     # Save run parameters
-    save_dir = run_dir('galex', args.model, args.sigma, parent=args.save)
+    save_dir = run_dir('galex', args.model, args.sigma, parent=args.savedir)
     with open(save_dir / Path('_params.txt'), 'w') as file:
         file.write(str(args))
 
