@@ -110,4 +110,5 @@ fig.legend(handles, labels, loc='upper right', ncol=5, handletextpad=0.5,
 
 plt.savefig(Path('out/normal_detections.pdf'), dpi=300)
 
-plt.show()
+#plt.show()
+plt.close()

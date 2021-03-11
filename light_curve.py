@@ -462,6 +462,8 @@ def import_light_curve(lc_file, detrad_cut=DETRAD_CUT, manual_cuts=[]):
 def plot_lc(ax, lc, tmax, all_points=False):
 
     color = COLORS[lc.band]
+    fill = {'FUV': 'w', 'NUV': color}[lc.band]
+    edge = {'FUV': color, 'NUV': color}[lc.band]
 
     # Data column labels
     time_col = 't_delta_rest'
@@ -493,7 +495,7 @@ def plot_lc(ax, lc, tmax, all_points=False):
     if len(points.index) > 0:
         ax.errorbar(points[time_col], points[data_col], 
                 yerr=points[err_col], linestyle='none', ecolor='k',
-                marker='o', ms=4, elinewidth=1, c=color, mec='k', mew=0.5,
+                marker='o', ms=4, elinewidth=1, c=fill, mec='k', mew=0.5,
                 label='%s det.' % lc.band
         )
 
@@ -503,8 +505,9 @@ def plot_lc(ax, lc, tmax, all_points=False):
         if len(nondetections.index > 0):
             ax.scatter(nondetections[time_col], 
                     nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
-                    marker='v', s=16, color=color, edgecolors='k', lw=0.5,
-                    label='%s %sσ limit' % (lc.band, DET_SIGMA))
+                    marker='v', s=16, color=fill, edgecolors=edge, lw=1,
+                    label='%s %sσ limit' % (lc.band, DET_SIGMA)
+            )
 
     return ax
 
