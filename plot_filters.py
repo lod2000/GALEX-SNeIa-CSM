@@ -16,12 +16,13 @@ for name, f in ref.iterrows():
             sep=' ', index_col=0)
 
     # Normalize response curve
-    d_lambda = (array.index[-1] - array.index[0]) / len(array.index)
+    # d_lambda = (array.index[-1] - array.index[0]) / len(array.index)
     # array['resp_norm'] = array.resp / (array.resp.sum() * d_lambda)
-    norm = array / (array.sum() * d_lambda)
+    # norm = array / (array.sum() * d_lambda)
+    norm = array / array.resp.max()
 
     # Limit tail end of distribution
-    ymin = 0.0001
+    ymin = 0.05
     # if f.instrument == 'Swift':
     # ymax = norm.resp.max()
     # ymin = 0.075 * ymax
@@ -34,11 +35,11 @@ for name, f in ref.iterrows():
     # array.resp *= 100
 
     # Add in-plot labeling
-    pad_y = 0.0002
+    pad_y = 0.05
     text_x = {'mean': np.mean(norm.index), 
               'max': norm.idxmax(), 
               'first': norm.index[0] + 150}
-    text_y = {'above': norm.max() + pad_y, 
+    text_y = {'above': norm.max(), 
               'below': -pad_y, 
               'middle': norm.max()/2,
               'bottom': pad_y}
@@ -48,19 +49,21 @@ for name, f in ref.iterrows():
     else:
         text_size = 10
         weight = 'normal'
-    ax.text(text_x[f.label_x] + f.pad_x, text_y[f.label_y], name, ha='center', va='center', 
+    ax.text(text_x[f.label_x] + f.pad_x, text_y[f.label_y], name, ha='center',
+            va='bottom', 
             size=text_size, c=f.color, weight=weight)
 
     # Plot filter response curve
     ax.plot(norm.index, norm.resp, label=label, ls=f.style, alpha=f.alpha, 
             c=f.color)
 
-ax.set_ylim((-pad_y, None))
+ax.set_ylim((-pad_y, 1.2))
 ax.set_xlabel('Wavelength [Å]')
 ax.set_ylabel('Normalized Filter Response')
+ax.yaxis.set_ticklabels([])
 
 plt.tight_layout(pad=0.3)
 
 plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=300)
 plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=300)
-plt.show()
+# plt.show()
