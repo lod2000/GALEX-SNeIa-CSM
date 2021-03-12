@@ -67,7 +67,10 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
 
     # Adjust and label axes and ticks
     ax.set_yscale('log')
-    ax.tick_params(axis='y', which='both', right=False)
+    # if i % 2 == 0:
+    #     ax.tick_params(axis='y', which='both', right=False)
+    # else:
+    #     ax.tick_params(axis='y', which='both', left=False)
     ax.set_ylim((np.min(ymin), None))
     ax.xaxis.set_major_locator(plt.MultipleLocator(X_MAJOR_TICK))
 
@@ -83,8 +86,13 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
     if i % 2 == 0:
         ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
     else:
-        luminosity_ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]', rotation=270,
-                labelpad=15)
+        ax.yaxis.set_label_position('right')
+        ax.yaxis.set_ticks_position('right')
+        luminosity_ax.yaxis.set_label_position('left')
+        luminosity_ax.yaxis.set_ticks_position('left')
+        ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]', 
+                rotation=270, labelpad=15)
+        luminosity_ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
 
     if i in range(2, 4):
         ax.set_xlabel('Time since discovery [rest-frame days]')
@@ -104,11 +112,11 @@ order = [4, 5, 0, 1, 2, 3, 6, 7, 8, 9]
 handles = [handles[i] for i in order]
 labels = [labels[i] for i in order]
 # Add legend
-fig.legend(handles, labels, loc='upper right', ncol=5, handletextpad=0.5, 
+fig.legend(handles, labels, loc='upper center', ncol=5, handletextpad=0.5, 
         handlelength=1., borderaxespad=0.5, borderpad=0.5, columnspacing=1.,
-        bbox_to_anchor=(0.915, 1.))
+        bbox_to_anchor=(0.5, 1.))
 
-plt.savefig(Path('light_curves/normal_detections.pdf'), dpi=300)
+plt.savefig(Path('out/normal_detections.pdf'), dpi=300)
 
 plt.show()
 # plt.close()
