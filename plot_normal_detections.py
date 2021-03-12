@@ -63,14 +63,9 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
     # In-plot labels
     ax.set_title(sn_name.replace('SN', 'SN '), ha='right', va='top', x=0.9, y=0.85, size=14)
     xlim = np.array(ax.get_xlim())
-    # ax.text(xlim[0]+3, bg_max * 1.1,'host %sσ (%s obs)' % (BG_SIGMA, pre_obs))
 
     # Adjust and label axes and ticks
     ax.set_yscale('log')
-    # if i % 2 == 0:
-    #     ax.tick_params(axis='y', which='both', right=False)
-    # else:
-    #     ax.tick_params(axis='y', which='both', left=False)
     ax.set_ylim((np.min(ymin), None))
     ax.xaxis.set_major_locator(plt.MultipleLocator(X_MAJOR_TICK))
 
