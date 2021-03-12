@@ -162,6 +162,7 @@ class CSMmodel:
             'F275W':[]
         }
         line_style = {'F275W': ':', 'NUV': '--', 'FUV': '-'}
+        lambda_eff = {'FUV': 1549., 'NUV': 2304.7, 'F275W': 2714.65}
 
         for z in z_vals:
             f = self(self.tstart + tstep, z)
@@ -169,19 +170,21 @@ class CSMmodel:
 
         text_idx = 42
         for i, band in enumerate(['F275W', 'NUV', 'FUV']):
-            ax.plot(z_vals, luminosity[band], color=COLORS[band], label=band, 
+            l = lambda_eff[band]
+            l_array = l * np.array(luminosity[band])
+            ax.plot(z_vals, l_array, color=COLORS[band], label=band, 
                     lw=1, ls=line_style[band])
-            ax.text(z_vals[text_idx], luminosity[band][text_idx] * 1.1, band, 
+            ax.text(z_vals[text_idx], luminosity[band][text_idx] * l*1.1, band, 
                     color=COLORS[band], size=10, ha='center', va='bottom')
 
         ax.set_yscale('log')
 
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('$L_\mathrm{filter}$ [erg s$^{-1}$ Å$^{-1}$]')
+        ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
 
         plt.tight_layout(pad=0.3)
 
-        plt.savefig(Path('out/Chev94_redshift.pdf'))
+        plt.savefig(Path(fname))
         if show:
             plt.show()
         else:
