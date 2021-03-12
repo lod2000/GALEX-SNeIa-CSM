@@ -115,7 +115,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
             lc = LightCurve(sn, band)
             # Pre-SN obs.
             before = lc.data[lc('t_delta_rest') <= DT_MIN]
-            ymin.append(lc.bg / 1.5)
+            ymin.append(effective_wavelength(band).value * lc.bg / 1.5)
             bg_max = max(bg_max, lc.bg)
 
             ax = plot_lc(ax, lc, tmax, all_points)
@@ -129,10 +129,10 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
 
     # Adjust and label axes
     label_y = 1.05
-    ax.set_xlabel('Time since discovery [days]')
+    ax.set_xlabel('Time since discovery [rest-frame days]')
     ax.set_yscale('log')
     ax.tick_params(axis='y', which='major', left=False)
-    ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]')
+    ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
     ax.set_ylim((np.min(ymin), None))
 
     # Adjust limits
@@ -154,13 +154,13 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
             sn.z, sn.z_err, sn.a_v, 'FUV')[0].value
     luminosity_ax.set_yscale('log')
     luminosity_ax.set_ylim(ylim_luminosity)
-    luminosity_ax.set_ylabel('$L_{UV}$ [erg s$^{-1}$ Å$^{-1}$]', rotation=270,
+    luminosity_ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]', rotation=270,
             labelpad=18)
 
     plt.tight_layout(pad=0.3)
 
-    plt.savefig(Path('out/%s.pdf' % sn.name), dpi=300)
-    plt.savefig(Path('out/%s.png' % sn.name), dpi=300)
+    plt.savefig(Path('light_curves/%s.pdf' % sn.name), dpi=300)
+    plt.savefig(Path('light_curves/%s.png' % sn.name), dpi=300)
     if show:
         plt.show()
     else:
@@ -465,6 +465,8 @@ def plot_lc(ax, lc, tmax, all_points=False):
     fill = {'FUV': 'w', 'NUV': color}[lc.band]
     edge = {'FUV': color, 'NUV': color}[lc.band]
 
+    lambda_eff = effective_wavelength(lc.band).value
+
     # Data column labels
     time_col = 't_delta_rest'
     data_col = 'flux_bgsub'
@@ -474,14 +476,13 @@ def plot_lc(ax, lc, tmax, all_points=False):
     before = lc.data[lc(time_col) <= DT_MIN]
 
     # Plot background average of epochs before discovery
-    ax.axhline(lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, linestyle='--', 
-            linewidth=1, #label='%s host (%s obs.)' % (lc.band, pre_obs)
+    ax.axhline(lambda_eff * lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, 
+            linestyle='--', linewidth=1
     )
     # 1-sigma range
     bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
-    ax.axhspan(ymin=(lc.bg - BG_SIGMA * bg_err), color=color,
-            ymax=(lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA,
-            #label='%s host %sσ' %(lc.band, BG_SIGMA)
+    ax.axhspan(ymin=lambda_eff * (lc.bg - BG_SIGMA * bg_err), color=color,
+            ymax=lambda_eff * (lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA
     )
 
     # Plot observed fluxes after discovery: detections
@@ -493,8 +494,8 @@ def plot_lc(ax, lc, tmax, all_points=False):
     else:
         points = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
     if len(points.index) > 0:
-        ax.errorbar(points[time_col], points[data_col], 
-                yerr=points[err_col], linestyle='none', ecolor='k',
+        ax.errorbar(points[time_col], lambda_eff * points[data_col], 
+                yerr=lambda_eff * points[err_col], linestyle='none', ecolor='k',
                 marker='o', ms=4, elinewidth=1, c=fill, mec='k', mew=0.5,
                 label='%s det.' % lc.band
         )
@@ -504,7 +505,7 @@ def plot_lc(ax, lc, tmax, all_points=False):
         nondetections = after.drop(lc.detections)
         if len(nondetections.index > 0):
             ax.scatter(nondetections[time_col], 
-                    nondetections['flux_hostsub_err']*DET_SIGMA+lc.bg, 
+                    lambda_eff * (nondetections['flux_hostsub_err']*DET_SIGMA + lc.bg), 
                     marker='v', s=16, color=fill, edgecolors=edge, lw=1,
                     label='%s %sσ limit' % (lc.band, DET_SIGMA)
             )
@@ -517,8 +518,9 @@ def plot_external(ax, sn, lc, bands, marker='D'):
 
     for band in bands:
         data = lc[lc['Filter'] == band]
-        ax.errorbar(data['t_delta_rest'], data['flux'], linestyle='none',
-                yerr=data['flux_err'], marker=marker, ms=2.5, label=band,
+        lambda_eff = effective_wavelength(band).value
+        ax.errorbar(data['t_delta_rest'], lambda_eff * data['flux'], linestyle='none',
+                yerr=lambda_eff * data['flux_err'], marker=marker, ms=2.5, label=band,
                 elinewidth=0.5, markeredgecolor=COLORS[band], 
                 markerfacecolor='white', ecolor=COLORS[band], mew=0.5,
                 rasterized=True)
@@ -610,8 +612,10 @@ def extinction(band):
 
 
 def effective_wavelength(band):
-    """Return effective wavelength of given GALEX band."""
-    vals = {'FUV': 1549, 'NUV': 2304.7}
+    """Return effective wavelength of given GALEX/Swift/HST/CfA4 band."""
+    vals = {'FUV': 1549, 'NUV': 2304.7, 'F275W': 2714.65, 
+            'UVW2': 2085.7, 'UVM2': 2245.7, 'UVW1': 2684.1, 
+            'B': 4450, 'V': 5510, "r'": 6220, "i'": 7630}
     return np.vectorize(vals.get)(band) * u.AA
 
 

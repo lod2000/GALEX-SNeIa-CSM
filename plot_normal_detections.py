@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 from supernova import Supernova
-from light_curve import import_swift, import_cfa, plot_lc, plot_external, flux2luminosity, LightCurve
+from light_curve import import_swift, import_cfa, plot_lc, plot_external, flux2luminosity, LightCurve, effective_wavelength
 
 # Plot color palette
 COLORS = {'FUV' : '#a37', 'NUV' : '#47a', # GALEX
@@ -52,7 +52,7 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
             # Pre-SN obs.
             before = lc.data[lc('t_delta_rest') <= DT_MIN]
             pre_obs += len(before.index)
-            ymin.append(lc.bg / 1.5)
+            ymin.append(effective_wavelength(band).value * lc.bg / 1.5)
             bg_max = max(bg_max, lc.bg)
 
             plot_lc(ax, lc, TMAX)
@@ -81,13 +81,13 @@ for i, (sn_name, ax) in enumerate(zip(supernovae, axs.flat)):
     luminosity_ax.set_ylim(ylim_luminosity)
 
     if i % 2 == 0:
-        ax.set_ylabel('$F_\lambda$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$]')
+        ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
     else:
-        luminosity_ax.set_ylabel('$L_\mathrm{UV}$ [erg s$^{-1}$ Å$^{-1}$]', rotation=270,
-                labelpad=18)
+        luminosity_ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]', rotation=270,
+                labelpad=15)
 
     if i in range(2, 4):
-        ax.set_xlabel('Time since discovery [days]')
+        ax.set_xlabel('Time since discovery [rest-frame days]')
 
     handles, labels = ax.get_legend_handles_labels()
     all_handles += handles
@@ -108,7 +108,7 @@ fig.legend(handles, labels, loc='upper right', ncol=5, handletextpad=0.5,
         handlelength=1., borderaxespad=0.5, borderpad=0.5, columnspacing=1.,
         bbox_to_anchor=(0.915, 1.))
 
-plt.savefig(Path('out/normal_detections.pdf'), dpi=300)
+plt.savefig(Path('light_curves/normal_detections.pdf'), dpi=300)
 
-#plt.show()
-plt.close()
+plt.show()
+# plt.close()
