@@ -132,7 +132,7 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
 
     # Define subplots
     print('Plotting recovery histograms...')
-    fig, axs = plt.subplots(2, 2, figsize=(6.5, 5))
+    fig, axs = plt.subplots(2, 2, figsize=(6.5, 6.5))
 
     study = ['galex', 'galex', 'graham', 'graham']
     model = ['Chev94', 'flat', 'Chev94', 'flat']
