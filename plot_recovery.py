@@ -126,7 +126,7 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
         fname += '_upperlim'
 
     if len(sn_label) > 0:
-        wspace = 0.16 # widen spacing between plots
+        wspace = 0.17 # widen spacing between plots
     else:
         wspace = 0.08
 
@@ -194,8 +194,8 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
         bounds = [0] + list(bounds)
         extend = None
     # Adjust subplots to make room for colorbar axis
-    plt.subplots_adjust(bottom=0.11, top=0.85, left=0.08, right=0.97, 
-            wspace=wspace, hspace=0.2)
+    plt.subplots_adjust(bottom=0.08, top=0.87, left=0.08, right=0.97, 
+            wspace=wspace, hspace=0.15)
     # Define cbar axis
     if len(det_hist) > 0 and not upper_lim:
         cax = plt.axes([0.3, 0.92, 0.5, 0.03]) # left, bottom, width, height
@@ -249,7 +249,7 @@ def get_histograms(study, model, x_edges, y_edges, sigma=SIGMA, detections=False
     # Import list of individual detections
     if verb:
         print('Importing individual %s %s detections...' % (model, study))
-    if detections and study == 'graham':
+    if (detections or upper_lim) and study == 'graham':
         det_save_dir = run_dir(study + '_det', model, sigma)
         det_save_files = list(Path(det_save_dir).glob('*-%s.csv' % iterations))
         det_hist = {fname2sn(f)[0]: sum_hist([f], x_edges, y_edges, save=False) for f in det_save_files}
