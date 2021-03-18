@@ -63,7 +63,7 @@ def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
         # Outline detections
         if len(det_hist) > 0:
-            plot_detections(ax, x_edges, y_edges, det_hist, label=True, c='r')
+            plot_detections(ax, x_edges, y_edges, det_hist, label=True, c='k')
             # Legend for detections (actually upper left)
             plt.legend(loc='lower left', ncol=2, handletextpad=0.8, handlelength=2.,
                     borderpad=0.3, bbox_to_anchor=(0., 1.05), borderaxespad=0.,
@@ -174,7 +174,7 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
         # Outline detections
         if len(det_hist) > 0 and not upper_lim:
             plot_detections(ax, x_edges, y_edges, det_hist,
-                    label=add_label, c='r')
+                    label=add_label, c='k')
             add_label = False # only include one set of legend handles
         # Format
         ax.set_title(label[i], weight='normal')
