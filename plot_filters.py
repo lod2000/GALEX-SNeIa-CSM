@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from pathlib import Path
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(3.25, 2.25))
 
 # Import reference info
 ref = pd.read_csv(Path('ref/filters.csv'), index_col='name')
