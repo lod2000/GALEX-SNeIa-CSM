@@ -63,7 +63,7 @@ def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
 
         # Outline detections
         if len(det_hist) > 0:
-            plot_detections(ax, x_edges, y_edges, det_hist, label=True)
+            plot_detections(ax, x_edges, y_edges, det_hist, label=True, c='r')
             # Legend for detections (actually upper left)
             plt.legend(loc='lower left', ncol=2, handletextpad=0.8, handlelength=2.,
                     borderpad=0.3, bbox_to_anchor=(0., 1.05), borderaxespad=0.,
@@ -173,7 +173,8 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
                     sn_label=sn_label)
         # Outline detections
         if len(det_hist) > 0 and not upper_lim:
-            plot_detections(ax, x_edges, y_edges, det_hist, label=add_label)
+            plot_detections(ax, x_edges, y_edges, det_hist,
+                    label=add_label, c='r')
             add_label = False # only include one set of legend handles
         # Format
         ax.set_title(label[i], weight='normal')
@@ -403,7 +404,7 @@ def plot_hist(ax, x_edges, y_edges, hist, cmap, norm, bin_width=100, sn_label=[]
     return pcm
 
 
-def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
+def plot_detections(ax, x_edges, y_edges, det_hist, label=True, c='k'):
     """Add outline of detections to histogram.
     Inputs:
         ax: matplotlib axis
@@ -452,7 +453,7 @@ def plot_detections(ax, x_edges, y_edges, det_hist, label=True):
         y_upper.reverse()
         y = y_lower + y_upper[:1]
 
-        line, = ax.plot(x, y, color='k', linestyle='--', linewidth=lw[n], 
+        line, = ax.plot(x, y, color=c, linestyle='--', linewidth=lw[n], 
                 dashes=dashes[n])
         line.set_clip_on(False) # allow line to bleed over spines
         if label:
