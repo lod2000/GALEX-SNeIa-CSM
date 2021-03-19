@@ -491,13 +491,15 @@ def plot_lc(ax, lc, tmax, all_points=False):
     # otherwise, just plot detections with limits for everything else
     if all_points:
         points = after
+        label = lc.band
     else:
         points = lc.detect_csm(DET_SIGMA, count=[1], dt_min=DT_MIN)
+        label = '%s det.' % lc.band
     if len(points.index) > 0:
         ax.errorbar(points[time_col], lambda_eff * points[data_col], 
                 yerr=lambda_eff * points[err_col], linestyle='none', ecolor=edge,
                 marker='o', ms=4, elinewidth=1, c=fill, mec=edge, mew=1,
-                label='%s det.' % lc.band
+                label=label
         )
 
     # Plot nondetection limits
