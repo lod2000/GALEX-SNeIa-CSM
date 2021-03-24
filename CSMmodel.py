@@ -63,6 +63,14 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     plt.savefig(Path('out/CSM_model.png'))
     plt.close()
 
+    # Plot flat-spectrum model
+    # fig, ax = plt.subplots(tight_layout=True)
+    # flat_model = FlatModel(scale=1.)
+    # wl = np.arange(W0, W1, DW)
+    # fl = flat_model.gen_model(0)
+    # ax.plot(wl, fl)
+    # plt.show()
+
 
 class CSMmodel:
     def __init__(self, tstart, twidth, decay_rate, scale=1, vwidth=2000,
