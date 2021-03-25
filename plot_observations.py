@@ -103,18 +103,19 @@ def main():
             except (FileNotFoundError, pd.errors.EmptyDataError):
                 continue
 
-    # Import and plot Graham detections
+    # Import and plot HST detections
     print('Importing HST detections...')
     nu_hst = (const.c / effective_wavelength('F275W')).to('Hz').value
     graham_data = pd.read_csv(Path('ref/Graham_observations.csv'), index_col=0)
     detections = graham_data[graham_data['Detection']]
     markers = ['X', '*']
     colors = ['y', 'r']
+    sizes = [64, 81]
     for i, sn_name in enumerate(detections.index):
         obs = GrahamObservation(sn_name, graham_data)
         ax.scatter(obs.rest_phase, nu_hst * obs.luminosity_hz, marker=markers[i], 
                 color=colors[i], edgecolors='k', label='%s (F275W)' % sn_name, 
-                zorder=10,  s=64)
+                zorder=10,  s=sizes[i])
 
     print('Plotting...')
 
