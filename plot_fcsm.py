@@ -385,6 +385,10 @@ def import_recovery(study, model, sigma, x_edges, y_edges, detections=False,
     # File names
     save_dir = run_dir(study, model, sigma, detections)
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+    # Make sure no additional save files are used
+    sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
+    if study == 'galex':
+        save_files = [s for s in save_files if fname2sn(s.name)[0] in sn_info.index]
     # Generate summed histogram
     print('Importing and summing %s saves from %s' % (study, save_dir))
     hist = sum_hist(save_files, x_edges, y_edges, save=False)

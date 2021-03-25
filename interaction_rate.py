@@ -28,8 +28,8 @@ def main(tstart, scale, model='Chev94', sigma=3, iterations=ITER, conf=CONF):
 
     # Get save directories
     galex_save_dir = run_dir('galex', model, sigma, detections=False)
-    graham_save_dir = run_dir('graham', model, sigma, detections=False)
-    graham_det_dir = run_dir('graham', model, sigma, detections=True)
+    graham_save_dir = run_dir('Graham', model, sigma, detections=False)
+    graham_det_dir = run_dir('Graham', model, sigma, detections=True)
 
     # Successes and trials
     rate_df.loc['GALEX', 'Trials'] = count_recovered_sne(galex_save_dir, tstart, 
@@ -76,7 +76,11 @@ def count_recovered_sne(save_dir, tstart, scale, iterations=ITER):
     """
 
     print('Importing recovery save files from %s' % save_dir)
+    sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
     save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+    # Make sure no additional save files are used
+    if 'galex' in str(save_dir):
+        save_files = [s for s in save_files if fname2sn(s.name)[0] in sn_info.index]
     recovered_sne = 0
     with Pool() as pool:
         func = partial(get_recovery_rate, tstart=tstart, scale=scale)

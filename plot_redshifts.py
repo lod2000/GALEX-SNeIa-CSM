@@ -28,7 +28,7 @@ ax.grid(b=True, which='major', axis='y', color='w', lw=1)
 
 ax.set_xlabel('Redshift')
 ax.set_ylabel('Number of SNe Ia')
-ax.set_ylim((None, 110))
+ax.set_ylim((None, 85))
 
 plt.tight_layout(pad=0.3)
 

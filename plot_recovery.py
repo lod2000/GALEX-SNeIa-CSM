@@ -263,6 +263,11 @@ def get_histograms(study, model, x_edges, y_edges, sigma=SIGMA, detections=False
         # List of files in save dir
         save_dir = run_dir(study, model, sigma)
         save_files = list(Path(save_dir).glob('*-%s.csv' % iterations))
+        
+        # Make sure no additional save files are used
+        sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
+        if study == 'galex':
+            save_files = [s for s in save_files if fname2sn(s.name)[0] in sn_info.index]
 
         hist = sum_hist(save_files, x_edges, y_edges, output_file=hist_file)
 
