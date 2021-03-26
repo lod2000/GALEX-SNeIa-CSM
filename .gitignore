@@ -1,6 +1,9 @@
 # Save files
 save/**
 
+# Tokens
+ref/ads_token
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

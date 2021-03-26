@@ -1,0 +1,33 @@
+\movetabledown=2in
+\begin{rotatetable*}
+\newcolumntype{z}{>{\raggedright\arraybackslash}p{1.75in}}
+\begin{deluxetable*}{lcllrRrrDr@{$\pm$}llz}
+\tablecaption{\normalsize Basic information for our sample of \sneia.
+\label{tab:Targets}}
+\tablewidth{0pt}
+\tabletypesize{\footnotesize}
+\tablehead{
+\colhead{Target Name} & \colhead{Disc. Date} & \colhead{R.A.} & \colhead{Dec.} &  
+\colhead{Obs.\tablenotemark{1}} & \colhead{$t_\text{first}$\tablenotemark{2}} & 
+\colhead{$t_\text{last}$\tablenotemark{3}} & \colhead{$t_\text{next}$\tablenotemark{4}} & 
+\multicolumn2c{Redshift} & \multicolumn2c{Distance} & \colhead{$A_V$\tablenotemark{5}} & \colhead{Reference(s)}
+\vspace{-6pt} \\
+\colhead{} & \colhead{} & \colhead{[h:m:s]} & \colhead{[d:m:s]} &
+\colhead{} & \colhead{[days]} & 
+\colhead{[days]} & \colhead{[days]} & 
+\multicolumn2c{} & \multicolumn2c{[Mpc]} & \colhead{[mag]} & \colhead{}
+}
+\decimals
+\startdata
+===
+\enddata
+\tablenotetext{1}{Number of \galex observations in both bands}
+\tablenotetext{2}{Number of days between the first \galex observation in either band and the discovery date}
+\tablenotetext{3}{Number of days between the discovery date and the last \galex observation in either band}
+\tablenotetext{4}{Number of days between the discovery date and the next \galex observation in either band}
+\tablenotetext{5}{$V$-band galactic absorption}
+\tablenotetext{a}{Offset between NED entry and \galex sky coordinates is larger than 30 kpc}
+\tablenotetext{b}{Redshift-independent distance from \citet{Tully2016-Cosmicflows3}}
+\tablecomments{The complete table will be available as supplementary material. A portion is shown here for guidance regarding its form and content.}
+\end{deluxetable*}
+\end{rotatetable*}

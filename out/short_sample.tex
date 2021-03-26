@@ -1,0 +1,51 @@
+\movetabledown=2in
+\begin{rotatetable*}
+\newcolumntype{z}{>{\raggedright\arraybackslash}p{1.75in}}
+\begin{deluxetable*}{lcllrRrrDr@{$\pm$}llz}
+\tablecaption{\normalsize Basic information for our sample of \sneia.
+\label{tab:Targets}}
+\tablewidth{0pt}
+\tabletypesize{\small}
+\tablehead{
+\colhead{Target Name} & \colhead{Disc. Date} & \colhead{R.A.} & \colhead{Dec.} &  
+\colhead{Obs.\tablenotemark{1}} & \colhead{$t_\text{first}$\tablenotemark{2}} & 
+\colhead{$t_\text{last}$\tablenotemark{3}} & \colhead{$t_\text{next}$\tablenotemark{4}} & 
+\multicolumn2c{Redshift} & \multicolumn2c{Distance} & \colhead{$A_V$\tablenotemark{5}} & \colhead{Reference(s)}
+\vspace{-6pt} \\
+\colhead{} & \colhead{} & \colhead{[h:m:s]} & \colhead{[d:m:s]} &
+\colhead{} & \colhead{[days]} & 
+\colhead{[days]} & \colhead{[days]} & 
+\multicolumn2c{} & \multicolumn2c{[Mpc]} & \colhead{[mag]} & \colhead{}
+}
+\decimals
+\startdata
+ESSENCEg097 &  2004-10-05 &   $23:27:37.16$ &       $-09:35:21$ &            23 &           -407 &          2181 &           357 &    0.343 &       1464 &            103 &  0.086 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEg142 &  2004-10-09 &    $23:28:37.7$ &       $-08:45:04$ &            16 &            -35 &          2177 &           353 &    0.404 &       1725 &            121 &  0.078 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEg230 &  2004-10-17 &   $01:11:56.31$ &     $+00:07:27.7$ &            19 &           -376 &          2532 &          1081 &    0.392 &       1674 &            117 &  0.084 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEm027 &  2005-09-26 &   $01:09:15.01$ &     $+00:08:14.8$ &            14 &           -720 &          1870 &           742 &    0.289 &       1233 &             86 &  0.078 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEm043 &  2005-09-26 &   $23:29:51.73$ &     $-08:56:46.1$ &            16 &           -387 &          1825 &             1 &    0.266 &       1134 &             80 &  0.080 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEm062 &  2005-09-25 &  $01:09:52.902$ &    $+00:36:19.03$ &            14 &           -719 &          1829 &           729 &    0.314 &       1340 &             94 &  0.067 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEm075 &  2005-09-26 &   $23:24:42.29$ &     $-08:29:08.7$ &            16 &           -708 &          2209 &           360 &    0.102 &        423 &             30 &  0.099 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEn263 &  2005-11-22 &   $02:05:14.95$ &     $-04:56:39.1$ &            40 &           -410 &          1820 &          1421 &  0.36264 &       1549 &            109 &  0.070 &                                          \citet{2016SDSSD.C...0000:} \\
+ESSENCEn278 &  2005-11-24 &   $23:28:17.55$ &     $-09:23:12.4$ &            22 &           -446 &          1766 &           296 &    0.304 &       1297 &             91 &  0.109 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEn326 &  2005-11-24 &   $23:29:58.59$ &     $-08:53:12.5$ &            16 &           -446 &          1766 &           291 &  0.26316 &       1128 &             79 &  0.082 &  \citet{2007SDSS6.C...0000:,2004SDSS3.C...0000:,2007ApJ...660..239K} \\
+ESSENCEn400 &  2005-11-26 &   $01:13:13.26$ &     $-00:23:25.9$ &            16 &           -781 &          1767 &           676 &    0.424 &       1811 &            127 &  0.085 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEp425 &  2005-11-24 &   $23:29:56.19$ &     $-08:34:24.3$ &            20 &           -767 &          1766 &           291 &    0.458 &       1956 &            137 &  0.085 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEp434 &  2005-11-24 &   $01:12:40.25$ &     $+00:14:56.6$ &            15 &           -779 &          2129 &           683 &    0.339 &       1447 &            101 &  0.094 &                                          \citet{2007ApJ...666..674M} \\
+ESSENCEq002 &  2006-09-16 &  $02:05:12.945$ &   $-03:39:00.723$ &            15 &          -1029 &          1546 &            64 &   0.3469 &       1482 &            104 &  0.064 &                                          \citet{2016ApJS..224....3N} \\
+ESSENCEq022 &  2006-09-11 &  $01:12:03.864$ &  $-00:01:28.9452$ &            19 &          -1070 &          1838 &           387 &  0.22637 &        965 &             68 &  0.083 &                      \citet{2007SDSS6.C...0000:,2016SDSSD.C...0000:} \\
+ESSENCEr185 &  2006-10-31 &  $01:11:48.245$ &    $-00:29:49.46$ &            12 &          -1120 &          1428 &           337 &  0.18011 &        767 &             54 &  0.066 &                      \citet{2007SDSS6.C...0000:,2016SDSSD.C...0000:} \\
+ESSENCEr317 &  2006-11-14 &  $01:13:24.658$ &   $+00:51:27.757$ &            28 &           -778 &          1774 &           312 &   0.3361 &       1435 &            101 &  0.070 &                                          \citet{2016ApJS..224....3N} \\
+Hawk        &  2004-11-05 &   $12:35:41.16$ &    $+62:11:37.19$ &           211 &           -281 &          2315 &           163 &  0.49673 &       2129 &            149 &  0.031 &                    \citet{2011AandA...528A..35M,2004AJ....127.3121W} \\
+HST04Sas    &  2004-05-23 &  $12:36:54.125$ &    $+62:08:22.21$ &           213 &           -118 &          2481 &           329 &  0.44643 &       1914 &            134 &  0.031 &                      \citet{2004ApJ...617..240K,2004AJ....127.3121W} \\
+\enddata
+\tablenotetext{1}{Number of \galex observations in both bands}
+\tablenotetext{2}{Number of days between the first \galex observation in either band and the discovery date}
+\tablenotetext{3}{Number of days between the discovery date and the last \galex observation in either band}
+\tablenotetext{4}{Number of days between the discovery date and the next \galex observation in either band}
+\tablenotetext{5}{$V$-band galactic absorption}
+\tablenotetext{a}{Offset between NED entry and \galex sky coordinates is larger than 30 kpc}
+\tablenotetext{b}{Redshift-independent distance from \citet{Tully2016-Cosmicflows3}}
+\tablecomments{The complete table will be available as supplementary material. A portion is shown here for guidance regarding its form and content.}
+\end{deluxetable*}
+\end{rotatetable*}
