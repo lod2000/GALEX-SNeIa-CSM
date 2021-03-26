@@ -140,6 +140,8 @@ class GrahamObservation:
         self.phase = self.info['Phase']
         # Convert observed phase to rest-frame phase
         self.rest_phase = 1/(1+self.z) * self.phase
+        # Extinction correction
+        self.mag_ext = self.info['Extinction Magnitude']
         # 50% limiting mag
         self.mag_lim = self.info['Limiting Magnitude']
         self.mag_lim_err = self.info['Limiting Magnitude Error']
@@ -161,7 +163,7 @@ class GrahamObservation:
         """Calculate upper limit on luminosity based on limiting magnitude."""
 
         # Calculate lower magnitude limit
-        sigma_lim = self.mag_lim - sigma * self.mag_lim_err
+        sigma_lim = self.mag_lim - self.mag_ext - sigma * self.mag_lim_err
         # Convert magnitude limit to flux limit
         flux_lim = 10 ** (-2/5 * sigma_lim) * zero_point * u.erg/u.cm**2/u.s/u.AA
         # Convert flux limit to luminosity limit
