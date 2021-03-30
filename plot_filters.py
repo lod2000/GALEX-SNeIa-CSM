@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from pathlib import Path
 
-fig, ax = plt.subplots(figsize=(3.25, 2.25))
+fig, ax = plt.subplots()
 
 # Import reference info
 ref = pd.read_csv(Path('ref/filters.csv'), index_col='name')
@@ -60,10 +60,10 @@ for name, f in ref.iterrows():
 ax.set_ylim((-pad_y, 1.2))
 ax.set_xlabel('Wavelength [Å]')
 ax.set_ylabel('Normalized Filter Response')
-ax.yaxis.set_ticklabels([])
+# ax.yaxis.set_ticklabels([])
 
 plt.tight_layout(pad=0.3)
 
-plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=300)
-plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=300)
-# plt.show()
+plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=600)
+plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=600)
+plt.show()
