@@ -50,7 +50,7 @@ def main(model, study, t_min=TSTART_MIN, t_max=TSTART_MAX, scale_min=SCALE_MIN,
             fname += '_det'
 
         print('Plotting recovery histogram...')
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(3.25, 2.5))
     
         hist, det_hist = get_histograms(study, model, x_edges, y_edges, 
                 detections=detections, upper_lim=upper_lim, 
