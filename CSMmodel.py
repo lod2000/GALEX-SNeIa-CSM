@@ -41,25 +41,15 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     fig, ax = plt.subplots(tight_layout=True)
 
     t = np.arange(tstart-1, tstart+500, 1)
-    csm_lum = csm_model(t, 0.)
+    csm_lum = csm_model(t, Z_2015cp)
     band = 'F275W'
-    ax.plot(t, csm_lum[band], label=band)
-
-    ax.spines['bottom'].set_bounds(tstart, tstart+500)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    ax.tick_params(axis='both', which='both', top=False, right=False)
-    x_minor_ticks = np.arange(tstart, tstart+500, 50)
-    ax.xaxis.set_minor_locator(ticker.FixedLocator(x_minor_ticks))
+    ax.plot(t, F275W_LAMBDA_EFF * csm_lum[band], label=band)
 
     ax.set_yscale('log')
-    ax.set_ylim((1e36, 4e37))
+    ax.set_ylim((2e39, 1.5e41))
     ax.set_xlabel('Time since discovery [days]')
-    ax.set_ylabel('Filter Luminosity [erg/s/Å]', rotation='horizontal', 
-            ha='left', va='top', y=1.1, labelpad=-5)
+    ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
 
-    plt.tight_layout()
     plt.savefig(Path('out/CSM_model.png'))
     plt.close()
 
@@ -156,8 +146,7 @@ class CSMmodel:
         return fluxes
 
 
-    def plot_redshift(self, show=False, save=True, fname='out/Chev94_redshift.pdf',
-            zmin=0., zmax=0.5, tstep=0.):
+    def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
         fig, ax = plt.subplots()
@@ -192,7 +181,8 @@ class CSMmodel:
 
         plt.tight_layout(pad=0.3)
 
-        plt.savefig(Path(fname))
+        plt.savefig(Path('out/Chev94_redshift.pdf'), dpi=300)
+        plt.savefig(Path('out/Chev94_redshift.png'), dpi=300)
         if show:
             plt.show()
         else:
@@ -319,6 +309,7 @@ class Chev94Model:
 
         if save: 
             plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
+            plt.savefig(Path('out/Chev94_spectrum.png'), dpi=300)
         if show:
             plt.show()
         else:

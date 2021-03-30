@@ -151,6 +151,7 @@ def main():
             handletextpad=0.5, handlelength=1.0, bbox_to_anchor=(0.5, 1.01))
 
     plt.savefig(Path('out/limits.pdf'), dpi=300)
+    plt.savefig(Path('out/limits.png'), dpi=300)
 
     plt.show()
 
