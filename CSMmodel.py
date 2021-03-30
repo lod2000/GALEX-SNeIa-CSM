@@ -146,8 +146,7 @@ class CSMmodel:
         return fluxes
 
 
-    def plot_redshift(self, show=False, save=True, fname='out/Chev94_redshift.pdf',
-            zmin=0., zmax=0.5, tstep=0.):
+    def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
         fig, ax = plt.subplots()
@@ -182,7 +181,8 @@ class CSMmodel:
 
         plt.tight_layout(pad=0.3)
 
-        plt.savefig(Path(fname))
+        plt.savefig(Path('out/Chev94_redshift.pdf'), dpi=300)
+        plt.savefig(Path('out/Chev94_redshift.png'), dpi=300)
         if show:
             plt.show()
         else:
@@ -309,6 +309,7 @@ class Chev94Model:
 
         if save: 
             plt.savefig(Path('out/Chev94_spectrum.pdf'), dpi=300)
+            plt.savefig(Path('out/Chev94_spectrum.png'), dpi=300)
         if show:
             plt.show()
         else:
