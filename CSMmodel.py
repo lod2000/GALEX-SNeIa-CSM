@@ -50,7 +50,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     ax.set_xlabel('Time since discovery [days]')
     ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
 
-    plt.savefig(Path('out/CSM_model.png'))
+    plt.savefig(Path('out/CSM_model.png'), dpi=300)
     plt.close()
 
     # Plot flat-spectrum model
