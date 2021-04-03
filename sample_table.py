@@ -29,6 +29,12 @@ def main():
     # table['dec'] = table['dec'].replace('+', '$+$')
     # print(table['dec'])
 
+    # Add table note about large host offsets
+    table['offset_note'] = ''
+    table.loc[sn_info['offset'] > 30, 'offset_note'] = '\tablenotemark{a}'
+    table['dec'] = table[['dec', 'offset_note']].agg(''.join, axis=1)
+    table.drop('offset_note', axis=1, inplace=True)
+
     # Format epochs
     table['delta_t_first'] = -1 * table['delta_t_first']
 
@@ -39,8 +45,6 @@ def main():
 
     # Format references
     table['refs'] = sn_info[ref_cols].astype('str').agg(';'.join, axis=1)
-
-    # print(table)
 
     # Check for BibTeX file
     overwrite = True
@@ -74,10 +78,45 @@ def main():
 
     # Output full LaTeX table
     to_latex(table)
+    print('Output full table')
 
     # Output short LaTeX table
     short_table = table.iloc[0:SHORT_TABLE_LENGTH]
     to_latex(short_table, fname=SHORT_TABLE_FILE)
+    print('Output short table to %s' % SHORT_TABLE_FILE)
+
+    # Output CSV for machine-readable table
+    # Machine-readable columns
+    mr_cols = ['Disc.Y', 'Disc.M', 'Disc.D', 'r_Disc.D', 'RAh', 'RAm', 'RAs',
+            'DE-', 'DEd', 'DEm', 'DEs', 'f_DEs', 'Obs', 'tFirst', 'tLast', 'tNext', 
+            'z', 'r_z', 'Dist', 'e_Dist', 'r_Dist', 'VExt']
+    mr_tab = pd.DataFrame(columns=mr_cols, index=pd.Series(table.index, name='Name'))
+    # Split discovery date into Y, M, D
+    mr_tab[['Disc.Y', 'Disc.M', 'Disc.D']] = table.disc_date.str.split('-', expand=True)
+    # Discovery reference
+    mr_tab['r_Disc.D'] = sn_info['posn_ref']
+    # Split RA
+    mr_tab[['RAh', 'RAm', 'RAs']] = table.ra.str.replace('$', '').str.split(':', expand=True)
+    # Split Dec
+    mr_tab[['DEd', 'DEm', 'DEs']] = table.dec.str.replace('$', '').str.split(':', expand=True)
+    mr_tab['DE-'] = mr_tab.DEd.str[:1]
+    mr_tab['DEd'] = mr_tab.DEd.str[1:]
+    # Offset flag
+    mr_tab[['DEs', 'f_DEs']] = mr_tab.DEs.str.split('\tablenotemark{', expand=True)
+    mr_tab['f_DEs'] = mr_tab.f_DEs.str.replace('}', '')
+    # GALEX observations relative to disc date
+    mr_tab[['Obs', 'tFirst', 'tLast', 'tNext']] = table[['epochs_total', 
+            'delta_t_first', 'delta_t_last', 'delta_t_next']]
+    # Redshift, distance and distance error
+    mr_tab[['z', 'Dist', 'e_Dist']] = table[['z', 'pref_dist', 'pref_dist_err']]
+    # References
+    mr_tab[['r_z', 'r_Dist']] = sn_info[['z_ref', 'pref_dist_ref']]
+    # Extinction
+    mr_tab['VExt'] = table['a_v']
+    
+    mr_tab.to_csv(Path('out/sample_mr.csv'))
+    print('Output machine-readable CSV')
+    print(mr_tab)
 
 
 def to_latex(table, fname=LATEX_TABLE_FILE, template=LATEX_TABLE_TEMPLATE):
