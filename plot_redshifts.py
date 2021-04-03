@@ -18,7 +18,7 @@ z = sn_info['z']
 z = z[pd.notna(z)].astype(float)
 bins = int((z_max - z_min) / bin_width)
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(3.5, 2.25))
 
 hist = ax.hist(z, bins=bins, range=(z_min, z_max), histtype='bar', color=color)
 
