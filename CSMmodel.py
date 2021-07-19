@@ -5,6 +5,8 @@ import matplotlib.ticker as ticker
 import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
+import astropy.units as u
+from astropy.constants import c
 from utils import *
 
 W0 = 1000. #model wwavelength start
@@ -178,6 +180,14 @@ class CSMmodel:
 
         ax.set_xlabel('Redshift')
         ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
+
+        # Twin axis for conversion to flux
+        # assumes H0=70 km/s/Mpc, flat cosmology, no extinction
+        fax = ax.twinx()
+        ylim = np.array(ax.get_ylim())
+        # Realizing I can't twin the y axis because flux depends on z which is
+        # plotted on the x axis
+        # ylim_flux = luminosity2flux(ylim, )
 
         plt.tight_layout(pad=0.3)
 
@@ -358,6 +368,14 @@ def gen_spectrum(wl, vwidth):
     gauss = GaussianModel()
     fl = gauss.eval(x=arr, center=wl, sigma=wl*vwidth/3e5, amplitude=1.)
     return fl
+
+
+def luminosity2flux(luminosity, z, H0=70):
+    """Convert luminosity to observed flux, assuming flat cosmology."""
+
+    dist = c.to('km/s') * z / (H0 * u.km / u.s / u.Mpc)
+    flux = luminosity / (4 * np.pi * dist.to('cm')**2 * (1+z)**3)
+    return flux
 
 
 if __name__=='__main__':
