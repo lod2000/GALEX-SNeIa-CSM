@@ -1,5 +1,5 @@
 Title: The Occurrence Rate of Type Ia-CSM supernovae
-Authors: L. Dubay, M. A. Tucker, A. Do, B. J. Shappee, G. S. Anand
+Authors: L. O. Dubay, M. A. Tucker, A. Do, B. J. Shappee, G. S. Anand
 Table: Basic information for our sample of Type Ia supernovae
 ================================================================================
 Byte-by-byte Description of file: datafile1.txt
