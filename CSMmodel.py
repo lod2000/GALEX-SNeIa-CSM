@@ -151,10 +151,10 @@ class CSMmodel:
     def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(3.25, 2.5))
 
         # Set up range of redshifts
-        z_vals = np.arange(0., 0.51, 0.01)
+        z_vals = np.arange(0.01, 0.51, 0.01)
         luminosity = {
             'FUV':[],
             'NUV':[],
@@ -171,28 +171,37 @@ class CSMmodel:
         for i, band in enumerate(['F275W', 'NUV', 'FUV']):
             l = lambda_eff[band]
             l_array = l * np.array(luminosity[band])
-            ax.plot(z_vals, l_array, color=COLORS[band], label=band, 
+            # Convert to flux based on redshift
+            f_array = luminosity2flux(l_array, z_vals)
+            # ax.plot(z_vals, l_array, color=COLORS[band], label=band, 
+            #         lw=1, ls=line_style[band])
+            ax.plot(z_vals, f_array, color=COLORS[band], label=band, 
                     lw=1, ls=line_style[band])
-            ax.text(z_vals[text_idx], luminosity[band][text_idx] * l*1.1, band, 
-                    color=COLORS[band], size=10, ha='center', va='bottom')
+            # ax.text(z_vals[text_idx], luminosity[band][text_idx] * l*1.1, band, 
+            #         color=COLORS[band], size=10, ha='center', va='bottom')
 
         ax.set_yscale('log')
 
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
+        # ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
+        ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
 
         # Twin axis for conversion to flux
         # assumes H0=70 km/s/Mpc, flat cosmology, no extinction
-        fax = ax.twinx()
-        ylim = np.array(ax.get_ylim())
+        # fax = ax.twinx()
+        # ylim = np.array(ax.get_ylim())
         # Realizing I can't twin the y axis because flux depends on z which is
         # plotted on the x axis
         # ylim_flux = luminosity2flux(ylim, )
 
         plt.tight_layout(pad=0.3)
 
-        plt.savefig(Path('out/Chev94_redshift.pdf'), dpi=300)
-        plt.savefig(Path('out/Chev94_redshift.png'), dpi=300)
+        plt.legend(fontsize=8)
+
+        # plt.savefig(Path('out/Chev94_redshift.pdf'), dpi=300)
+        # plt.savefig(Path('out/Chev94_redshift.png'), dpi=300)
+        plt.savefig(Path('out/Chev94_redshift_flux.pdf'), dpi=300)
+        plt.savefig(Path('out/Chev94_redshift_flux.png'), dpi=300)
         if show:
             plt.show()
         else:
