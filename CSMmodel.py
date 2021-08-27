@@ -1,8 +1,9 @@
 from pathlib import Path
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import ipdb
+# import ipdb
 from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
 import astropy.units as u
@@ -28,6 +29,8 @@ T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
 
+# print(matplotlib.matplotlib_fname())
+
 
 def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
@@ -38,6 +41,8 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
     csm_model.plot_redshift(save=True, show=show)
+    # also plot frequency and AB magnitude vs redshift
+    # csm_model.plot_redshift_flux(save=True, show=show)
 
     # Plot CSM light curve
     fig, ax = plt.subplots(tight_layout=True)
@@ -151,6 +156,75 @@ class CSMmodel:
     def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
+        fig, axs = plt.subplots(2, figsize=(3.25, 4), sharex=True)
+        
+        # Set up axes: top plot luminosity, bottom plot flux
+        lum_ax = axs[0]
+        flux_ax = axs[1]
+
+        # Set up range of redshifts
+        z_vals = np.arange(0.01, 0.51, 0.01)
+        luminosity = {
+            'FUV':[],
+            'NUV':[],
+            'F275W':[]
+        }
+        line_style = {'F275W': ':', 'NUV': '--', 'FUV': '-'}
+        lambda_eff = {'FUV': 1549., 'NUV': 2304.7, 'F275W': 2714.65}
+
+        for z in z_vals:
+            f = self(self.tstart + tstep, z)
+            for band, fl in f.items(): luminosity[band].append(fl)
+            
+
+        text_idx = 42
+        for i, band in enumerate(['F275W', 'NUV', 'FUV']):
+            l = lambda_eff[band]
+            l_array = l * np.array(luminosity[band])
+            # Convert to flux based on redshift
+            lum_ax.plot(z_vals, l_array, color=COLORS[band], label=band, 
+                    lw=1, ls=line_style[band])
+            # lum_ax.text(z_vals[text_idx], luminosity[band][text_idx] * l*1.1, band, 
+            #         color=COLORS[band], size=10, ha='center', va='bottom')
+            # Convert to flux based on redshift
+            f_array = luminosity2flux(l_array, z_vals)
+            flux_ax.plot(z_vals, f_array, color=COLORS[band], label=band, 
+                    lw=1, ls=line_style[band])
+        
+        # Configure top plot
+        lum_ax.set_yscale('log')
+        # lum_ax.set_xlabel('Redshift')
+        lum_ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
+        
+        # Configure bottom plot
+        flux_ax.set_yscale('log')
+        flux_ax.set_xlabel('Redshift')
+        flux_ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
+
+        # Twin axis for conversion to AB magnitudes
+        mag_ax = flux_ax.twinx()
+        ylim_flux = np.array(flux_ax.get_ylim())
+        ylim_mag = flux2mag(ylim_flux, band)
+        mag_ax.set_ylim(ylim_mag)
+        mag_ax.set_ylabel('AB magnitude', rotation=270, labelpad=12)
+        
+        # Legend
+        handles, labels = lum_ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc='upper right', fontsize=7, handlelength=1.)
+
+        plt.tight_layout(pad=0.5)
+        plt.subplots_adjust(hspace=0.05, right=0.85)
+
+        plt.savefig(Path('out/Chev94_redshift2.pdf'), dpi=300)
+        plt.savefig(Path('out/Chev94_redshift2.png'), dpi=300)
+        if show:
+            plt.show()
+        else:
+            plt.close()
+    
+    def plot_redshift_flux(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
+        """Plot filter luminosity vs redshift."""
+
         fig, ax = plt.subplots(figsize=(3.25, 2.5))
 
         # Set up range of redshifts
@@ -173,33 +247,25 @@ class CSMmodel:
             l_array = l * np.array(luminosity[band])
             # Convert to flux based on redshift
             f_array = luminosity2flux(l_array, z_vals)
-            # ax.plot(z_vals, l_array, color=COLORS[band], label=band, 
-            #         lw=1, ls=line_style[band])
             ax.plot(z_vals, f_array, color=COLORS[band], label=band, 
                     lw=1, ls=line_style[band])
-            # ax.text(z_vals[text_idx], luminosity[band][text_idx] * l*1.1, band, 
-            #         color=COLORS[band], size=10, ha='center', va='bottom')
 
         ax.set_yscale('log')
 
         ax.set_xlabel('Redshift')
-        # ax.set_ylabel('$\lambda L_\lambda$ [erg s$^{-1}$]')
         ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
-
-        # Twin axis for conversion to flux
-        # assumes H0=70 km/s/Mpc, flat cosmology, no extinction
-        # fax = ax.twinx()
-        # ylim = np.array(ax.get_ylim())
-        # Realizing I can't twin the y axis because flux depends on z which is
-        # plotted on the x axis
-        # ylim_flux = luminosity2flux(ylim, )
-
-        plt.tight_layout(pad=0.3)
 
         plt.legend(fontsize=8)
 
-        # plt.savefig(Path('out/Chev94_redshift.pdf'), dpi=300)
-        # plt.savefig(Path('out/Chev94_redshift.png'), dpi=300)
+        # Twin axis for conversion to AB magnitudes
+        mag_ax = ax.twinx()
+        ylim_flux = np.array(ax.get_ylim())
+        ylim_mag = flux2mag(ylim_flux, band)
+        mag_ax.set_ylim(ylim_mag)
+        mag_ax.set_ylabel('AB magnitude', rotation=270, labelpad=12)
+
+        plt.tight_layout(pad=0.3)
+
         plt.savefig(Path('out/Chev94_redshift_flux.pdf'), dpi=300)
         plt.savefig(Path('out/Chev94_redshift_flux.png'), dpi=300)
         if show:
@@ -229,6 +295,19 @@ def filter_flux(band, wl, flux):
     # Integrate total observed flux and normalize by filter response
     filter_flux = np.trapz(obs_fl) / np.trapz(filt(wl)) # erg/s/A
     return filter_flux
+
+
+# Conversion from fluxes to AB magnitudes in GALEX
+def effective_wavelength(band):
+    """Return effective wavelength of given GALEX/Swift/HST/CfA4 band."""
+    vals = {'FUV': 1549, 'NUV': 2304.7, 'F275W': 2714.65}
+    return np.vectorize(vals.get)(band) * u.AA
+
+def flux2mag(f_lambda, band):
+    """Convert flux values to AB magnitudes."""
+    f_nu = effective_wavelength(band)**2 / c.to('AA/s') * f_lambda
+    m_ab = -2.5 * np.log10(f_nu.value) - 48.6
+    return m_ab
 
 
 class Chev94Model:
