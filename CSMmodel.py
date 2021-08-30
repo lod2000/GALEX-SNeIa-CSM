@@ -156,7 +156,7 @@ class CSMmodel:
     def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
-        fig, axs = plt.subplots(2, figsize=(3.25, 4), sharex=True)
+        fig, axs = plt.subplots(2, figsize=(3.25, 4.), sharex=True)
         
         # Set up axes: top plot luminosity, bottom plot flux
         lum_ax = axs[0]
@@ -191,6 +191,9 @@ class CSMmodel:
             flux_ax.plot(z_vals, f_array, color=COLORS[band], label=band, 
                     lw=1, ls=line_style[band])
         
+        # Configure x-axis
+        lum_ax.xaxis.set_major_locator(ticker.MultipleLocator(0.1))
+        
         # Configure top plot
         lum_ax.set_yscale('log')
         # lum_ax.set_xlabel('Redshift')
@@ -200,6 +203,10 @@ class CSMmodel:
         flux_ax.set_yscale('log')
         flux_ax.set_xlabel('Redshift')
         flux_ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
+        flux_ax.yaxis.set_major_locator(
+                ticker.FixedLocator([1e-13, 1e-14, 1e-15, 1e-16, 1e-17])
+        )
+        flux_ax.yaxis.set_minor_locator(ticker.NullLocator())
 
         # Twin axis for conversion to AB magnitudes
         mag_ax = flux_ax.twinx()
@@ -207,13 +214,19 @@ class CSMmodel:
         ylim_mag = flux2mag(ylim_flux, band)
         mag_ax.set_ylim(ylim_mag)
         mag_ax.set_ylabel('AB magnitude', rotation=270, labelpad=12)
+        mag_ax.yaxis.set_major_locator(ticker.MultipleLocator(4))
         
         # Legend
         handles, labels = lum_ax.get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper right', fontsize=7, handlelength=1.)
-
-        plt.tight_layout(pad=0.5)
-        plt.subplots_adjust(hspace=0.05, right=0.85)
+        # fig.legend(handles, labels, loc='lower left', ncol=3,
+        #            bbox_to_anchor=(0., 1.02, 1., .102), fontsize=7, 
+        #            handlelength=1., mode='expand', borderaxespad=0.)
+        fig.legend(handles, labels, loc='upper center', ncol=3, #bbox_to_anchor=(1.05, 0.95), 
+            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
+        
+        plt.tight_layout(pad=0.3)
+        plt.subplots_adjust(hspace=0.05, right=0.85, left=0.2, top=0.9)
+        # plt.tight_layout()
 
         plt.savefig(Path('out/Chev94_redshift2.pdf'), dpi=300)
         plt.savefig(Path('out/Chev94_redshift2.png'), dpi=300)
