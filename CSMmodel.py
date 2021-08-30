@@ -156,7 +156,7 @@ class CSMmodel:
     def plot_redshift(self, show=False, save=True, zmin=0., zmax=0.5, tstep=0.):
         """Plot filter luminosity vs redshift."""
 
-        fig, axs = plt.subplots(2, figsize=(3.25, 4.), sharex=True)
+        fig, axs = plt.subplots(2, figsize=(3.25, 3.5), sharex=True)
         
         # Set up axes: top plot luminosity, bottom plot flux
         lum_ax = axs[0]
@@ -221,11 +221,11 @@ class CSMmodel:
         # fig.legend(handles, labels, loc='lower left', ncol=3,
         #            bbox_to_anchor=(0., 1.02, 1., .102), fontsize=7, 
         #            handlelength=1., mode='expand', borderaxespad=0.)
-        fig.legend(handles, labels, loc='upper center', ncol=3, #bbox_to_anchor=(1.05, 0.95), 
-            handletextpad=0.5, handlelength=1., borderpad=0.3, fontsize=9)
+        fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.03), 
+            handletextpad=0.5, handlelength=1., borderpad=0.5, fontsize=8)
         
         plt.tight_layout(pad=0.3)
-        plt.subplots_adjust(hspace=0.05, right=0.85, left=0.2, top=0.9)
+        plt.subplots_adjust(hspace=0.05, right=0.88, left=0.17, top=0.92, bottom=0.1)
         # plt.tight_layout()
 
         plt.savefig(Path('out/Chev94_redshift2.pdf'), dpi=300)
@@ -321,6 +321,13 @@ def flux2mag(f_lambda, band):
     f_nu = effective_wavelength(band)**2 / c.to('AA/s') * f_lambda
     m_ab = -2.5 * np.log10(f_nu.value) - 48.6
     return m_ab
+
+def luminosity2flux(luminosity, z, H0=70):
+    """Convert luminosity to observed flux, assuming flat cosmology."""
+
+    dist = c.to('km/s') * z / (H0 * u.km / u.s / u.Mpc)
+    flux = luminosity / (4 * np.pi * dist.to('cm')**2 * (1+z)**3)
+    return flux
 
 
 class Chev94Model:
@@ -469,14 +476,6 @@ def gen_spectrum(wl, vwidth):
     gauss = GaussianModel()
     fl = gauss.eval(x=arr, center=wl, sigma=wl*vwidth/3e5, amplitude=1.)
     return fl
-
-
-def luminosity2flux(luminosity, z, H0=70):
-    """Convert luminosity to observed flux, assuming flat cosmology."""
-
-    dist = c.to('km/s') * z / (H0 * u.km / u.s / u.Mpc)
-    flux = luminosity / (4 * np.pi * dist.to('cm')**2 * (1+z)**3)
-    return flux
 
 
 if __name__=='__main__':
