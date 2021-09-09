@@ -16,7 +16,8 @@ from utils import *
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 #LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
-LC_DIR = Path('data')
+# LC_DIR = Path('data')
+LC_DIR = Path('historical_LCs')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
