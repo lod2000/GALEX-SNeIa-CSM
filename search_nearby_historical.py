@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
-import os
 from pathlib import Path
-
-from observations import GalexObservation
 
 OSC_FILE = Path('ref/osc.csv')
 OBS_FILE = Path('out/observations.csv')
