@@ -18,6 +18,8 @@ DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 #LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
 # LC_DIR = Path('data')
 LC_DIR = Path('historical_LCs')
+REF_FILE = Path('ref/sn_info.csv') # SN info reference database
+# REF_FILE = Path('out/nearby_historical.csv')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
@@ -45,8 +47,9 @@ DETRAD_CUT = 0.6 # detector radius cut in degrees
 def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT, tmax=4000, 
         pad=0, swift=False, cfa=False, legend_col=3, all_points=False):
 
-    sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
-    sn = Supernova(sn_name, sn_info=sn_info)
+    # sn_info = pd.read_csv(Path('ref/sn_info.csv'), index_col='name')
+    sn_info = pd.read_csv(REF_FILE, index_col='name')
+    sn = Supernova(sn_name, sn_info=sn_info, ref_file=REF_FILE)
 
     detect_cols = ['t_delta_rest', 'flux_hostsub', 'flux_hostsub_err', 
         'luminosity_hostsub', 'luminosity_hostsub_err']
@@ -97,6 +100,7 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
     """
 
     fig, ax = plt.subplots(figsize=(4, 2))
+    # fig, ax = plt.subplots(figsize=(8, 4))
 
     # Plot Swift data data
     if swift:
@@ -114,12 +118,17 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
     for band in ['FUV', 'NUV']:
         try:
             lc = LightCurve(sn, band)
-            # Pre-SN obs.
-            before = lc.data[lc('t_delta_rest') <= DT_MIN]
-            ymin.append(effective_wavelength(band).value * lc.bg / 1.5)
-            bg_max = max(bg_max, lc.bg)
+            
+            if lc.data['t_delta_rest'].iloc[0] < 0:
+                # Pre-SN obs.
+                before = lc.data[lc('t_delta_rest') <= DT_MIN]
+                ymin.append(effective_wavelength(band).value * lc.bg / 1.5)
+                bg_max = max(bg_max, lc.bg)
+                plot_bg = True
+            else:
+                plot_bg = False
 
-            ax = plot_lc(ax, lc, tmax, all_points)
+            ax = plot_lc(ax, lc, tmax, all_points, plot_bg)
         except FileNotFoundError:
             # No data for this channel
             continue
@@ -134,7 +143,8 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
     ax.set_yscale('log')
     ax.tick_params(axis='y', which='major', left=False)
     ax.set_ylabel('$\lambda F_\lambda$ [erg s$^{-1}$ cm$^{-2}$]')
-    ax.set_ylim((np.min(ymin), None))
+    if len(ymin) > 0:
+        ax.set_ylim((np.min(ymin), None))
 
     # Adjust limits
     xlim = np.array(ax.get_xlim())
@@ -225,14 +235,14 @@ class LightCurve:
     def from_file(self, fname, **kwargs):
         """Initialize LightCurve from file name."""
         sn_name, self.band = fname2sn(fname)
-        sn = Supernova(sn_name)
+        sn = Supernova(sn_name, ref_file=REF_FILE)
         return LightCurve(sn, self.band, **kwargs)
     
 
     @classmethod
     def from_name(self, sn_name, band, sn_info=[], **kwargs):
         """Initialize LightCurve from SN name rather than Supernova instance."""
-        sn = Supernova(sn_name, sn_info=sn_info)
+        sn = Supernova(sn_name, sn_info=sn_info, ref_file=REF_FILE)
         return LightCurve(sn, band, **kwargs)
 
 
@@ -460,7 +470,7 @@ def import_light_curve(lc_file, detrad_cut=DETRAD_CUT, manual_cuts=[]):
 ################################################################################
 
 
-def plot_lc(ax, lc, tmax, all_points=False):
+def plot_lc(ax, lc, tmax, all_points=False, plot_bg=True):
 
     color = COLORS[lc.band]
     fill = {'FUV': 'w', 'NUV': color}[lc.band]
@@ -473,21 +483,23 @@ def plot_lc(ax, lc, tmax, all_points=False):
     data_col = 'flux_bgsub'
     err_col = 'flux_bgsub_err_total'
 
-    # Pre-SN obs.
-    before = lc.data[lc(time_col) <= DT_MIN]
-
-    # Plot background average of epochs before discovery
-    ax.axhline(lambda_eff * lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, 
-            linestyle='--', linewidth=1
-    )
-    # 1-sigma range
-    bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
-    ax.axhspan(ymin=lambda_eff * (lc.bg - BG_SIGMA * bg_err), color=color,
-            ymax=lambda_eff * (lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA
-    )
+    if plot_bg:
+        # Pre-SN obs.
+        before = lc.data[lc(time_col) <= DT_MIN]
+    
+        # Plot background average of epochs before discovery
+        ax.axhline(lambda_eff * lc.bg, 0, 1, color=color, alpha=BG_LINE_ALPHA, 
+                linestyle='--', linewidth=1
+        )
+        # 1-sigma range
+        bg_err = np.sqrt(lc.bg_err**2 + lc.sys_err**2)
+        ax.axhspan(ymin=lambda_eff * (lc.bg - BG_SIGMA * bg_err), color=color,
+                ymax=lambda_eff * (lc.bg + BG_SIGMA * bg_err), alpha=BG_SPAN_ALPHA
+        )
 
     # Plot observed fluxes after discovery: detections
-    after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
+    # after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
+    after = lc.data[lc(time_col, tmax=tmax) > DT_MIN]
     # if 'all_points', plot points with error bars for all observations
     # otherwise, just plot detections with limits for everything else
     if all_points:
