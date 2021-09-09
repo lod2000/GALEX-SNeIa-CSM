@@ -559,6 +559,7 @@ def import_swift(sn_name, disc_date_mjd, z):
     lc['t_delta_rest'] = 1 / (1 + z) * lc['t_delta']
 
     # Convert CPS to flux
+    # From Breeveld et al 2011, Table 9
     flux_factor   = {'V': 2.614e-16, 'B': 1.472e-16, 'U': 1.63e-16, 
                      'UVW1': 4.3e-16, 'UVM2': 7.5e-16, 'UVW2': 6.0e-16}
     flux_error    = {'V': 8.7e-19, 'B': 5.7e-19, 'U': 2.5e-18,
