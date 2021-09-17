@@ -23,7 +23,7 @@ zero_point_nu = 3.63e-20 * f_nu_units
 zero_point_lambda = lambda l: zero_point_nu * const.c.to('AA Hz') * l**-2
 
 # import response curve
-response_table = np.genfromtxt('%s.resp' % BAND, delimiter=' ')
+response_table = np.genfromtxt(Path('ref/%s.resp' % BAND), delimiter=' ')
 wavelength = response_table[:,0] * u.angstrom
 effective_area = response_table[:,1] * u.cm**2
 
