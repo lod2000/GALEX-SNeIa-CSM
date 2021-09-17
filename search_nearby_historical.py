@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-OSC_FILE = Path('ref/osc.csv')
-OBS_FILE = Path('out/observations.csv')
-LC_DIR = Path('C:\\Users\\dubay.11\\Documents\\GALEXdata_v10\\LCs\\')
+OSC_FILE = Path('/home/dubay.11/Documents/Repos/GALEX-SNeIa-CSM/ref/osc.csv')
+OBS_FILE = Path('/home/dubay.11/Documents/Repos/GALEX-SNeIa-CSM/out/observations.csv')
+# LC_DIR = Path('C:\\Users\\dubay.11\\Documents\\GALEXdata_v10\\LCs\\')
 
 # Import list of SNe from Open Supernova Catalog
 osc = pd.read_csv(OSC_FILE, index_col='Name')
@@ -18,6 +18,9 @@ observations.index = pd.Series(id_col, name='id')
 post_disc = observations[observations['epochs_pre_disc'] == 0]
 # Combine above selections
 nearby_historical = post_disc[post_disc['sn_name'].isin(nearby.index)]
+# Count unique SNe
+unique = nearby_historical.drop_duplicates('sn_name')
+print('There are %s nearby historical SNe.' % unique.shape[0])
 # Limit to SNe with >=10 epochs
 nearby_historical = nearby_historical[nearby_historical['epochs_post_disc'] >= 10]
 
