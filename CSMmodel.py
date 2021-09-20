@@ -8,7 +8,7 @@ from lmfit.models import GaussianModel
 from scipy.interpolate import interp1d
 import astropy.units as u
 from astropy.constants import c
-from utils import *
+# from utils import *
 
 W0 = 1000. #model wwavelength start
 W1 = 3000. #model wavelength end
@@ -29,7 +29,8 @@ T0 = 0. #model time start
 T1 = 3000. #model time end
 DT = 0.1 #model time step
 
-# print(matplotlib.matplotlib_fname())
+# Plot color palette
+COLORS = {'FUV' : '#a37', 'NUV' : '#47a', 'F275W': '#e67'}
 
 
 def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
