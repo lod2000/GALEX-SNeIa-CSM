@@ -36,7 +36,7 @@ def main(tstart, twidth, decay_rate, scale, model='Chev94', show=False):
 
     # Plot Chev94 spectrum at original scale
     chev_model = Chev94Model(scale=scale/CHEV94_2015cp_SCALE)
-    chev_model.plot(0, save=True, show=show)
+    chev_model.plot(366., save=True, show=show)
 
     # Plot Chev94 model vs redshift
     csm_model = CSMmodel(tstart, twidth, decay_rate, scale=scale, model='Chev94')
@@ -421,7 +421,7 @@ class Chev94Model:
 
         ax.set_xlabel('Wavelength [Å]')
         # ax.set_ylabel('Luminosity [$10^{37}$ erg s$^{-1}$]')
-        ax.set_ylabel('Luminosity [erg s$^{-1}$]')
+        ax.set_ylabel('Luminosity [erg s$^{-1}$ Å$^{-1}$]')
 
         plt.tight_layout(pad=0.3)
 

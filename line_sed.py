@@ -38,5 +38,4 @@ def luminosity2flux(luminosity, z, H0=70):
 line_model = CSMmodel(0, 250, 0.3, scale=1, model='Chev94')
 line_lum = line_model(0, z)[band] * u.erg / u.s
 line_flux = luminosity2flux(line_lum, z)
-line_flux_density 
 print(line_flux)
