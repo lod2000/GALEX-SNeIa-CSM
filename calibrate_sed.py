@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 import astropy.constants as const
 import astropy.units as u
 from astropy.visualization import quantity_support
-from tqdm import tqdm
 from matplotlib import pyplot as plt
 from matplotlib import lines as mlines
 from CSMmodel import CSMmodel
@@ -43,23 +43,46 @@ zero_point_nu = 3.63e-20 * f_nu_units
 
 # Plot color palette
 colors = {'FUV' : '#a37', 'NUV' : '#47a', 'F275W': '#e67'}
+styles = {'FUV': '-', 'NUV': '--', 'F275W': ':'}
 
 # initialize CSM line emisison model
 line_model = CSMmodel(0, 250, 0.3, scale=1, model='Chev94')
 
-def main(plot=True):
-    
+def main(dz=0.001, plot=True, plot_dz=0.01):
+    """
+    Generate lookup table and plots for SED calibration.
+
+    Parameters
+    ----------
+    dz : float, optional
+        Step between redshift values for lookup table. The default is 0.001.
+    plot : bool, optional
+        Generate plots. The default is True.
+    plot_dz : float, optional
+        Step between redshift values for plot. The default is 0.01.
+
+    """
     # Convert HST luminosity of SN 2015cp to flux
     SN2015cp['f_lambda'] = luminosity2flux(SN2015cp['L_lambda'], SN2015cp['z'], 
                                            SN2015cp['dist'])
     # ratio of AB zero point mean flux density at z_15cp to flux of 15cp
     fratio_15cp = zero_point_mfd(SN2015cp['z'], 'F275W') / SN2015cp['f_lambda']
     
+    # Generate calibration lookup table
+    print('Generating calibration lookup table for...')
+    zarr = np.arange(0., 0.5+dz, dz)
+    calib_lookup = pd.DataFrame([], index=pd.Series(zarr, name='z'))
+    for band in ['FUV', 'NUV', 'F275W']:
+        print(band)
+        calib_lookup[band] = gen_calibration(zarr, band)
+    calib_lookup.to_csv(Path('ref/sed_calibration.csv'))
+    print('Complete!')
+    
     if plot:
+        print('Plotting SED flux comparison...')
         # Plot mean flux density of AB zero point and line-emission model
-        fig, ax = plt.subplots(dpi=300)
-        dz = 0.01
-        zarr = np.arange(0., 0.5, dz)
+        zarr = np.arange(0., 0.5+dz, plot_dz)
+        fig, ax = plt.subplots()
         with quantity_support():
             for band in ['FUV', 'NUV', 'F275W']:
                 ax.plot(zarr, zero_point_mfd(zarr, band) / fratio_15cp, 
@@ -72,34 +95,43 @@ def main(plot=True):
         ax.set_ylabel(f'Mean flux density [{farr.unit:latex_inline}]')
         ax.set_yscale('log')
         # Add marker for SN 2015cp redshift
-        ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0)
+        ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0, linewidth=1)
         ax.set_xticks(list(ax.get_xticks()[1:-1]) + [SN2015cp['z']])
         ax.set_xticklabels(list(np.round(ax.get_xticks()[:-1], 1)) + ['15cp'])
-        fig.legend(loc='lower center', ncol=3, bbox_to_anchor=(0.5, 1.))
+        fig.legend(loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.))
         # Custom second legend
         solid_line = mlines.Line2D([], [], color='k', linestyle='-')
         dashed_line = mlines.Line2D([], [], color='k', linestyle='--')
         fig.legend([solid_line, dashed_line], 
-                   ['Line-emission model', 'Scaled ZB zero point'],
-                   loc='lower center', ncol=2, bbox_to_anchor=(0.5, 0.9))
+                   ['Line-emission model', 'Scaled AB zero point'],
+                   loc='upper center', ncol=2, bbox_to_anchor=(0.5, 0.95),
+                   handlelength=1.)
+        plt.savefig(Path('out/sed_flux_comparison.png'), dpi=300)
         plt.show()
     
         # Plot calibration of each band
-        fig, ax = plt.subplots(dpi=300)
+        print('Plotting calibration by redshift...')
+        fig, ax = plt.subplots()
         for band in ['FUV', 'NUV', 'F275W']:
             ax.plot(zarr, gen_calibration(zarr, band), 
-                    label=band, color=colors[band])
+                    label=band, color=colors[band], linestyle=styles[band])
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('Calibration')
+        ax.set_ylabel('$F_{\lambda,\\rm{line}}/F_{\lambda,\\rm{AB}}$')
         ax.set_yscale('log')
         # Add horizontal marker at unity
-        ax.axhline(1, 0, 1, c='gray', zorder=0, linestyle=':')
+        ax.axhline(1, 0, 1, c='gray', zorder=0, linewidth=1)
         # Add marker for SN 2015cp redshift
-        ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0)
-        ax.set_xticks(list(ax.get_xticks()[1:-1]) + [SN2015cp['z']])
-        ax.set_xticklabels(list(np.round(ax.get_xticks()[:-1], 1)) + ['15cp'])
-        fig.legend(loc='lower center', ncol=3, bbox_to_anchor=(0.5, 0.9))
+        ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0, linewidth=1)
+        ax.text(SN2015cp['z'], 5., '15cp', fontsize=9, va='bottom', ha='center')
+        plt.tight_layout(pad=0.1)
+        plt.subplots_adjust(top=0.86)
+        fig.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 0.88),
+                   handletextpad=0.5, handlelength=1., borderpad=0.5, fontsize=8,
+                   borderaxespad=0.05)
+        plt.savefig(Path('out/sed_calibration.png'), dpi=300)
+        plt.savefig(Path('out/sed_calibration.pdf'), dpi=300)
         plt.show()
+        print('Done!')
 
 
 def gen_calibration(z, band):
@@ -108,7 +140,7 @@ def gen_calibration(z, band):
 
     Parameters
     ----------
-    z : float
+    z : float or numpy.ndarray
         Redshift of source, which scales the flux by (1+z)^-3.
     band : str
         Filter, one of 'FUV', 'NUV', or 'F275W'.
@@ -132,7 +164,7 @@ def zero_point_mfd(z, band):
 
     Parameters
     ----------
-    z : float
+    z : float or numpy.ndarray
         Redshift of source, which scales the flux by (1+z)^-3.
     band : str
         Filter, one of 'FUV', 'NUV', or 'F275W'.
