@@ -45,8 +45,9 @@ zero_point_nu = 3.63e-20 * f_nu_units
 colors = {'FUV' : '#a37', 'NUV' : '#47a', 'F275W': '#e67'}
 styles = {'FUV': '-', 'NUV': '--', 'F275W': ':'}
 
-# initialize CSM line emisison model
+# initialize CSM emisison models
 line_model = CSMmodel(0, 250, 0.3, scale=1, model='Chev94')
+flat_model = CSMmodel(0, 250, 0.3, scale=1, model='flat')
 
 def main(dz=0.001, plot=True, plot_dz=0.01):
     """
@@ -98,6 +99,8 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0, linewidth=1)
         ax.set_xticks(list(ax.get_xticks()[1:-1]) + [SN2015cp['z']])
         ax.set_xticklabels(list(np.round(ax.get_xticks()[:-1], 1)) + ['15cp'])
+        plt.tight_layout(pad=0.1)
+        plt.subplots_adjust(top=0.86)
         fig.legend(loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.))
         # Custom second legend
         solid_line = mlines.Line2D([], [], color='k', linestyle='-')
@@ -105,8 +108,10 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         fig.legend([solid_line, dashed_line], 
                    ['Line-emission model', 'Scaled AB zero point'],
                    loc='upper center', ncol=2, bbox_to_anchor=(0.5, 0.95),
-                   handlelength=1.)
+                   handletextpad=0.5, handlelength=1., borderpad=0.5, 
+                   fontsize=8, borderaxespad=0.05)
         plt.savefig(Path('out/sed_flux_comparison.png'), dpi=300)
+        plt.savefig(Path('out/sed_flux_comparison.pdf'), dpi=300)
         plt.show()
     
         # Plot calibration of each band
@@ -116,7 +121,7 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
             ax.plot(zarr, gen_calibration(zarr, band), 
                     label=band, color=colors[band], linestyle=styles[band])
         ax.set_xlabel('Redshift')
-        ax.set_ylabel('$F_{\lambda,\\rm{line}}/F_{\lambda,\\rm{AB}}$')
+        ax.set_ylabel('$\\bar F_{\lambda,\\rm{line}}/\\bar F_{\lambda,\\rm{AB}}$')
         ax.set_yscale('log')
         # Add horizontal marker at unity
         ax.axhline(1, 0, 1, c='gray', zorder=0, linewidth=1)
@@ -126,8 +131,8 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         plt.tight_layout(pad=0.1)
         plt.subplots_adjust(top=0.86)
         fig.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 0.88),
-                   handletextpad=0.5, handlelength=1., borderpad=0.5, fontsize=8,
-                   borderaxespad=0.05)
+                   handletextpad=0.5, handlelength=1., borderpad=0.5, 
+                   fontsize=8, borderaxespad=0.05)
         plt.savefig(Path('out/sed_calibration.png'), dpi=300)
         plt.savefig(Path('out/sed_calibration.pdf'), dpi=300)
         plt.show()
@@ -151,6 +156,9 @@ def gen_calibration(z, band):
         Scaled flux ratio.
 
     """
+    # Convert HST luminosity of SN 2015cp to flux
+    SN2015cp['f_lambda'] = luminosity2flux(SN2015cp['L_lambda'], SN2015cp['z'], 
+                                           SN2015cp['dist'])
     # ratio of AB zero point mean flux density at z_15cp to flux of 15cp
     fratio_15cp = zero_point_mfd(SN2015cp['z'], 'F275W') / SN2015cp['f_lambda']
     calibration = line_emission_flux(z, dist=SN2015cp['dist'], band=band)

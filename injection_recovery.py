@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from pathos.multiprocessing import ProcessingPool as Pool
 import dill
-import json
+# import json
 
 from utils import *
 from CSMmodel import CSMmodel
@@ -61,7 +61,7 @@ def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[],
         lcs = []
         for band in ['FUV', 'NUV']:
             try:
-                lc = LightCurve(sn, band, data_dir=DATA_DIR)
+                lc = LightCurve(sn, band, data_dir=DATA_DIR, sed=model)
             except:
                 # No data for this channel
                 continue
@@ -180,12 +180,13 @@ class Injection:
 
 
     @classmethod
-    def from_name(self, sn_name, band, tstart, scale, sn_info=[], **kwargs):
+    def from_name(self, sn_name, band, tstart, scale, sn_info=[], 
+                  model='Chev94', **kwargs):
         """Generate Injection instance from a supernova name and GALEX band,
         also creating a Supernova and LightCurve object in the process."""
 
         sn = Supernova(sn_name, sn_info=sn_info)
-        lc = LightCurve(sn, band)
+        lc = LightCurve(sn, band, sed=model)
         return Injection(sn, lc, tstart, scale, **kwargs)
 
 
