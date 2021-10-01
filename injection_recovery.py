@@ -68,6 +68,7 @@ def run_all(supernovae, iterations, tstart_lims, scale_lims, sn_info=[],
 
             # Skip if no data after minimum recovery time
             if np.max(lc.data['t_delta_rest']) < RECOV_MIN:
+                print('\tno %s data after minimum %s days past discovery, skipping' % (band, RECOV_MIN))
                 continue
 
             lcs.append(lc)
