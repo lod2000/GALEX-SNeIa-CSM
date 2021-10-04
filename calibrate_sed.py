@@ -45,11 +45,11 @@ zero_point_nu = 3.63e-20 * f_nu_units
 colors = {'FUV' : '#a37', 'NUV' : '#47a', 'F275W': '#e67'}
 styles = {'FUV': '-', 'NUV': '--', 'F275W': ':'}
 
-# initialize CSM emisison models
+# initialize CSM emission models
 line_model = CSMmodel(0, 250, 0.3, scale=1, model='Chev94')
 flat_model = CSMmodel(0, 250, 0.3, scale=1, model='flat')
 
-def main(dz=0.001, plot=True, plot_dz=0.01):
+def main(dz=0.001, plot=True, plot_dz=0.01, table=False, sed='Chev94'):
     """
     Generate lookup table and plots for SED calibration.
 
@@ -61,6 +61,11 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         Generate plots. The default is True.
     plot_dz : float, optional
         Step between redshift values for plot. The default is 0.01.
+    table : bool
+        Generate calibration lookup tables for each band. The default is False.
+    sed : str
+        Underlying CSM emission model, either 'Chev94' or 'flat'. The default
+        is 'Chev94'.
 
     """
     # Convert HST luminosity of SN 2015cp to flux
@@ -70,46 +75,57 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
     fratio_15cp = zero_point_mfd(SN2015cp['z'], 'F275W') / SN2015cp['f_lambda']
     
     # Generate calibration lookup table
-    print('Generating calibration lookup table for...')
-    zarr = np.arange(0., 0.5+dz, dz)
-    calib_lookup = pd.DataFrame([], index=pd.Series(zarr, name='z'))
-    for band in ['FUV', 'NUV', 'F275W']:
-        print(band)
-        calib_lookup[band] = gen_calibration(zarr, band)
-    calib_lookup.to_csv(Path('ref/sed_calibration.csv'))
-    print('Complete!')
+    if table:
+        print('Generating calibration lookup table for...')
+        zarr = np.arange(0., 0.5+dz, dz)
+        calib_lookup = pd.DataFrame([], index=pd.Series(zarr, name='z'))
+        for band in ['FUV', 'NUV', 'F275W']:
+            print(band)
+            calib_lookup[band] = gen_calibration(zarr, band)
+        calib_lookup.to_csv(Path('ref/sed_calibration.csv'))
+        print('Complete!')
     
     if plot:
         print('Plotting SED flux comparison...')
         # Plot mean flux density of AB zero point and line-emission model
-        zarr = np.arange(0., 0.5+dz, plot_dz)
-        fig, ax = plt.subplots()
+        zarr = np.arange(0., 0.5+plot_dz, plot_dz)
+        fig, ax = plt.subplots(figsize=(6.5, 4))
         with quantity_support():
             for band in ['FUV', 'NUV', 'F275W']:
+                # AB zeropoint
                 ax.plot(zarr, zero_point_mfd(zarr, band) / fratio_15cp, 
-                        color=colors[band], linestyle='--')
+                        color=colors[band], linestyle=':')
+                # Chev94 line-emission model
                 larr = np.array([line_model(0, z)[band] for z in zarr]) 
                 larr *= L_lambda_units
                 farr = luminosity2flux(larr, zarr, dist=SN2015cp['dist'])
                 ax.plot(zarr, farr, color=colors[band], label=band)
+            # flat CSM model (same for all bands)
+            larr = np.array([flat_model(0, z)[band] for z in zarr]) 
+            larr *= L_lambda_units
+            farr = luminosity2flux(larr, zarr, dist=SN2015cp['dist'])
+            ax.plot(zarr, farr, color='k', linestyle='--')
         ax.set_xlabel('Redshift')
         ax.set_ylabel(f'Mean flux density [{farr.unit:latex_inline}]')
         ax.set_yscale('log')
         # Add marker for SN 2015cp redshift
         ax.axvline(SN2015cp['z'], 0, 1, c='gray', zorder=0, linewidth=1)
-        ax.set_xticks(list(ax.get_xticks()[1:-1]) + [SN2015cp['z']])
-        ax.set_xticklabels(list(np.round(ax.get_xticks()[:-1], 1)) + ['15cp'])
+        ax.text(SN2015cp['z'], 9e-17, '15cp', fontsize=9, va='bottom', ha='center')
         plt.tight_layout(pad=0.1)
         plt.subplots_adjust(top=0.86)
-        fig.legend(loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.))
+        # fig.legend(loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.05))
         # Custom second legend
         solid_line = mlines.Line2D([], [], color='k', linestyle='-')
         dashed_line = mlines.Line2D([], [], color='k', linestyle='--')
-        fig.legend([solid_line, dashed_line], 
-                   ['Line-emission model', 'Scaled AB zero point'],
-                   loc='upper center', ncol=2, bbox_to_anchor=(0.5, 0.95),
+        dotted_line = mlines.Line2D([], [], color='k', linestyle=':')
+        FUV_line = mlines.Line2D([], [], color=colors['FUV'], linestyle='-')
+        NUV_line = mlines.Line2D([], [], color=colors['NUV'], linestyle='-')
+        F275W_line = mlines.Line2D([], [], color=colors['F275W'], linestyle='-')
+        fig.legend([FUV_line, solid_line, NUV_line, dashed_line, F275W_line, dotted_line], 
+                   ['FUV', 'Line-emission model', 'NUV', 'Flat spectrum model', 'F275W', 'Scaled AB zero point'],
+                   loc='upper right', ncol=3, bbox_to_anchor=(1., 1.),
                    handletextpad=0.5, handlelength=1., borderpad=0.5, 
-                   fontsize=8, borderaxespad=0.05)
+                   borderaxespad=0.05)
         plt.savefig(Path('out/sed_flux_comparison.png'), dpi=300)
         plt.savefig(Path('out/sed_flux_comparison.pdf'), dpi=300)
         plt.show()
@@ -118,7 +134,7 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         print('Plotting calibration by redshift...')
         fig, ax = plt.subplots()
         for band in ['FUV', 'NUV', 'F275W']:
-            ax.plot(zarr, gen_calibration(zarr, band), 
+            ax.plot(zarr, gen_calibration(zarr, band, sed=sed), 
                     label=band, color=colors[band], linestyle=styles[band])
         ax.set_xlabel('Redshift')
         ax.set_ylabel('$\\bar F_{\lambda,\\rm{line}}/\\bar F_{\lambda,\\rm{AB}}$')
@@ -133,13 +149,13 @@ def main(dz=0.001, plot=True, plot_dz=0.01):
         fig.legend(loc='lower right', ncol=3, bbox_to_anchor=(1., 0.88),
                    handletextpad=0.5, handlelength=1., borderpad=0.5, 
                    fontsize=8, borderaxespad=0.05)
-        plt.savefig(Path('out/sed_calibration.png'), dpi=300)
-        plt.savefig(Path('out/sed_calibration.pdf'), dpi=300)
+        plt.savefig(Path('out/sed_calibration_%s.png' % sed), dpi=300)
+        plt.savefig(Path('out/sed_calibration_%s.pdf' % sed), dpi=300)
         plt.show()
         print('Done!')
 
 
-def gen_calibration(z, band):
+def gen_calibration(z, band, sed='Chev94'):
     """
     Ratio of the line-emission flux density to the scaled AB zero point flux.
 
@@ -149,6 +165,9 @@ def gen_calibration(z, band):
         Redshift of source, which scales the flux by (1+z)^-3.
     band : str
         Filter, one of 'FUV', 'NUV', or 'F275W'.
+    sed : str
+        Underlying CSM emission model, either 'Chev94' or 'flat'. Default is
+        'Chev94'.
 
     Returns
     -------
@@ -161,7 +180,7 @@ def gen_calibration(z, band):
                                            SN2015cp['dist'])
     # ratio of AB zero point mean flux density at z_15cp to flux of 15cp
     fratio_15cp = zero_point_mfd(SN2015cp['z'], 'F275W') / SN2015cp['f_lambda']
-    calibration = line_emission_flux(z, dist=SN2015cp['dist'], band=band)
+    calibration = csm_model_flux(z, dist=SN2015cp['dist'], band=band, sed=sed)
     calibration /= zero_point_mfd(z, band) / fratio_15cp
     return calibration.value
 
@@ -226,9 +245,9 @@ def mean_flux_density(source_flux, throughput, wavelength):
     return mfd
 
 
-def line_emission_flux(z, dist=0., band='F275W'):
+def csm_model_flux(z, dist=0., band='F275W', sed='Chev94'):
     """
-    Calculate flux from CSM line-emission model in a given redshift and filter.
+    Calculate flux from CSM model in a given redshift and filter.
 
     Parameters
     ----------
@@ -241,19 +260,27 @@ def line_emission_flux(z, dist=0., band='F275W'):
         by the Hubble relation. The default is 0.
     band : str, optional
         Bandpass filter. Options are 'F275W' (default), 'FUV', or 'NUV'.
+    sed : str
+        Underlying CSM emission model, either 'Chev94' or 'flat'. Default is
+        'Chev94'.
 
     Returns
     -------
-    line_flux : astropy.units.quantity.Quantity
+    csm_flux : astropy.units.quantity.Quantity
         Spectral flux density per unit wavelength.
     """
-    if type(z) == np.ndarray:
-        line_lum = np.array([line_model(0, val)[band] for val in np.nditer(z)])
-        line_lum *= L_lambda_units
+    # Avoid initializing model more than necessary
+    if sed == 'Chev94':
+        csm_model = line_model
     else:
-        line_lum = line_model(0, z)[band] * L_lambda_units
-    line_flux = luminosity2flux(line_lum, z, dist=dist)
-    return line_flux
+        csm_model = flat_model
+    if type(z) == np.ndarray:
+        csm_lum = np.array([csm_model(0, val)[band] for val in np.nditer(z)])
+        csm_lum *= L_lambda_units
+    else:
+        csm_lum = csm_model(0, z)[band] * L_lambda_units
+    csm_flux = luminosity2flux(csm_lum, z, dist=dist)
+    return csm_flux
 
 
 def luminosity2flux(luminosity, z, dist=0., h0=H0):
@@ -307,7 +334,7 @@ def import_response_table(band):
     transmission : numpy.ndarray
         Filter transmission at each wavelength.
     effective_area : astropy.units.quantity.Quantity
-        Effective area (transmission times objective area) at each wavelength.
+        Effective area at each wavelength.
 
     """
     if band not in ['FUV', 'NUV', 'F275W']:
@@ -329,4 +356,10 @@ def import_response_table(band):
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', '-m', type=str, default='Chev94', 
+            help='CSM spectral model: "flat" or "Chev94", default "Chev94"')
+    args = parser.parse_args()
+    
+    main(sed=args.model)

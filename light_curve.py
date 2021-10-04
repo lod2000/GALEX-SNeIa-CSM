@@ -215,11 +215,8 @@ class LightCurve:
                 self.bg_err**2)
         
         # Correct for SED assumption
-        if sed == 'Chev94':
-            data['flux_hostsub'] *= gen_calibration(sn.z, band)
-        if sed == 'flat':
-            # TODO
-            pass
+        if sed != 'ab':
+            data['flux_hostsub'] *= gen_calibration(sn.z, band, sed=sed)
 
         # Calculate luminosity
         data = add_luminosity(data, sn, band)
