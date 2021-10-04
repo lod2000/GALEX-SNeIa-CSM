@@ -12,6 +12,7 @@ import astropy.units as u
 from utils import *
 from CSMmodel import CSMmodel
 from light_curve import freq2wavelength
+from calibrate_sed import gen_calibration
 
 # Default values & constants
 SIGMA = 3 # detection certainty
@@ -70,7 +71,7 @@ def run_all(supernovae, data, iterations, tstart_lims, scale_lims,
 
 
 def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True, 
-        save_dir='', **kwargs):
+        save_dir='', model='Chev94', **kwargs):
     """Run injection recovery a given number of times on one supernova.
     Inputs:
         sn_name: supernova name
@@ -82,7 +83,7 @@ def run_trials(sn_name, data, iterations, tstart_lims, scale_lims, save=True,
         recovery_df: DataFrame of injection parameters and recovered times
     """
 
-    obs = GrahamObservation(sn_name, data, sigma=3)
+    obs = GrahamObservation(sn_name, data, sigma=3, sed=model)
 
     # Random injection parameter sample
     params = gen_params(iterations, tstart_lims, scale_lims, log=True)
@@ -124,11 +125,12 @@ def inject_recover(params, obs, **kwargs):
 
 
 class GrahamObservation:
-    def __init__(self, sn_name, data, sigma=3):
+    def __init__(self, sn_name, data, sigma=3, sed='ab'):
         """Initialize observation.
         Inputs:
             sn_name: supernova name
             data: DataFrame of Graham nondetection limits
+            sed: underlying spectral energy distribution
         """
 
         # Get data
@@ -149,6 +151,9 @@ class GrahamObservation:
         self.detection = self.info['Detection']
         # Luminosity limit
         self.luminosity_limit = self.get_luminosity_limit(sigma)
+        # Correct for different SED
+        if sed != 'ab':
+            self.luminosity_limit *= gen_calibration(self.z, 'F275W', sed=sed)
 
         # Detections
         if self.detection:
@@ -156,6 +161,8 @@ class GrahamObservation:
             # luminosity (erg/s/AA)
             self.luminosity = freq2wavelength(self.luminosity_hz, 
                     F275W_LAMBDA_EFF * u.AA)
+            if sed != 'ab':
+                self.luminosity *= gen_calibration(self.z, 'F275W', sed)
             self.luminosity_err = self.get_luminosity_limit(1)
 
 
