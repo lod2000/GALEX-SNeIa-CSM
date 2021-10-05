@@ -15,8 +15,9 @@ ITERATIONS = 10000 # injection-recovery iterations per SN
 TSTART_BIN_WIDTH = 100 # horizontal bin width for recovery plot
 
 # Default directories
-SAVE_DIR = Path('/mnt/d/injection_recovery_runs')
-# SAVE_DIR = Path('save')
+# SAVE_DIR = Path('/mnt/d/injection_recovery_runs')
+# SAVE_DIR = Path('C:\\Users\\dubay.11\\Documents\\GALEXdata_v10\\inj_rec')
+SAVE_DIR = Path('save')
 DATA_DIR = Path('data')
 OUTPUT_DIR = Path('out')
 

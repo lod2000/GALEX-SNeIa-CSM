@@ -183,7 +183,7 @@ def plot_quad(x_edges, y_edges, sn_label=[], detections=False, upper_lim=False,
     # Legend for detections
     if len(det_hist) > 0 and not upper_lim:
         fig.legend(loc='upper left', ncol=2, handletextpad=0.8, handlelength=2.,
-                borderpad=0.5)
+                borderpad=0.5, bbox_to_anchor=(0., 0.98))
 
     # Adjust colorbar bounds: add extension below lower limit
     if upper_lim:

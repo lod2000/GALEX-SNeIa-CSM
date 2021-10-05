@@ -12,6 +12,7 @@ from astropy.constants import c
 
 from supernova import Supernova
 from utils import *
+from calibrate_sed import gen_calibration
 
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
@@ -179,8 +180,14 @@ def plot(sn, tmax=4000, pad=0, swift=False, cfa=False, legend_col=3, show=True,
 
 
 class LightCurve:
-    def __init__(self, sn, band, data_dir=LC_DIR, **kwargs):
-        """Import light curve data and calculate background & luminosity."""
+    def __init__(self, sn, band, data_dir=LC_DIR, sed='ab', **kwargs):
+        """Import light curve data and calculate background & luminosity.
+        Inputs:
+            sed: assumed underlying spectral energy density. 'ab' assumes
+                standard flux of AB zero point (flat in f_nu), 'Chev94' assumes
+                Chev94 line-emission model for CSM, and 'flat' assumes flat 
+                in f_lambda) model for CSM.
+        """
 
         self.sn_name = sn.name
         self.band = band
@@ -206,6 +213,10 @@ class LightCurve:
         data['flux_hostsub'] = data['flux_bgsub'] - self.bg
         data['flux_hostsub_err'] = np.sqrt(data['flux_bgsub_err_total']**2 +
                 self.bg_err**2)
+        
+        # Correct for SED assumption
+        if sed != 'ab':
+            data['flux_hostsub'] *= gen_calibration(sn.z, band, sed=sed)
 
         # Calculate luminosity
         data = add_luminosity(data, sn, band)
