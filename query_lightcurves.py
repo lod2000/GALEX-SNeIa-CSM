@@ -16,8 +16,8 @@ INRAD = 10.
 OUTRAD = 15.
 
 LCpath = 'historical_LCs'
-# gAp_cmd='/home/dubay.11/anaconda3/bin/gAperture'
-gAp_cmd = Path('C:\\Users\\dubay.11\\Anaconda3\\Scripts\\gAperture')
+gAp_cmd='/home/dubay.11/anaconda3/bin/gAperture'
+# gAp_cmd = Path('C:\\Users\\dubay.11\\Anaconda3\\Scripts\\gAperture')
 
 INTERVAL = 60
 
@@ -44,7 +44,7 @@ class Wrapper:
 		print('Starting query for: %s (band=%s) -> %s' % (self.name, self.band, self.csv))
 		cmd = make_cmd(ra=self.ra, dec=self.dec, csvff=self.csv, band=self.band)
 		self.starttime = datetime.utcnow()
-		self.process = subprocess.Popen(cmd, shell=True)
+		self.process = subprocess.Popen(cmd)
 
 	def check(self):
 		status = self.process.poll()
@@ -58,7 +58,7 @@ class Wrapper:
 
 def main(count=None):
 
-	catalog = pd.read_csv(Path('out/nearby_historical.csv'))
+	catalog = pd.read_csv(Path('out/nearby_historical_obs.csv'))
 	bands = catalog['band']
 	RA, DEC = convert_coords(catalog['ra'], catalog['dec'])
 
@@ -109,7 +109,7 @@ def check_running(procs):
 	return keep
 
 def clean_empty_lcs():
-	for ff in glob.glob('LCs/*.csv'):
+	for ff in glob.glob('historical_LCs/*.csv'):
 		Nlines = len([line.strip() for line in open(ff, 'r').readlines()])
 		if Nlines <= 1: os.remove(ff)
 

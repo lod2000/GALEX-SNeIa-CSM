@@ -20,7 +20,7 @@ DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
 # LC_DIR = Path('data')
 LC_DIR = Path('historical_LCs')
 REF_FILE = Path('ref/sn_info.csv') # SN info reference database
-# REF_FILE = Path('out/nearby_historical.csv')
+# REF_FILE = Path('out/nearby_historical_all.csv')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
@@ -509,8 +509,8 @@ def plot_lc(ax, lc, tmax, all_points=False, plot_bg=True):
         )
 
     # Plot observed fluxes after discovery: detections
-    # after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
-    after = lc.data[lc(time_col, tmax=tmax) > DT_MIN]
+    after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
+    # after = lc.data[lc(time_col, tmax=tmax) > DT_MIN]
     # if 'all_points', plot points with error bars for all observations
     # otherwise, just plot detections with limits for everything else
     if all_points:

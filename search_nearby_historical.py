@@ -18,6 +18,7 @@ observations.index = pd.Series(id_col, name='id')
 post_disc = observations[observations['epochs_pre_disc'] == 0]
 # Combine above selections
 obs_df = post_disc[post_disc['sn_name'].isin(nearby.index)]
+# obs_df.to_csv('out/nearby_historical_obs.csv')
 sne = obs_df['sn_name'].drop_duplicates()
 cols = ['disc_date', 'epochs_fuv', 'epochs_nuv', 't_delta_first',
         't_delta_last']
