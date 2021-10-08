@@ -10,7 +10,7 @@ def main(name, band, ra=None, dec=None):
     #parse coords
     if ra is None and dec is None:
         ra, dec = get_coords(name)
-    elif 'h' in ra and 'd' in ra:
+    elif 'h' in ra and 'd' in dec:
         coord = SkyCoord(ra, dec)
         ra = coord.ra.deg
         dec = coord.dec.deg

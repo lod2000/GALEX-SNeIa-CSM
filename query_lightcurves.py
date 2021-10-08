@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import os, sys, shutil, glob
 import subprocess
+from pathlib import Path
 from gPhoton import gMap, gAperture as gAp
 import pandas as pd
 from astropy.coordinates import SkyCoord
@@ -15,7 +16,8 @@ INRAD = 10.
 OUTRAD = 15.
 
 LCpath = 'historical_LCs'
-gAp_cmd='/home/dubay.11/anaconda3/bin/gAperture'
+# gAp_cmd='/home/dubay.11/anaconda3/bin/gAperture'
+gAp_cmd = Path('C:\\Users\\dubay.11\\Anaconda3\\Scripts\\gAperture')
 
 INTERVAL = 60
 
@@ -42,7 +44,7 @@ class Wrapper:
 		print('Starting query for: %s (band=%s) -> %s' % (self.name, self.band, self.csv))
 		cmd = make_cmd(ra=self.ra, dec=self.dec, csvff=self.csv, band=self.band)
 		self.starttime = datetime.utcnow()
-		self.process = subprocess.Popen(cmd)
+		self.process = subprocess.Popen(cmd, shell=True)
 
 	def check(self):
 		status = self.process.poll()
