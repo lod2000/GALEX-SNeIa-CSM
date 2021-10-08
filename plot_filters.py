@@ -1,38 +1,31 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from pathlib import Path
 
-fig, ax = plt.subplots()
+fig, axs = plt.subplots(2, figsize=(3.25, 3.25), sharex=True, sharey=True)
 
 # Import reference info
 ref = pd.read_csv(Path('ref/filters.csv'), index_col='name')
 
 for name, f in ref.iterrows():
+    # Two panels: GALEX/HST and comparison
+    if name in ['FUV', 'NUV', 'F275W']:
+        ax = axs[0]
+    else:
+        ax = axs[1]
+    
     label = ' '.join([f.display_name, name])
     # Import response file
     array = pd.read_csv(Path('ref/%s.resp' % name), names=['freq', 'resp'],
             sep=' ', index_col=0)
 
     # Normalize response curve
-    # d_lambda = (array.index[-1] - array.index[0]) / len(array.index)
-    # array['resp_norm'] = array.resp / (array.resp.sum() * d_lambda)
-    # norm = array / (array.sum() * d_lambda)
     norm = array / array.resp.max()
 
     # Limit tail end of distribution
     ymin = 0.05
-    # if f.instrument == 'Swift':
-    # ymax = norm.resp.max()
-    # ymin = 0.075 * ymax
     norm = norm[norm.resp > ymin]
-
-    # convert effective area to throughput
-    # if f.type == 'effective area':
-    #     array.resp = array.resp/(np.pi * f.aperture_radius**2)
-
-    # array.resp *= 100
 
     # Add in-plot labeling
     pad_y = 0.05
@@ -43,27 +36,33 @@ for name, f in ref.iterrows():
               'below': -pad_y, 
               'middle': norm.max()/2,
               'bottom': pad_y}
-    if f.instrument == 'GALEX':
-        text_size = 10
-        weight = 'bold'
-    else:
-        text_size = 10
-        weight = 'normal'
+    # if f.instrument == 'GALEX':
+    #     text_size = 10
+    #     weight = 'bold'
+    # else:
+    text_size = 10
+    weight = 'normal'
     ax.text(text_x[f.label_x] + f.pad_x, text_y[f.label_y], name, ha='center',
             va='bottom', 
             size=text_size, c=f.color, weight=weight)
 
     # Plot filter response curve
-    ax.plot(norm.index, norm.resp, label=label, ls=f.style, alpha=f.alpha, 
+    ax.plot(norm.index, norm.resp, label=label, ls=f.style, alpha=1, 
             c=f.color)
 
-ax.set_ylim((-pad_y, 1.2))
-ax.set_xlabel('Wavelength [Å]')
-ax.set_ylabel('Normalized Filter Response')
-# ax.yaxis.set_ticklabels([])
+for ax in axs:
+    ax.set_ylim((-pad_y, 1.2))
+axs[1].set_xlabel('Wavelength [Å]')
+
+# Add big axis label
+fig.add_subplot(111, frameon=False)
+# hide tick and tick label of the big axis
+plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, 
+                left=False, right=False)
+plt.ylabel('Normalized Filter Response')
 
 plt.tight_layout(pad=0.3)
 
-plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=600)
-plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=600)
+# plt.savefig(Path('out/filters.pdf'), bbox_inches='tight', dpi=600)
+# plt.savefig(Path('out/filters.png'), bbox_inches='tight', dpi=600)
 plt.show()
