@@ -16,11 +16,11 @@ from calibrate_sed import gen_calibration
 
 # Default file and directory paths
 DATA_DIR = Path('/mnt/d/GALEXdata_v10')     # Path to data directory
-#LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
+# LC_DIR = DATA_DIR / Path('LCs/')            # light curve data dir
 # LC_DIR = Path('data')
 LC_DIR = Path('historical_LCs')
-REF_FILE = Path('ref/sn_info.csv') # SN info reference database
-# REF_FILE = Path('out/nearby_historical_all.csv')
+# REF_FILE = Path('ref/sn_info.csv') # SN info reference database
+REF_FILE = Path('out/nearby_historical_nearpeak.csv')
 
 # GALEX spacecraft plate scale
 PLATE_SCALE = 6 * u.arcsec / u.pix
@@ -75,9 +75,13 @@ def main(sn_name, make_plot=False, sigma=SIGMA, count=SIGMA_COUNT, tmax=4000,
             print('Upper limits:')
             upper_lims = pd.DataFrame([])
             upper_lims['t_delta_rest'] = lc('t_delta_rest')
+            upper_lims['flux_bgsub'] = lc('flux_bgsub')
             upper_lims['flux_limit'] = lc('flux_hostsub_err') * DET_SIGMA
             upper_lims['luminosity_limit'] = lc('luminosity_hostsub_err') * DET_SIGMA
-            print(upper_lims[upper_lims['t_delta_rest'] > 0][limit_cols])
+            print(upper_lims[upper_lims['t_delta_rest'] > 0])
+            print('Flux mean:', np.mean(upper_lims['flux_bgsub']))
+            print('Flux stdev:', np.std(upper_lims['flux_bgsub']))
+            print('Flux RMS:', np.sqrt(np.mean(upper_lims['flux_bgsub']**2)))
         except FileNotFoundError:
             print('No data available.')
 
@@ -509,8 +513,8 @@ def plot_lc(ax, lc, tmax, all_points=False, plot_bg=True):
         )
 
     # Plot observed fluxes after discovery: detections
-    after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
-    # after = lc.data[lc(time_col, tmax=tmax) > DT_MIN]
+    # after = lc.data[(lc(time_col) > DT_MIN) & (lc(time_col) < tmax)]
+    after = lc.data[lc(time_col, tmax=tmax) > DT_MIN]
     # if 'all_points', plot points with error bars for all observations
     # otherwise, just plot detections with limits for everything else
     if all_points:
